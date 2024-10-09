@@ -1,12 +1,13 @@
-from django.contrib.auth.forms import *
+from django.shortcuts import render, redirect
+from .forms import RegisterForm
 
 def sign_up(request):
     if request.method == 'POST':
-        form = RegistrationForm(request.post)
+        form = RegisterForm(request.post)
         if form.is_valid():
             user = form.save()
-            login(request,user)
+            #login(request,user)
             return redirect('/')
     else:
-        form = RegistrationForm()
+        form = RegisterForm()
     return render(request, 'register.html', {'form': form})
