@@ -1,7 +1,26 @@
-import logo from './logo.svg';
+import logo from '../../static/logo.svg';
 import './App.css';
+import React, { useEffect, useState } from 'react';
 
 function App() {
+
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+
+    (async () => {
+      fetch('http://localhost:8000/testapi/api/data/')
+      .then(async (response) => {
+        const val = await response.json();
+        console.log("val: ", val)
+        return val;
+
+  })
+      .then((data) => setData(data));
+    })();
+    
+  }, []);
+
   return (
     <div className="App">
       <header className="App-header">
@@ -18,6 +37,7 @@ function App() {
           Learn React
         </a>
       </header>
+      <h1>{data ? data.message : 'Loading...'}</h1>
     </div>
   );
 }

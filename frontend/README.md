@@ -1,3 +1,7 @@
+# Note:
+In order to use reactjs, you have to first install nodejs, which is what were gonna use to install our packages:
+[nodeJs](https://nodejs.org/en)
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
@@ -5,6 +9,7 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 ## Available Scripts
 
 In the project directory, you can run:
+Go to the frontend directory, run a npm install, then run the following command
 
 ### `npm start`
 
@@ -13,6 +18,8 @@ Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
 The page will reload when you make changes.\
 You may also see any lint errors in the console.
+
+### These other commands we don't have to use
 
 ### `npm test`
 
