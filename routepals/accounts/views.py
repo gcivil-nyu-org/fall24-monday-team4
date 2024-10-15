@@ -3,6 +3,7 @@ from django.contrib.auth import login
 from django.shortcuts import render, redirect
 from .forms import SignUpForm
 
+# Post user account sign up form
 def SignUp(request):
     if request.method == "POST":
         form = SignUpForm(request.POST)
