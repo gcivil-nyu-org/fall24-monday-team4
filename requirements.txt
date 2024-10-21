@@ -1,5 +1,9 @@
 asgiref==3.8.1
-Django==5.1.2
 psycopg2-binary==2.9.10
+beautifulsoup4==4.12.3
+Django==4.2.16
+django-bootstrap-v5==1.0.11
+pytz==2024.2
+soupsieve==2.6
 sqlparse==0.5.1
 typing_extensions==4.12.2
