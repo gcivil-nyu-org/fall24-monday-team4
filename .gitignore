@@ -2,7 +2,10 @@
 *.log
 *.pot
 *.pyc
-__pycache__
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+
 db.sqlite3
 media
 

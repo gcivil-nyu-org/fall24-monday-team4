@@ -25,7 +25,9 @@ SECRET_KEY = 'django-insecure-14x!#2=#x#@j4u+09$5th_%xauu7o2jix955dm&z7$^r5oi$h@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["RoutePals-dev.us-east-1.elasticbeanstalk.com", "127.0.0.1"]
+ALLOWED_HOSTS = ["RoutePals-dev.us-east-1.elasticbeanstalk.com",
+                 "localhost",
+                 "127.0.0.1"]
 
 
 # Application definition
@@ -38,8 +40,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'accounts',
+    'django.contrib.gis',
+    'locations',
     'bootstrap5',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -76,12 +81,15 @@ WSGI_APPLICATION = 'routepals.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    "default": {
+        "ENGINE": "django.contrib.gis.db.backends.postgis",
+        "NAME": "routepals",  # Your database name
+        "USER": "geo",        # Your PostgreSQL user
+        "PASSWORD": "12345",  # The password you set for the user
+        "HOST": "localhost",  # Or your database host
+        "PORT": "5432",       # Default PostgreSQL port "5432"
+    },
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
