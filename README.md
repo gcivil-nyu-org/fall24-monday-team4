@@ -80,3 +80,4 @@ Note: You might need to run these commands instead after setting up the database
 `python3 manage.py makemigrations`  
 `python3 manage.py migrate`  
 `python3 manage.py dbshell`
+`python3 manage.py runserver`
