@@ -30,7 +30,7 @@ DEBUG = True
 #                  "localhost",
 #                  "127.0.0.1"]
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["172.31.45.181"]
 
 
 # Application definition
