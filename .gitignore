@@ -2,6 +2,12 @@
 *.log
 *.pot
 *.pyc
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
 # Ignore Python cache files
 __pycache__/
 *.py[cod]
