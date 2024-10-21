@@ -4,16 +4,11 @@
 
 {% block content %}
 {% if user.is_authenticated %}
-Hi {{ user.username }}! Welcome to Route Pals.
-<p><a href="{% url 'password_change' %}">Password Change</a></p>
-<form action="{% url 'logout' %}" method="post">
-    {% csrf_token %}
-    <button type="submit">Log Out</button>
-</form>
+<p>Hi {{ user.username }}! Welcome to Route Pals.</p>
+<p><a class="btn btn-primary btn-lg" href="{% url 'password_change' %}" role="button">Password Change</a></p>
 {% else %}
-<p>You are not logged in</p>
-<p><a href="/accounts/signup">Sign Up</a></p>
-<p><a href="{% url 'password_reset' %}">Password Reset</a></p>
-<a href="{% url 'login' %}">Log In</a>
+<p>Welcome to Route Pals.</p>
+<p><a class="btn btn-secondary btn-lg" href="/accounts/signup" role="button">Sign Up</a></p>
+<a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Log In</a>
 {% endif %}
 {% endblock %}

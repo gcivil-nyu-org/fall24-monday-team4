@@ -1,15 +1,40 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>{% block title %}Route Pals{% endblock %}</title>
+  {% load static %}
+  <meta charset="UTF-8">
+  <title>RoutePals - {% block title %}{% endblock %}</title>
+  {% load bootstrap5 %}
+  {% bootstrap_css %}
+  <link rel="stylesheet" href="https://unpkg.com/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 </head>
-
 <body>
-    <main>
-        {% block content %}
-        {% endblock %}
-    </main>
+  <div class="container-fluid">
+    
+    <nav class="navbar navbar-expand-lg navbar-light p-3 mb-2 bg-dark bg-gradient text-white">
+      <a class="navbar-brand text-light" href="/">RoutePals</a>
+      {% if user.is_authenticated %}
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item">
+            <a class="nav-link link-light" href="/">Home</a>
+          </li>
+          <!-- Add more nav items here as needed -->
+        </ul>
+      </div>
+      <span class="navbar-text">
+        <form class="form-inline" action="{% url 'logout' %}" method="post">
+          {% csrf_token %}
+          <button class="btn btn-outline-light" type="submit">Log Out</button>
+        </form>
+      {% endif %}
+      </span>
+    </nav>
+    <div class="container mt-3">
+      {% block content %}
+      {% endblock %}
+    </div>
+  </div>
+  {% bootstrap_javascript %}
 </body>
 </html>
