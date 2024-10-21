@@ -76,7 +76,7 @@ Check the Current Database: Run the following command in your Django shell to co
 
 If it connects to PostgreSQL, you'll see the psql prompt. If it’s still SQLite, you’ll see nothing or an error.
 
-Note: You might need to run these commands after setting up the databases:  
+Note: You might need to run these commands instead after setting up the databases:  
 `python3 manage.py makemigrations`  
 `python3 manage.py migrate`  
 `python3 manage.py dbshell`
