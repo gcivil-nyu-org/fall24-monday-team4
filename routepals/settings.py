@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-14x!#2=#x#@j4u+09$5th_%xauu7o2jix955dm&z7$^r5oi$h@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["RoutePals-dev.us-east-1.elasticbeanstalk.com", "localhost"]
+ALLOWED_HOSTS = ["RoutePals-dev.us-east-1.elasticbeanstalk.com", "127.0.0.1", "localhost"]
 
 
 # Application definition
@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'accounts',
+    'bootstrap5',
 ]
 
 MIDDLEWARE = [
@@ -114,7 +115,7 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = 'static'
 
 # Default primary key field type

@@ -3,11 +3,25 @@
 {% block title %}Sign Up{% endblock %}
 
 {% block content %}
-<h2>Sign Up</h2>
-<h4>Only NYU students can use Route Pals. Please sign up using your NYU email.</h4>
-<form method="POST" class="form-group">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Sign Up</button>
-</form>
+
+<section class="vh-100">
+    <div class="container-fluid h-custom p-3 mb-2">
+      <div class="row d-flex justify-content-center align-items-center h-100">
+        <div class="col-md-9 col-lg-6 col-xl-5">
+          <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-login-form/draw2.webp"
+            class="img-fluid" alt="Sample Image">
+        </div>
+        <div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1">
+          <h5>Only NYU students can use Route Pals. Please sign up using your NYU email.</h5>
+          <br/>
+          <form method="POST" class="form-group">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary btn-lg"
+                      style="padding-left: 2.5rem; padding-right: 2.5rem;">Sign Up</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
 {% endblock %}
