@@ -1,3 +1,14 @@
+# The easiest way to get started with PostgreSQL on the Mac
+
+1. Download Postgres.app from https://postgresapp.com/. Postgres.app contains both PostgreSQL and its extension PostGIS. I downloaded Postgres.app with PostgreSQL 16 (Universal).
+
+2. After installing Postgres.app, add the following to your `.bash_profile` so you can run the package’s programs from the command-line. Replace `X.Y` with the version of PostgreSQL in the Postgres.app you installed:  
+   `export PATH=$PATH:/Applications/Postgres.app/Contents/Versions/X.Y/bin`.  
+   You can check if the path is set up correctly by typing `which psql` at a terminal prompt.
+
+3. You will also need to install `gdal` and `libgeoip` with Homebrew.
+
+# Alternative option:
 # Postgres Setup Instructions
 
 ## Install Required Unix/Linux Packages
@@ -64,3 +75,8 @@ Check the Current Database: Run the following command in your Django shell to co
 `python manage.py dbshell`
 
 If it connects to PostgreSQL, you'll see the psql prompt. If it’s still SQLite, you’ll see nothing or an error.
+
+Note: You might need to run these commands after setting up the databases:  
+`python3 manage.py makemigrations`  
+`python3 manage.py migrate`  
+`python3 manage.py dbshell`
