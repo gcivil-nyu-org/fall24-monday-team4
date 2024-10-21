@@ -1,9 +1,13 @@
 branch-defaults:
   develop:
-    environment: null
+    environment: RoutePals-dev
     group_suffix: null
   tempDev:
     environment: RoutePals-dev
+environment-defaults:
+  RoutePals-dev:
+    branch: null
+    repository: null
 global:
   application_name: RoutePals
   branch: null
