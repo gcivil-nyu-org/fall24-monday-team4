@@ -21,7 +21,7 @@
                 <div class="card-body">
                     <hr />
                     <h2 class="username">{{ profile.user.username }}</h2>
-                    <div class="row">
+                    <div class="row justify-content-center">
                         <div class="col">
                             <h5>Name:</h5>
                         </div>
@@ -29,7 +29,7 @@
                             <p>{{ profile.user.first_name }} {{ profile.user.last_name }}</p>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="row justify-content-center">
                         <div class="col">
                             <h5>Email:</h5>
                         </div>
@@ -44,19 +44,23 @@
                             <button type="icon" class="btn btn-outline-dark btn-sm" id="edit-button"><i class="fa-solid fa-pen-to-square"></i></button>
                         </div>
                     </div>
+                    <form method="POST" id="bio-form">
+                        {% csrf_token %}
+                        <div class="form-group" style="margin: 1rem">
+                            <textarea
+                                    class="form-control"
+                                    name="bio"
+                                    id="user-bio"
+                                    rows="5"
+                                    readonly
+                                    placeholder="{% if profile.bio %}Add Information About Yourself{% else %}No information added yet.{% endif %}">{% if profile.bio %}{{ profile.bio }}{% endif %}</textarea>
+                        </div>
 
-                    <div class="form-group" style="margin: 1rem">
-                        {% if profile.bio %}
-                            <textarea readonly class="form-control" id="user-bio" rows="5">{{ profile.bio }}</textarea>
-                        {% else %}
-                            <textarea readonly class="form-control" id="user-bio" rows="5">No information added yet.</textarea>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-group" id="edit-controls" style="display: none; margin: 1rem;">
-                        <button type="button" class="btn btn-sm btn-success" id="save-button">Save</button>
-                        <button type="button" class="btn btn-sm btn-secondary" id="cancel-button">Cancel</button>
-                    </div>
+                        <div class="form-group" id="edit-controls" style="display: none; margin: 1rem;">
+                            <button type="submit" class="btn btn-sm btn-success" id="save-button">Save</button>
+                            <button type="button" class="btn btn-sm btn-secondary" id="cancel-button">Cancel</button>
+                        </div>
+                    </form>
                     <hr />
                     <div class="social-icons">
                         <i class="fa-brands fa-instagram fa-2x" style="margin: 1rem"></i>
@@ -83,12 +87,6 @@
         textarea.setAttribute('readonly', true);
         editControls.style.display = 'none';
         textarea.value = originalValue;
-    });
-
-    document.getElementById('save-button').addEventListener('click', () => {
-        originalValue = textarea.value;
-        textarea.setAttribute('readonly', true);
-        editControls.style.display = 'none';
     });
 </script>
 {% endblock %}
