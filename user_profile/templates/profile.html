@@ -1,9 +1,94 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Profile{% endblock %}
 
 {% block content %}
-<div>hey</div>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card profile-card text-center shadow" style="margin-top: 5rem">
+                {% if profile.photo_key %}
+                    <img src="" alt="User Picture">
+                {% else %}
+                    <div class="row justify-content-center">
+                        <div class="rounded-circle" style="width: 150px; height: 150px; background-color: black; margin-top: -75px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
+                            ?
+                        </div>
+                    </div>
+                {% endif %}
 
+                <div class="card-body">
+                    <hr />
+                    <h2 class="username">{{ profile.user.username }}</h2>
+                    <div class="row">
+                        <div class="col">
+                            <h5>Name:</h5>
+                        </div>
+                        <div class="col">
+                            <p>{{ profile.user.first_name }} {{ profile.user.last_name }}</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <h5>Email:</h5>
+                        </div>
+                        <div class="col">
+                            <p>{{ profile.user.email }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row justify-content-center" style="margin-top: 1rem; margin-bottom: 1rem;">
+                        <div class="col d-flex align-items-center justify-content-center">
+                            <h5 class="mb-0 me-2">About Me</h5>
+                            <button type="icon" class="btn btn-outline-dark btn-sm" id="edit-button"><i class="fa-solid fa-pen-to-square"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin: 1rem">
+                        {% if profile.bio %}
+                            <textarea readonly class="form-control" id="user-bio" rows="5">{{ profile.bio }}</textarea>
+                        {% else %}
+                            <textarea readonly class="form-control" id="user-bio" rows="5">No information added yet.</textarea>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group" id="edit-controls" style="display: none; margin: 1rem;">
+                        <button type="button" class="btn btn-sm btn-success" id="save-button">Save</button>
+                        <button type="button" class="btn btn-sm btn-secondary" id="cancel-button">Cancel</button>
+                    </div>
+                    <hr />
+                    <div class="social-icons">
+                        <i class="fa-brands fa-instagram fa-2x" style="margin: 1rem"></i>
+                        <i class="fa-brands fa-facebook fa-2x" style="margin: 1rem"></i>
+                        <i class="fa-brands fa-twitter fa-2x" style="margin: 1rem"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const editButton = document.getElementById('edit-button');
+    const textarea = document.getElementById('user-bio');
+    const editControls = document.getElementById('edit-controls');
+    let originalValue = textarea.value;
+
+    editButton.addEventListener('click', () => {
+        textarea.removeAttribute('readonly');
+        editControls.style.display = 'block';
+    });
+
+    document.getElementById('cancel-button').addEventListener('click', () => {
+        textarea.setAttribute('readonly', true);
+        editControls.style.display = 'none';
+        textarea.value = originalValue;
+    });
+
+    document.getElementById('save-button').addEventListener('click', () => {
+        originalValue = textarea.value;
+        textarea.setAttribute('readonly', true);
+        editControls.style.display = 'none';
+    });
+</script>
 {% endblock %}
