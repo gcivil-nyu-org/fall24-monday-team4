@@ -15,4 +15,4 @@ def profile_view(request):
         profile.save()
         return redirect('profile')
 
-    return render(request, 'profile.html', {'profile': profile})
+    return render(request, 'profile/user_profile.html', {'profile': profile})
