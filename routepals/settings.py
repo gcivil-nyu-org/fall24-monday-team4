@@ -102,7 +102,7 @@ else:
             "ENGINE": "django.contrib.gis.db.backends.postgis",
             "NAME": "routepals",  # Your database name
             "USER": "geo",        # Your PostgreSQL user
-            "PASSWORD": "12345678",  # The password you set for the user
+            "PASSWORD": "12345",  # The password you set for the user
             "HOST": "localhost",  # Or your database host
             "PORT": "5432",       # Default PostgreSQL port "5432"
         },
