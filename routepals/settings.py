@@ -85,16 +85,28 @@ WSGI_APPLICATION = 'routepals.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.contrib.gis.db.backends.postgis",
-        "NAME": "routepals",  # Your database name
-        "USER": "geo",        # Your PostgreSQL user
-        "PASSWORD": "12345",  # The password you set for the user
-        "HOST": "localhost",  # Or your database host
-        "PORT": "5432",       # Default PostgreSQL port "5432"
-    },
-}
+if 'RDS_HOSTNAME' in os.environ:
+    DATABASES = {
+        'default': {
+            "ENGINE": "django.contrib.gis.db.backends.postgis",
+            'NAME': os.environ['RDS_DB_NAME'],
+            'USER': os.environ['RDS_USERNAME'],
+            'PASSWORD': os.environ['RDS_PASSWORD'],
+            'HOST': os.environ['RDS_HOSTNAME'],
+            'PORT': os.environ['RDS_PORT'],
+        },
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.contrib.gis.db.backends.postgis",
+            "NAME": "routepals",  # Your database name
+            "USER": "geo",        # Your PostgreSQL user
+            "PASSWORD": "12345678",  # The password you set for the user
+            "HOST": "localhost",  # Or your database host
+            "PORT": "5432",       # Default PostgreSQL port "5432"
+        },
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
