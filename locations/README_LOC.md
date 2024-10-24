@@ -16,7 +16,7 @@
 1. `sudo apt update`
 2. `sudo apt install postgresql postgresql-contrib`
 3. `sudo apt-get install postgis`
-4. `sudo apt-get install python3-psycopg2 libgeos libproj libgdal libffi`
+4. `sudo apt-get install python3-psycopg2 libgeos-dev libproj-dev libgdal-dev libffi-dev`
 
 ## Install Required Python Environment Libraries
 
