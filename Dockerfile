@@ -6,24 +6,25 @@ ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Add deadsnakes PPA first, then do all apt-get operations in one layer
-RUN add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && apt-get install -y \
-    postgresql \
-    postgresql-contrib \
-    postgis \
-    libgeos-dev \
-    libproj-dev \
-    libgdal-dev \
-    libffi-dev \
+RUN apt-get update && apt-get install -y \
     software-properties-common \
-    python3.12 \
-    python3-pip \
-    python-is-python3 \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y \
+        postgresql \
+        postgresql-contrib \
+        postgis \
+        libgeos-dev \
+        libproj-dev \
+        libgdal-dev \
+        libffi-dev \
+        python3.12 \
+        python3-pip \
+        python-is-python3 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
 # Upgrade pip
-RUN pip install --upgrade pip
+RUN pip install --upgrade pip --break-system-packages
 
 # Set the working directory earlier
 WORKDIR /app
