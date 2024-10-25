@@ -10,3 +10,4 @@ requests==2.32.3
 soupsieve==2.6
 sqlparse==0.5.1
 typing_extensions==4.12.2
+gunicorn==23.0.0
