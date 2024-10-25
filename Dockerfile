@@ -11,8 +11,6 @@ RUN apt-get update && apt-get install -y \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update \
     && apt-get install -y \
-        postgresql \
-        postgresql-contrib \
         postgis \
         libgeos-dev \
         libproj-dev \
@@ -37,12 +35,11 @@ RUN pip3 install --no-cache-dir -r requirements.txt --break-system-packages
 COPY . .
 COPY entrypoint.sh /
 
-# Set entrypoint
-ENTRYPOINT ["sh", "/entrypoint.sh"]
-
 # Expose port
 EXPOSE 5000
 
+# Set entrypoint
+ENTRYPOINT ["sh", "/entrypoint.sh"]
 # Command to run the application
-CMD ["gunicorn", "routepals.wsgi:application", "-b", "0.0.0.0:5000"]
+# CMD ["gunicorn", "routepals.wsgi:application", "-b", "0.0.0.0:5000"]
 # CMD ["python3", "manage.py", "runserver", "0.0.0.0:5000"]
