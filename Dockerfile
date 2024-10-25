@@ -44,5 +44,5 @@ ENTRYPOINT ["sh", "/entrypoint.sh"]
 EXPOSE 5000
 
 # Command to run the application
-# CMD ["gunicorn", "routepals.wsgi:application", "-b", "0.0.0.0:5000"]
-CMD ["python3", "manage.py", "runserver", "0.0.0.0:5000"]
+CMD ["gunicorn", "routepals.wsgi:application", "-b", "0.0.0.0:5000"]
+# CMD ["python3", "manage.py", "runserver", "0.0.0.0:5000"]
