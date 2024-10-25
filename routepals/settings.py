@@ -103,7 +103,7 @@ else:
             "NAME": "routepals_db",  # Your database name
             "USER": "geo",        # Your PostgreSQL user
             "PASSWORD": "12345678",  # The password you set for the user
-            "HOST": "routepals.cxqqm4ygen29.us-east-1.rds.amazonaws.com",  # Or your database host
+            "HOST": "localhost",  # Or your database host
             "PORT": "5432",       # Default PostgreSQL port "5432"
         },
     }
