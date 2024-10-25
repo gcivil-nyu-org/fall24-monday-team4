@@ -23,9 +23,7 @@ RUN apt-get update && apt-get install -y \
         python-is-python3 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-# Upgrade pip
-RUN pip install --upgrade pip --break-system-packages
-
+    
 # Set the working directory earlier
 WORKDIR /app
 
