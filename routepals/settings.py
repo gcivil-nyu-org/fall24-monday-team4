@@ -83,16 +83,35 @@ WSGI_APPLICATION = 'routepals.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.contrib.gis.db.backends.postgis",
+#         "NAME": "routepals",  # Your database name
+#         "USER": "geo",        # Your PostgreSQL user
+#         "PASSWORD": "12345",  # The password you set for the user
+#         "HOST": "db",  # Or your database host
+#         "PORT": "5432",       # Default PostgreSQL port "5432"
+#     },
+# }
+
+from os import getenv
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.contrib.gis.db.backends.postgis",
-        "NAME": "routepals",  # Your database name
-        "USER": "geo",        # Your PostgreSQL user
-        "PASSWORD": "12345",  # The password you set for the user
-        "HOST": "localhost",  # Or your database host
-        "PORT": "5432",       # Default PostgreSQL port "5432"
-    },
+    'default': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': getenv('DATABASE_NAME', 'routepals'),
+        'USER': getenv('DATABASE_USER', 'geo'),
+        'PASSWORD': getenv('DATABASE_PASSWORD', '12345'),
+        'HOST': getenv('DATABASE_HOST', 'db'),
+        'PORT': '5432',
+    }
 }
+
+print(f"DATABASE_NAME: {os.getenv('DATABASE_NAME', 'routepals')}")
+print(f"DATABASE_USER: {os.getenv('DATABASE_USER', 'geo')}")
+print(f"DATABASE_PASSWORD: {os.getenv('DATABASE_PASSWORD', '12345')}")
+print(f"DATABASE_HOST: {os.getenv('DATABASE_HOST', 'db')}")
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

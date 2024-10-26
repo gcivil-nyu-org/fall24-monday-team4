@@ -1,0 +1,44 @@
+version: '3'
+services:
+  db:
+    image: postgis/postgis:12-3.5
+    hostname: db
+    environment:
+      - POSTGRES_USER=geo
+      - POSTGRES_PASSWORD=12345
+      - POSTGRES_DB=routepals
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    restart: unless-stopped
+    networks:
+      - my-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geo"]
+      interval: 10s
+      timeout: 5s
+
+  web:
+    build: .
+    command: bash -c "
+        python manage.py makemigrations
+        && python manage.py migrate
+        && python manage.py runserver 0.0.0.0:8000
+        "
+    environment:
+      - DEBUG=1
+      - DATABASE_HOST=db
+      - DATABASE_NAME=routepals
+      - DATABASE_USER=geo
+      - DATABASE_PASSWORD=12345
+    restart: on-failure
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    networks:
+      - my-network
+
+
+networks:
+  my-network:
+    driver: bridge
