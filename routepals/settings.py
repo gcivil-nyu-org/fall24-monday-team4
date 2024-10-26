@@ -42,8 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'locations',
-    #'bootstrap5',
-    'django_bootstrap5',
+    'bootstrap5',
     'user_profile',
     'fontawesomefree'
 ]
