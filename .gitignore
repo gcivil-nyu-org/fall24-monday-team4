@@ -1,4 +1,7 @@
-# Django #
+# Others
+codebase.txt
+
+# Django
 *.log
 *.pot
 *.pyc

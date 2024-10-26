@@ -1,20 +1,21 @@
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
+from django.http import JsonResponse
+from .models import UserLocation
 
 # Create your views here.
 
+@login_required(login_url='home')  # This will redirect to URL pattern named 'home'
 def show_location(request):
     return render(request, 'locations/show_location.html')
 
-"""
-from django.http import JsonResponse
-
 def save_user_location(request):
-    if request.method == "POST":
+    if request.method == "POST" and request.user.is_authenticated:
         latitude = request.POST.get('latitude')
         longitude = request.POST.get('longitude')
-        # Save the data to your database if needed
-        # Example: UserLocation.objects.create(user=request.user, latitude=latitude, longitude=longitude)
-        return JsonResponse({'status': 'Location saved successfully'})
-    return JsonResponse({'status': 'Invalid request'}, status=400)
-"""
-
+        UserLocation.objects.update_or_create(
+            user=request.user,
+            defaults={'latitude': latitude, 'longitude': longitude}
+        )
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'}, status=400)

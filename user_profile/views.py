@@ -1,11 +1,8 @@
 from .models import UserProfile
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-import logging
 
-logger = logging.getLogger(__name__)
-
-@login_required
+@login_required(login_url='home')
 def profile_view(request):
     profile = get_object_or_404(UserProfile, user=request.user)
 

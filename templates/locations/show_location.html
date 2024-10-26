@@ -1,47 +1,63 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Show My Location</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-        #map {
-            height: 500px;
-            width: 100%;
-        }
-    </style>
-</head>
-<body>
-    <h1>Your Current Location</h1>
-    <div id="map"></div>
-    <script>
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                const latitude = position.coords.latitude;
-                const longitude = position.coords.longitude;
+{% extends "base.html" %}
+{% load static %}
 
-                // Initialize the map and set its view to the user's location
-                const map = L.map('map').setView([latitude, longitude], 13);
+{% block title %}User Live Location{% endblock %}
 
-                // Add OpenStreetMap tiles
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap'
-                }).addTo(map);
+{% block content %}
+<h1>Your Current Location</h1>
+<div id="map" style="height: 500px; width: 100%;"></div>
 
-                // Add a marker for the user's location
-                L.marker([latitude, longitude]).addTo(map)
-                    .bindPopup('You are here!')
-                    .openPopup();
-            }, function() {
-                alert('Unable to retrieve your location.');
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    function convertToDMS(dd, isLat) {
+        const dir = isLat ? (dd > 0 ? 'N' : 'S') : (dd > 0 ? 'E' : 'W');
+        dd = Math.abs(dd);
+        const degrees = Math.floor(dd);
+        const minutes = Math.floor((dd - degrees) * 60);
+        const seconds = ((dd - degrees - minutes/60) * 3600).toFixed(1);
+        return `${degrees}°${minutes}'${seconds}"${dir}`;
+    }
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            // Initialize the map and set its view to the user's location
+            const map = L.map('map').setView([latitude, longitude], 13);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            // Add a marker for the user's location
+            L.marker([latitude, longitude]).addTo(map)
+                .bindPopup(`You are here:<br>
+                    Latitude: ${convertToDMS(latitude, true)} (${latitude})<br>
+                    Longitude: ${convertToDMS(longitude, false)} (${longitude})`)
+                .openPopup();
+
+            fetch('/locations/save-location/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: new URLSearchParams({
+                    'latitude': latitude,
+                    'longitude': longitude
+                })
             });
-        } else {
-            alert('Geolocation is not supported by this browser.');
-        }
-    </script>
-</body>
-</html>
-
+        }, function() {
+            alert('Unable to retrieve your location.');
+        }, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 10000
+        });
+    } else {
+        alert('Geolocation is not supported by this browser.');
+    }
+</script>
+{% endblock %}
