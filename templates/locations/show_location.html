@@ -17,6 +17,7 @@
     <h1>Your Current Location</h1>
     <div id="map"></div>
     <script>
+        // Check if Geolocation is supported
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
                 const latitude = position.coords.latitude;
@@ -35,6 +36,24 @@
                 L.marker([latitude, longitude]).addTo(map)
                     .bindPopup('You are here!')
                     .openPopup();
+
+                // Send location data to Django backend to save it
+                fetch('/locations/save-location/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}'  // Use CSRF token for security
+                    },
+                    body: `latitude=${latitude}&longitude=${longitude}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.status);  // Log the status message
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+
             }, function() {
                 alert('Unable to retrieve your location.');
             });
@@ -44,4 +63,3 @@
     </script>
 </body>
 </html>
-

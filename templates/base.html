@@ -11,10 +11,10 @@
   <link href="{% static 'fontawesomefree/css/fontawesome.css' %}" rel="stylesheet" type="text/css">
   <link href="{% static 'fontawesomefree/css/brands.css' %}" rel="stylesheet" type="text/css">
   <link href="{% static 'fontawesomefree/css/solid.css' %}" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-<!--  Profile Page CSS File-->
+  <!-- Profile Page CSS File -->
   <link rel="stylesheet" href="{% static 'css/profile.css' %}">
-
 </head>
 <body>
   <div class="container-fluid">
@@ -25,10 +25,13 @@
       <div class="collapse navbar-collapse">
         <ul class="navbar-nav mr-auto">
           <li class="nav-item">
-            <a class="nav-link link-light" href="/">Home</a>
+            <a class="nav-link link-light" href="{% url 'home' %}">Home</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link link-light" href="/profile">Profile</a>
+            <a class="nav-link link-light" href="{% url 'profile' %}">Profile</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link link-light" href="{% url 'show_location' %}">Request</a> <!-- Use Django's URL tag here -->
           </li>
           <!-- Add more nav items here as needed -->
         </ul>
@@ -40,13 +43,16 @@
         </form>
       </span>
       {% endif %}
-
     </nav>
+    
     <div class="container mt-3">
       {% block content %}
       {% endblock %}
     </div>
   </div>
+  
+  <!-- Include Bootstrap JavaScript for interactivity -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   {% bootstrap_javascript %}
 </body>
 </html>
