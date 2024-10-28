@@ -9,20 +9,13 @@ A brief description of your project goes here.
 ## Coverage
 With `&&service`
 
-[![Coverage Status](https://coveralls.io/repos/github/shashankdatta/swe-app1/badge.svg?branch=main&&service=github)](https://coveralls.io/github/shashankdatta/swe-app1?branch=main)
-
-Without `&&service`
-
-[![Coverage Status](https://coveralls.io/repos/github/shashankdatta/swe-app1/badge.svg?branch=main)](https://coveralls.io/github/shashankdatta/swe-app1?branch=main)
-
-Without `branch` and `&&service`
-
-[![Coverage Status](https://coveralls.io/repos/github/shashankdatta/swe-app1/badge.svg)](https://coveralls.io/github/shashankdatta/swe-app1?branch=main)
+## Coverage
+[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=develop)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=develop)
 
 ## Links
-1. [AWS EB Site](http://django-mysite-dev.us-west-2.elasticbeanstalk.com/polls)
-2. [GitHub Source](https://github.com/shashankdatta/swe-app1.git)
-2. [Travis CI Dashboard](https://app.travis-ci.com/github/shashankdatta/swe-app1/branches?serverType=git)
+1. [AWS EB Site](https://routepals-dev.us-west-2.elasticbeanstalk.com)
+2. [GitHub Source](https://github.com/gcivil-nyu-org/fall24-monday-team4.git)
+2. [Travis CI Dashboard](https://app.travis-ci.com/github/gcivil-nyu-org/fall24-monday-team4/branches?serverType=git)
 
 ## Setup Instructions
 
