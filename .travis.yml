@@ -1,0 +1,29 @@
+language: python
+
+install:
+  - pip install -r requirements.txt
+
+before_script:
+  - python manage.py migrate
+  - python manage.py collectstatic --noinput
+
+script:
+  - black --check .
+  - flake8 .
+  - coverage run manage.py test
+
+after_script:
+  - coveralls
+
+deploy:
+  provider: elasticbeanstalk
+  access_key_id: $AWS_ACCESS_ID
+  secret_access_key: $AWS_ACCESS_KEY
+  region: us-west-2
+  app: routepals
+  env: routepals-dev
+  bucket_name: elasticbeanstalk-us-west-2-241533117542
+  on:
+    repo: gcivil-nyu-org/fall24-monday-team4
+    branch: develop
+  skip_cleanup: 'true'
