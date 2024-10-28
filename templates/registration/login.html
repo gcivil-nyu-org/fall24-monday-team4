@@ -1,49 +1,35 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "registration/reg_base.html" %}
 
 {% block title %}Login{% endblock %}
 
-{% block content %}
+{% block fields %}
+<div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1">
+  <form method="post">
+    {% csrf_token %}
 
-<section class="vh-100">
-  <div class="container-fluid h-custom p-3 mb-2">
-    <div class="row d-flex justify-content-center align-items-center h-100">
-      <div class="col-md-9 col-lg-6 col-xl-5">
-        <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-login-form/draw2.webp"
-          class="img-fluid" alt="Sample Image">
-      </div>
-      <div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1">
-        <form method="post">
-          {% csrf_token %}
-          
-
-          <!-- Email input -->
-          <div data-mdb-input-init class="form-outline mb-4">
-            <label class="form-label" for="username">Username</label>
-            {{ form.username }}
-          </div>
-
-          <!-- Password input -->
-          <div data-mdb-input-init class="form-outline mb-3">
-            <label class="form-label" for="password">Password</label>
-            {{ form.password }}
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center">
-            <a href="{% url 'password_reset' %}" class="text-body">Forgot password?</a>
-          </div>
-
-          <div class="text-center text-lg-start mt-4 pt-2">
-            <button type="submit" class="btn btn-primary btn-lg"
-              style="padding-left: 2.5rem; padding-right: 2.5rem;">Login</button>
-            <p class="small fw-bold mt-2 pt-1 mb-0">Don't have an account? <a href="/accounts/signup"
-                class="link-danger">Register</a></p>
-          </div>
-
-        </form>
-      </div>
+    <!-- Email input -->
+    <div data-mdb-input-init class="form-outline mb-4">
+      <label class="form-label" for="username">Username</label>
+      {{ form.username }}
     </div>
-  </div>
-</section>
 
+    <!-- Password input -->
+    <div data-mdb-input-init class="form-outline mb-3">
+      <label class="form-label" for="password">Password</label>
+      {{ form.password }}
+    </div>
+
+    <!-- Password reset -->
+    <div class="d-flex justify-content-between align-items-center">
+      <a href="{% url 'password_reset' %}" class="text-body">Forgot password?</a>
+    </div>
+
+    <div class="text-center text-lg-start mt-4 pt-2">
+      <button type="submit" class="btn btn-primary btn-lg"
+        style="padding-left: 2.5rem; padding-right: 2.5rem;">Login</button>
+      <p class="small fw-bold mt-2 pt-1 mb-0">Don't have an account? <a href="/accounts/signup"
+          class="link-danger">Register</a></p>
+    </div>
+  </form>
+</div>
 {% endblock %}
