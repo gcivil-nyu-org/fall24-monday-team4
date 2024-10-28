@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Find Matches{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if error %}
+        <div class="alert alert-warning">
+            {{ error }}
+            <a href="{% url 'create_trip' %}" class="btn btn-primary ms-3">Create Trip</a>
+        </div>
+    {% else %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Your Trip</h4>
+            </div>
+            <div class="card-body">
+                <p>Departure: {{ user_trip.planned_departure }}</p>
+                <div id="user-trip-map" style="height: 200px;" class="mb-3"></div>
+            </div>
+        </div>
+
+        <h4>Potential Matches</h4>
+        {% if potential_matches %}
+            {% for match in potential_matches %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Match with {{ match.user.username }}</h5>
+                    <p>Departure: {{ match.planned_departure }}</p>
+                    <button class="btn btn-primary request-match" 
+                            data-trip-id="{{ match.id }}">
+                        Request Match
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                No matches found at this time. Check back later!
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Convert Django template variables to JSON
+    const userTrip = {
+        start_lat: "{{ user_trip.start_latitude|stringformat:'f' }}",
+        start_lng: "{{ user_trip.start_longitude|stringformat:'f' }}",
+        dest_lat: "{{ user_trip.dest_latitude|stringformat:'f' }}",
+        dest_lng: "{{ user_trip.dest_longitude|stringformat:'f' }}"
+    };
+
+    const map = L.map('user-trip-map').setView([
+        parseFloat(userTrip.start_lat), 
+        parseFloat(userTrip.start_lng)
+    ], 12);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // Add markers for start and destination
+    const startMarker = L.marker([
+        parseFloat(userTrip.start_lat), 
+        parseFloat(userTrip.start_lng)
+    ]).addTo(map).bindPopup('Your Start Location');
+
+    const destMarker = L.marker([
+        parseFloat(userTrip.dest_lat), 
+        parseFloat(userTrip.dest_lng)
+    ]).addTo(map).bindPopup('Your Destination');
+
+    // Draw route line
+    const routeLine = L.polyline([
+        [parseFloat(userTrip.start_lat), parseFloat(userTrip.start_lng)],
+        [parseFloat(userTrip.dest_lat), parseFloat(userTrip.dest_lng)]
+    ], {color: 'blue'}).addTo(map);
+
+    // Fit map to show entire route
+    map.fitBounds(routeLine.getBounds(), {padding: [50, 50]});
+</script>
+{% endblock %}

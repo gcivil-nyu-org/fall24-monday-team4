@@ -2,6 +2,8 @@
 codebase.txt
 commands.txt
 commands.md
+claude checkpoint.txt
+SSL/
 
 # Django
 *.log

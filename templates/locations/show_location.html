@@ -6,6 +6,7 @@
 {% block content %}
 <h1>Your Current Location</h1>
 <div id="map" style="height: 500px; width: 100%;"></div>
+{% csrf_token %}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -18,43 +19,45 @@
         return `${degrees}°${minutes}'${seconds}"${dir}`;
     }
     
+    function updateLocation(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        // Initialize the map
+        const map = L.map('map').setView([latitude, longitude], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Add marker
+        L.marker([latitude, longitude]).addTo(map)
+            .bindPopup(`You are here:<br>
+                Latitude: ${convertToDMS(latitude, true)} (${latitude})<br>
+                Longitude: ${convertToDMS(longitude, false)} (${longitude})`)
+            .openPopup();
+
+        // Save to database on each page load
+        fetch('/locations/save_location/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'  // Use CSRF token for security
+            },
+            body: new URLSearchParams({
+                'latitude': latitude,
+                'longitude': longitude
+            })
+        });
+    }
+    
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
-
-            // Initialize the map and set its view to the user's location
-            const map = L.map('map').setView([latitude, longitude], 13);
-
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
-
-            // Add a marker for the user's location
-            L.marker([latitude, longitude]).addTo(map)
-                .bindPopup(`You are here:<br>
-                    Latitude: ${convertToDMS(latitude, true)} (${latitude})<br>
-                    Longitude: ${convertToDMS(longitude, false)} (${longitude})`)
-                .openPopup();
-
-            fetch('/locations/save-location/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                },
-                body: new URLSearchParams({
-                    'latitude': latitude,
-                    'longitude': longitude
-                })
-            });
-        }, function() {
+        navigator.geolocation.getCurrentPosition(updateLocation, function() {
             alert('Unable to retrieve your location.');
         }, {
             enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 10000
+            timeout: 10000
         });
     } else {
         alert('Geolocation is not supported by this browser.');
