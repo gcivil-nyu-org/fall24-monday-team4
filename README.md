@@ -7,10 +7,7 @@ A brief description of your project goes here.
 [![Build Status](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4.svg?branch=develop)](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4)
 
 ## Coverage
-With `&&service`
-
-## Coverage
-[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=develop)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=develop)
+[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4)
 
 ## Links
 1. [AWS EB Site](https://routepals-dev.us-west-2.elasticbeanstalk.com)
