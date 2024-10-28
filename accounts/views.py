@@ -20,6 +20,15 @@ def WelcomeEmail(user):
     email.content_subtype = "html"
     email.send()
 
+def PasswordChangeConfirmationEmail(user):
+    subject = "Your Password Has Been Changed"
+    html_message = render_to_string('emails/password_change_confirmation.html', {
+        'username': user.username,
+    })
+    email = EmailMessage(subject, html_message, settings.DEFAULT_FROM_EMAIL, [user.email])
+    email.content_subtype = "html"
+    email.send()
+
 # Post user account sign up form
 def SignUp(request):
     if request.method == "POST":
@@ -38,6 +47,12 @@ class ChangePassword(PasswordChangeView):
     form_class = PasswordChangeForm
     success_url = reverse_lazy('home')
     template_name = 'registration/pwd_change.html'
+    success_message = "Your password has been changed successfully."
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        PasswordChangeConfirmationEmail(self.request.user)
+        return response
 
 
 class ResetPassword(SuccessMessageMixin, PasswordResetView):
