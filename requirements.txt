@@ -1,13 +1,10 @@
-asgiref==3.8.1
-beautifulsoup4==4.12.3
-charset-normalizer==3.4.0
 Django==4.2.16
 django-bootstrap-v5==1.0.11
 fontawesomefree==6.6.0
 psycopg2-binary==2.9.10
-pytz==2024.2
 requests==2.32.3
-soupsieve==2.6
-sqlparse==0.5.1
-typing_extensions==4.12.2
 python-dotenv==1.0.1
+black==24.10.0
+coverage==7.6.4
+coveralls==4.0.1
+flake8==7.1.1

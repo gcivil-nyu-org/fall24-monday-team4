@@ -1,0 +1,47 @@
+language: python
+dist: jammy 
+python:
+  - "3.10"
+
+services:
+  - postgresql
+
+addons:
+  postgresql: '14'
+
+install:
+  - pip install -r requirements.txt
+
+before_script:
+  - psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';" -U postgres
+  - psql -c "CREATE DATABASE $DB_NAME;" -U postgres
+  - psql -c "ALTER USER $DB_USER WITH SUPERUSER;" -U postgres
+  - python manage.py migrate
+  - python manage.py collectstatic --noinput
+
+env:
+  global:
+    - DB_NAME=$DB_NAME
+    - DB_USER=$DB_USER
+    - DB_PASSWORD=$DB_PASSWORD
+
+script:
+  - black --check .
+  - flake8 .
+  - coverage run manage.py test
+
+after_script:
+  - coveralls
+
+deploy:
+  provider: elasticbeanstalk
+  access_key_id: $AWS_ACCESS_ID
+  secret_access_key: $AWS_ACCESS_KEY
+  region: us-west-2
+  app: routepals
+  env: routepals-dev
+  bucket_name: elasticbeanstalk-us-west-2-241533117542
+  on:
+    repo: gcivil-nyu-org/fall24-monday-team4
+    branch: develop
+  skip_cleanup: 'true'

@@ -3,6 +3,20 @@
 ## Description
 A brief description of your project goes here.
 
+## Build Status
+[![Build Status](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4.svg?branch=develop)](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4)
+
+## Coverage
+With `&&service`
+
+## Coverage
+[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=develop)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=develop)
+
+## Links
+1. [AWS EB Site](https://routepals-dev.us-west-2.elasticbeanstalk.com)
+2. [GitHub Source](https://github.com/gcivil-nyu-org/fall24-monday-team4.git)
+2. [Travis CI Dashboard](https://app.travis-ci.com/github/gcivil-nyu-org/fall24-monday-team4/branches?serverType=git)
+
 ## Setup Instructions
 
 ### Prerequisites
