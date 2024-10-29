@@ -19,12 +19,6 @@ before_script:
   - python manage.py migrate
   - python manage.py collectstatic --noinput
 
-env:
-  global:
-    - DB_NAME=$DB_NAME
-    - DB_USER=$DB_USER
-    - DB_PASSWORD=$DB_PASSWORD
-
 script:
   - black --check .
   - flake8 .
