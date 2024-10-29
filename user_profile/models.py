@@ -8,4 +8,4 @@ class UserProfile(models.Model):
     photo_key = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
-        return {"username": self.user.username, "email": self.user.email}
+        return f"Profile for {self.user.username} ({self.user.email})"
