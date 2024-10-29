@@ -7,7 +7,7 @@ A brief description of your project goes here.
 [![Build Status](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4.svg?branch=develop)](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4)
 
 ## Coverage
-[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4)
+[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=traivisCICD)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=traivisCICD)
 
 ## Links
 1. [AWS EB Site](https://routepals-dev.us-west-2.elasticbeanstalk.com)
@@ -18,6 +18,7 @@ A brief description of your project goes here.
 
 ### Prerequisites
 - Ensure that Python is installed on your system. You can download it [here](https://www.python.org/downloads/).
+
 
 ### Commands
 

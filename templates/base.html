@@ -13,7 +13,7 @@
   <link href="{% static 'fontawesomefree/css/solid.css' %}" rel="stylesheet" type="text/css">
 
 <!--  Profile Page CSS File-->
-  <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+  <!-- <link rel="stylesheet" href="{% static 'css/profile.css' %}"> -->
 
 <!-- Show Location CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -30,6 +30,7 @@
           <li class="nav-item">
             <a class="nav-link link-light" href="/">Home</a>
           </li>
+          {% load static %}
           <li class="nav-item">
             <a class="nav-link link-light" href="/profile">Profile</a>
           </li>

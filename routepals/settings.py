@@ -192,4 +192,3 @@ EMAIL_HOST_USER = os.environ.get("EMAIL", "")
 EMAIL_HOST_PASSWORD = os.environ.get("APP_PASSWORD", "")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
