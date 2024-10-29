@@ -8,7 +8,6 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
 from django.contrib.messages.views import SuccessMessageMixin
-from django.contrib.auth.forms import PasswordChangeForm
 
 
 def WelcomeEmail(user):
