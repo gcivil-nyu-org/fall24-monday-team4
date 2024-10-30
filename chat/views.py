@@ -34,3 +34,4 @@ def create_chat_room(request):
     else:
         form = ChatRoomForm()
     return render(request, 'chat/create_chat_room.html', {'form': form})
+
