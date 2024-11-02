@@ -9,3 +9,4 @@ coverage==7.6.4
 coveralls==4.0.1
 flake8==7.1.1
 PyYAML==6.0.2
+awscli==1.35.20

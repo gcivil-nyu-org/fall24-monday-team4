@@ -5,6 +5,7 @@ commands.md
 claude checkpoint.txt
 SSL/
 reset_db.sh
+s3_utils.py
 
 # Django
 *.log
