@@ -4,6 +4,7 @@ commands.txt
 commands.md
 claude checkpoint.txt
 SSL/
+reset_db.sh
 
 # Django
 *.log
