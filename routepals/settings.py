@@ -165,7 +165,7 @@ LOGGING = {
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'America/New_York'  # for NYC
+TIME_ZONE = "America/New_York"  # for NYC
 USE_TZ = True
 
 USE_I18N = True

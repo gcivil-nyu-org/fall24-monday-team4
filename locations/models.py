@@ -3,6 +3,7 @@ from django.db import models
 # locations/models.py
 from django.contrib.auth.models import User
 
+
 class UserLocation(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     latitude = models.DecimalField(max_digits=11, decimal_places=6)
@@ -13,15 +14,16 @@ class UserLocation(models.Model):
         return {
             "username": self.user.username,
             "lat": self.latitude,
-            "long": self.longitude
+            "long": self.longitude,
         }
+
 
 class Trip(models.Model):
     STATUS_CHOICES = [
-        ('SEARCHING', 'Searching for companion'),
-        ('MATCHED', 'Matched'),
-        ('COMPLETED', 'Completed'),
-        ('CANCELLED', 'Cancelled')
+        ("SEARCHING", "Searching for companion"),
+        ("MATCHED", "Matched"),
+        ("COMPLETED", "Completed"),
+        ("CANCELLED", "Cancelled"),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -29,23 +31,30 @@ class Trip(models.Model):
     start_longitude = models.DecimalField(max_digits=11, decimal_places=6)
     dest_latitude = models.DecimalField(max_digits=11, decimal_places=6)
     dest_longitude = models.DecimalField(max_digits=11, decimal_places=6)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SEARCHING')
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="SEARCHING"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     planned_departure = models.DateTimeField()
 
     def __str__(self):
         return f"{self.user.username}'s trip on {self.created_at.date()}"
 
+
 class Match(models.Model):
     STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('ACCEPTED', 'Accepted'),
-        ('DECLINED', 'Declined')
+        ("PENDING", "Pending"),
+        ("ACCEPTED", "Accepted"),
+        ("DECLINED", "Declined"),
     ]
-    
-    requester = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='requested_matches')
-    receiver = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='received_matches')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+
+    requester = models.ForeignKey(
+        Trip, on_delete=models.CASCADE, related_name="requested_matches"
+    )
+    receiver = models.ForeignKey(
+        Trip, on_delete=models.CASCADE, related_name="received_matches"
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     created_at = models.DateTimeField(auto_now_add=True)
     room_id = models.CharField(max_length=100, unique=True, null=True)
 
