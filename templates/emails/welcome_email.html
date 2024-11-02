@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+        }
+        .text-center {
+            text-align: center;
+        }
+
+        .p-4 {
+            padding: 1.5rem;
+        }
+
+        .my-4 {
+            margin: 1.5rem 0;
+        }
+
+        .my-5 {
+            margin: 3rem 0;
+        }
+
+        .btn-primary {
+            background-color: #ffffff;
+            color: #0d6efd;
+            padding: 10px 20px;
+            border: 1px solid #0d6efd;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+    </style>
+</head>
+<body>
+<div class="container my-5">
+    <div class="content text-center p-4">
+        <h1 style="color: #343a40;">Welcome to RoutePals, {{ username }}!</h1>
+        <p style="color: #6c757d;">
+            Thank you for joining us! We're thrilled to have you onboard and can’t wait for you to explore everything we have to offer.
+        </p>
+    </div>
+
+    <div class="text-center my-4">
+        <a href="{{ website_link }}" class="btn-primary">Visit Our Website</a>
+    </div>
+</div>
+</body>
+</html>
