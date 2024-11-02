@@ -10,6 +10,9 @@
       id="id_chat_item_container"
       style="font-size: 20px"
     >
+      {% for message in messages %}
+      <div>{{message.user.username}} : {{message.message}}</div>
+      {% endfor %}
       <br />
       <input type="text" id="id_message_send_input" />
       <button type="submit" id="id_message_send_button">Send Message</button>
@@ -34,7 +37,13 @@
         var messageInput = document.querySelector(
           "#id_message_send_input"
         ).value;
-        chatSocket.send(JSON.stringify({ message: messageInput, username : "{{request.user.username}}"}));
+        chatSocket.send(
+          JSON.stringify({
+            message: messageInput,
+            username: "{{request.user.username}}",
+            chat_room: "{{chat_room.name}}"
+          })
+        );
       };
       chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
@@ -46,3 +55,4 @@
     </script>
   </body>
 </html>
+
