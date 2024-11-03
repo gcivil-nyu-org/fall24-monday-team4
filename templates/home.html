@@ -4,47 +4,95 @@
 
 {% block content %}
 {% if user.is_authenticated %}
-<p>Hi {{ user.username }}! Welcome to Route Pals.</p>
-
 <!-- Show map with user's current location if logged in -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<div class="container mt-4">
+    <h2>Create a Trip</h2>
+    <form method="POST" action="{% url 'create_trip' %}" class="mt-3" id="tripForm">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Departure Time</label>
+            <input type="datetime-local"
+                   name="planned_departure"
+                   class="form-control"
+                   required
+                   step="60"
+                   min="{{ current_time|date:'Y-m-d\TH:i' }}"
+                   value="{{ current_time|date:'Y-m-d\TH:i' }}">
+        </div>
+        
+        <!-- Hidden fields for coordinates -->
+        <input type="hidden" name="start_latitude" id="start_latitude">
+        <input type="hidden" name="start_longitude" id="start_longitude">
+        <input type="hidden" name="dest_latitude" id="dest_latitude">
+        <input type="hidden" name="dest_longitude" id="dest_longitude">
+
+        <div id="map" style="height: 400px;" class="mb-3"></div>
+        <p>Click on map to set destination</p>
+        
+        <button type="submit" class="btn btn-primary" id="submitTrip">Create Trip</button>
+    </form>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>
-    #map {
-        height: 500px;
-        width: 100%;
-    }
-</style>
- <div id="map"></div>
 <script>
+    let map;
+    let currentMarker;
+    let destMarker;
+    let currentPosition;
+
+    function initMap(position) {
+        currentPosition = position;
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        // Initialize map
+        map = L.map('map').setView([latitude, longitude], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Add marker for current location
+        currentMarker = L.marker([latitude, longitude])
+            .addTo(map)
+            .bindPopup('Your Location')
+            .openPopup();
+
+        // Click event to set destination
+        map.on('click', function(e) {
+            if (destMarker) {
+                map.removeLayer(destMarker);
+            }
+            destMarker = L.marker(e.latlng).addTo(map);
+            document.getElementById('dest_latitude').value = e.latlng.lat;
+            document.getElementById('dest_longitude').value = e.latlng.lng;
+        });
+    }
+
+    document.getElementById('tripForm').addEventListener('submit', function(e) {
+        if (!destMarker) {
+            e.preventDefault();
+            alert('Please select a destination on the map');
+            return;
+        }
+        
+        // Set start location only when form is submitted
+        document.getElementById('start_latitude').value = currentPosition.coords.latitude;
+        document.getElementById('start_longitude').value = currentPosition.coords.longitude;
+    });
+
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
-
-            // Initialize the map and set its view to the user's location
-            const map = L.map('map').setView([latitude, longitude], 13);
-
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
-
-            // Add a marker for the user's location
-            L.marker([latitude, longitude]).addTo(map)
-                .bindPopup('You are here!')
-                .openPopup();
-        }, function() {
-            alert('Unable to retrieve your location.');
+        navigator.geolocation.getCurrentPosition(initMap, function() {
+            alert('Unable to get your location');
         });
     } else {
-        alert('Geolocation is not supported by this browser.');
+        alert('Geolocation is not supported by this browser');
     }
 </script>
 {% else %}
 <p>Welcome to Route Pals.</p>
-<p><a class="btn btn-secondary btn-lg" href="/accounts/signup" role="button">Sign Up</a></p>
+<a class="btn btn-secondary btn-lg" href="{% url 'signup' %}" role="button">Sign Up</a>
 <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Log In</a>
 {% endif %}
 {% endblock %}

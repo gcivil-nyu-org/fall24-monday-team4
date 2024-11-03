@@ -28,19 +28,24 @@
       {% if user.is_authenticated %}
       <div class="collapse navbar-collapse">
         <ul class="navbar-nav mr-auto">
-          <li class="nav-item">
-            <a class="nav-link link-light" href="/">Home</a>
-          </li>
-          {% load static %}
-          <li class="nav-item">
-            <a class="nav-link link-light" href="/profile">Profile</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link link-light" href="/locations/show_location">Request</a>
-          </li>
-          <!-- Add more nav items here as needed -->
+            <li class="nav-item">
+                <a class="nav-link link-light" href="/">Home</a>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link link-light dropdown-toggle" href="#" id="matchesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Matches
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="matchesDropdown">
+                    <li><a class="dropdown-item" href="{% url 'locations:find_matches' %}">Find Matches</a></li>
+                    <li><a class="dropdown-item" href="{% url 'locations:sent_requests' %}">Sent Requests</a></li>
+                    <li><a class="dropdown-item" href="{% url 'locations:received_requests' %}">Received Requests</a></li>
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link link-light" href="/profile">Profile</a>
+            </li>
         </ul>
-      </div>
+    </div>
       <span class="navbar-text">
         <form class="form-inline" action="{% url 'logout' %}" method="post">
           {% csrf_token %}

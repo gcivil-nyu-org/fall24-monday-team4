@@ -6,36 +6,39 @@
     {% if error %}
         <div class="alert alert-warning">
             {{ error }}
-            <a href="{% url 'create_trip' %}" class="btn btn-primary ms-3">Create Trip</a>
+            <a href="{% url 'home' %}" class="btn btn-primary ms-3">Create Trip</a>
         </div>
     {% else %}
         <div class="card mb-4">
             <div class="card-header">
-                <h4>Your Trip</h4>
+                <h4>Your Active Trip</h4>
             </div>
             <div class="card-body">
                 <p>Departure: {{ user_trip.planned_departure }}</p>
+                <p>Status: {{ user_trip.status }}</p>
                 <div id="user-trip-map" style="height: 200px;" class="mb-3"></div>
+                <a href="{% url 'home' %}" class="btn btn-primary">Modify Trip</a>
             </div>
         </div>
 
-        <h4>Potential Matches</h4>
+        <h4>Available Travel Companions</h4>
         {% if potential_matches %}
             {% for match in potential_matches %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">Match with {{ match.user.username }}</h5>
-                    <p>Departure: {{ match.planned_departure }}</p>
-                    <button class="btn btn-primary request-match" 
-                            data-trip-id="{{ match.id }}">
-                        Request Match
-                    </button>
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ match.user.username }}</h5>
+                        <p>Departure: {{ match.planned_departure }}</p>
+                        <form method="POST" action="{% url 'send_match_request' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="trip_id" value="{{ match.id }}">
+                            <button type="submit" class="btn btn-primary">Send Request</button>
+                        </form>
+                    </div>
                 </div>
-            </div>
             {% endfor %}
         {% else %}
             <div class="alert alert-info">
-                No matches found at this time. Check back later!
+                No potential matches found at this time. Check back later!
             </div>
         {% endif %}
     {% endif %}
