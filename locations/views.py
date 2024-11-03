@@ -20,7 +20,7 @@ def create_trip(request):
                 "planned_departure": request.POST.get("planned_departure"),
             },
         )
-        return redirect("locations:find_matches")
+        return redirect("find_matches")
     return redirect("home")
 
 

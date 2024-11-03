@@ -18,7 +18,7 @@
                         </span>
                     </p>
                     {% if match.status == 'ACCEPTED' %}
-                        <a href="{% url 'locations:chat_room' match.id %}" class="btn btn-success">
+                        <a href="{% url 'chat_room' match.id %}" class="btn btn-success">
                             Open Chat
                         </a>
                     {% endif %}
