@@ -17,3 +17,7 @@ def profile_view(request):
         return redirect("profile")
 
     return render(request, "profile/user_profile.html", {"profile": profile})
+
+
+def upload_profile_modal(request):
+    return render(request, 'profile/upload_profile_picture_modal.html', {"user": request.user})

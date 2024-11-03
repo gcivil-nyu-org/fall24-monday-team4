@@ -8,16 +8,21 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card profile-card text-center shadow" style="margin-top: 5rem">
-                {% if profile.photo_key %}
-                    <img src="" alt="User Picture">
-                {% else %}
-                    <div class="row justify-content-center">
-                        <div class="rounded-circle" style="width: 150px; height: 150px; background-color: black; margin-top: -75px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
-                            ?
+                <div>
+                    {% if profile.photo_key %}
+                        <img src="" alt="User Picture">
+                    {% else %}
+                        <div class="row justify-content-center">
+                            <div class="rounded-circle" style="width: 150px; height: 150px; background-color: black; margin-top: -75px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
+                                ?
+                            </div>
                         </div>
-                    </div>
-                {% endif %}
-
+                    {% endif %}
+                    <button type="button" class="btn btn-outline-dark btn-sm mt-1" id="upload-button" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                        <i class="fa-solid fa-file-import"></i> Upload
+                    </button>
+                    {% include 'profile/upload_profile_picture_modal.html' %}
+                </div>
                 <div class="card-body">
                     <hr />
                     <h2 class="username">{{ profile.user.username }}</h2>
@@ -89,5 +94,6 @@
         editControls.style.display = 'none';
         textarea.value = originalValue;
     });
+
 </script>
 {% endblock %}
