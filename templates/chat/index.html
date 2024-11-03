@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Rooms</title>
+</head>
+<body>
+    <h1>Chat Rooms</h1>
+    <ul>
+        {% for chat_room in chat_rooms %}
+            <li><a href="{% url 'chat_room' chat_room.pk %}">{{ chat_room.name }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

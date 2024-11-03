@@ -34,17 +34,18 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
 # Application definition
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
-    "accounts",
-    "locations",
-    "bootstrap5",
-    "user_profile",
-    "fontawesomefree",
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'accounts',
+    'locations',
+    'bootstrap5',
+    'user_profile',
+    'fontawesomefree',
+    'chat'
 ]
 
 
@@ -95,6 +96,7 @@ if "RDS_HOSTNAME" in os.environ:
         },
     }
 else:
+    print("locally")
     # Local Environment
     DATABASES = {
         "default": {
