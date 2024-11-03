@@ -1,15 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Create Chat Room</title>
-</head>
-<body>
-    <h1>Create Chat Room</h1>
-    <form method="post">
-        {% csrf_token %}
-        <input type="text" name="name" placeholder="Name">
-        <textarea name="description" placeholder="Description"></textarea>
-        <button type="submit">Create</button>
-    </form>
-</body>
-</html>
+<!-- templates/chat/chat_room.html -->
+<h1>{{ chat_room.name }}</h1>
+<ul>
+    {% for message in messages %}
+        <li>{{ message.user.username }}: {{ message.message }}</li>
+    {% endfor %}
+</ul>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Send</button>
+</form>

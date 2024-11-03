@@ -11,6 +11,8 @@ def index(request):
 @login_required
 def chat_room(request, pk):
     chat_room = ChatRoom.objects.get(pk=pk)
+    if request.user not in chat_room.users.all():
+        return redirect('index')  # Redirect to the index page if the user doesn't have access
     messages = Message.objects.filter(chat_room=chat_room)
     if request.method == 'POST':
         form = MessageForm(request.POST)
@@ -29,9 +31,9 @@ def create_chat_room(request):
     if request.method == 'POST':
         form = ChatRoomForm(request.POST)
         if form.is_valid():
-            form.save()
+            chat_room = form.save()  # Save the ChatRoom instance to the database
+            chat_room.users.add(request.user)  # Add the requesting user to the chat room
             return redirect('index')
     else:
-        form = ChatRoomForm()
+        form = ChatRoomForm(initial={'users': [request.user.id]})
     return render(request, 'chat/create_chat_room.html', {'form': form})
-
