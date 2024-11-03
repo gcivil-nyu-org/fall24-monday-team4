@@ -1,12 +1,27 @@
-<!-- templates/chat/chat_room.html -->
-<h1>{{ chat_room.name }}</h1>
-<ul>
-    {% for message in messages %}
-        <li>{{ message.user.username }}: {{ message.message }}</li>
-    {% endfor %}
-</ul>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Send</button>
-</form>
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<!-- templates/chat/create_chat_room.html -->
+<div class="container mt-3">
+    <h1>Create a new chat room</h1>
+    <form method="post" style="display: flex; flex-direction: column; align-items: flex-start;">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom: 1rem;">
+            {{ form.name.label_tag }}
+            {{ form.name }}
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+            {{ form.description.label_tag }}
+            {{ form.description }}
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+            {{ form.users.label_tag }}
+            {{ form.users }}
+        </div>
+        <button type="submit" class="btn btn-primary">Create</button>
+    </form>
+</div>
+
+{% endblock %}

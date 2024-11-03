@@ -1,5 +1,7 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
   <body>
     <center><h1>Hello , Welcome to my chat site ! {{request.user}}</h1></center>
     <br>
@@ -56,3 +58,4 @@
   </body>
 </html>
 
+{% endblock %}
