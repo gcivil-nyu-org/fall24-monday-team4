@@ -6,17 +6,32 @@
   <title>RoutePals - {% block title %}{% endblock %}</title>
   {% load bootstrap5 %}
   {% bootstrap_css %}
+  
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+  
+  <!-- Show Location CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+  
+  
   <link rel="stylesheet" href="https://unpkg.com/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link href="{% static 'fontawesomefree/css/fontawesome.css' %}" rel="stylesheet" type="text/css">
   <link href="{% static 'fontawesomefree/css/brands.css' %}" rel="stylesheet" type="text/css">
   <link href="{% static 'fontawesomefree/css/solid.css' %}" rel="stylesheet" type="text/css">
 
-<!--  Profile Page CSS File-->
+  <!--  Profile Page CSS File-->
   <!-- <link rel="stylesheet" href="{% static 'css/profile.css' %}"> -->
 
-<!-- Show Location CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    .leaflet-routing-container{
+        max-height: 200px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+  </style>
 
 </head>
 <body>
@@ -27,16 +42,27 @@
       {% if user.is_authenticated %}
       <div class="collapse navbar-collapse">
         <ul class="navbar-nav mr-auto">
-          <li class="nav-item">
-            <a class="nav-link link-light" href="/">Home</a>
-          </li>
-          {% load static %}
-          <li class="nav-item">
-            <a class="nav-link link-light" href="/profile">Profile</a>
-          </li>
-          <!-- Add more nav items here as needed -->
+            <li class="nav-item">
+                <a class="nav-link link-light" href="{% url 'home' %}">Home</a>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link link-light dropdown-toggle" href="#" id="matchesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Companions
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="matchesDropdown">
+                    <li><a class="dropdown-item" href="{% url 'find_matches' %}">Find Companions</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'sent_requests' %}">Sent Requests</a></li>
+                    <li><a class="dropdown-item" href="{% url 'received_requests' %}">Received Requests</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'previous_trips' %}">Previous Trips</a></li>
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link link-light" href="{% url 'profile' %}">Profile</a>
+            </li>
         </ul>
-      </div>
+    </div>
       <span class="navbar-text">
         <form class="form-inline" action="{% url 'logout' %}" method="post">
           {% csrf_token %}

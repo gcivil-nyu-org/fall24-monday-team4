@@ -31,10 +31,10 @@ deploy:
   provider: elasticbeanstalk
   access_key_id: $AWS_ACCESS_ID
   secret_access_key: $AWS_ACCESS_KEY
-  region: us-west-2
+  region: $AWS_REGION
   app: routepals
   env: routepals-dev
-  bucket_name: elasticbeanstalk-us-west-2-241533117542
+  bucket_name: $AWS_BUCKET
   on:
     repo: gcivil-nyu-org/fall24-monday-team4
     branch: develop
