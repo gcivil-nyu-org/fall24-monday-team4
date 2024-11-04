@@ -24,12 +24,10 @@ class SignUpForm(UserCreationForm):
             "password2",
         ]
 
+
 # Form for admin creation
 class AdminCreationForm(UserCreationForm):
-    email = forms.EmailField(
-        required=True,
-        label=gettext_lazy("Email")
-    )
+    email = forms.EmailField(required=True, label=gettext_lazy("Email"))
 
     class Meta:
         model = User
@@ -43,10 +41,9 @@ class AdminCreationForm(UserCreationForm):
         ]
 
     def save(self, commit=True):
-        user = super (AdminCreationForm , self).save(commit=False)
+        user = super(AdminCreationForm, self).save(commit=False)
         user.is_staff = True
         user.is_superuser = True
-        if commit :
+        if commit:
             user.save()
         return user
-        
