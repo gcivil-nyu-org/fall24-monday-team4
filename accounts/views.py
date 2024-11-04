@@ -2,7 +2,7 @@ from django.contrib.auth.forms import *
 from django.contrib.auth import login
 from django.contrib.auth.views import PasswordChangeView, PasswordResetView
 from django.shortcuts import render, redirect
-from .forms import SignUpForm
+from .forms import *
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
@@ -78,3 +78,17 @@ class ResetPassword(SuccessMessageMixin, PasswordResetView):
               and check your spam folder."
     )
     success_url = reverse_lazy("password_reset_done")
+
+
+# Post admin account creation form
+def AdminCreation(request):
+    if request.method == "POST":
+        form = AdminCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            WelcomeEmail(user)
+            return redirect("home")
+    else:
+        form = AdminCreationForm()
+    return render(request, "registration/admin_creation.html", {"form": form})
