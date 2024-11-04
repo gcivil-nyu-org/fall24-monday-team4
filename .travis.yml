@@ -32,19 +32,19 @@ deploy:
     access_key_id: $AWS_ACCESS_ID
     secret_access_key: $AWS_ACCESS_KEY
     region: $AWS_REGION
-    app: routepals-prod
+    app: routepals
     env: routepals-prod-env
     bucket_name: $AWS_BUCKET
     on:
       repo: gcivil-nyu-org/fall24-monday-team4
-      branch: develop
+      branch: master
     skip_cleanup: 'true'
   
   - provider: elasticbeanstalk
     access_key_id: $AWS_ACCESS_ID
     secret_access_key: $AWS_ACCESS_KEY
     region: $AWS_REGION
-    app: routepals-dev
+    app: routepals
     env: routepals-dev-env
     bucket_name: $AWS_BUCKET
     on:
