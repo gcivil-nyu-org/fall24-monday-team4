@@ -1,6 +1,5 @@
 from django.views.generic import TemplateView
 from locations.models import Trip
-from django.utils import timezone
 
 
 class HomeView(TemplateView):

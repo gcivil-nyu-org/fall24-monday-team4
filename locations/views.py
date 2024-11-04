@@ -3,8 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from .models import Trip, Match
 from datetime import timedelta, datetime
-from django.utils import timezone
 from django.utils.timezone import make_aware
+
 # from django.db.models import Q
 from django.core.paginator import Paginator
 
@@ -36,9 +36,9 @@ def create_trip(request):
 @login_required
 def find_matches(request):
     try:
-        user_trip = Trip.objects.filter(
-            user=request.user, status="SEARCHING"
-        ).latest("created_at")
+        user_trip = Trip.objects.filter(user=request.user, status="SEARCHING").latest(
+            "created_at"
+        )
 
         # Find trips within 30 minutes of user's departure
         time_min = user_trip.planned_departure - timedelta(minutes=30)
