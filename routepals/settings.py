@@ -34,31 +34,27 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'daphne',
-    'django.contrib.staticfiles',
-    'accounts',
-    'locations',
-    'bootstrap5',
-    'user_profile',
-    'fontawesomefree',
-    'chat',
-    'channels',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "daphne",
+    "django.contrib.staticfiles",
+    "accounts",
+    "locations",
+    "bootstrap5",
+    "user_profile",
+    "fontawesomefree",
+    "chat",
+    "channels",
 ]
 
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    }
-}
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 
-ASGI_APPLICATION = 'routepals.asgi.application'
+ASGI_APPLICATION = "routepals.asgi.application"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
