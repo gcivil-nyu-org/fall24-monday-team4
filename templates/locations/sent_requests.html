@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Sent Requests{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h4>Sent Requests</h4>
+    {% if sent_matches %}
+        {% for match in sent_matches %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Request to {{ match.receiver.user.username }}</h5>
+                    <p>Their Departure: {{ match.receiver.planned_departure }}</p>
+                    <p>Status: 
+                        <span class="badge {% if match.status == 'PENDING' %}bg-warning
+                                         {% elif match.status == 'ACCEPTED' %}bg-success
+                                         {% else %}bg-danger{% endif %}">
+                            {{ match.status }}
+                        </span>
+                    </p>
+                    <!-- {% if match.status == 'ACCEPTED' %}
+                        <a href="{% url 'chat_room' match.id %}" class="btn btn-success">
+                            Open Chat
+                        </a>
+                    {% endif %} -->
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            You haven't sent any requests yet.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

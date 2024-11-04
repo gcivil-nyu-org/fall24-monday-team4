@@ -70,6 +70,7 @@ TEMPLATES = [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
+                "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
             ],
         },
@@ -99,7 +100,7 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.environ.get("DB_NAME", "routepalsdb"),
+            "NAME": os.environ.get("DB_NAME", "routepals"),
             "USER": os.environ.get("DB_USER", "postgres"),
             "PASSWORD": os.environ.get("DB_PASSWORD"),
             "HOST": os.environ.get("DB_HOST", "localhost"),
@@ -165,7 +166,8 @@ LOGGING = {
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "America/New_York"  # for NYC
+USE_TZ = True
 
 USE_I18N = True
 
