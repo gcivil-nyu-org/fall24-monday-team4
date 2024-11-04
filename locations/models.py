@@ -11,11 +11,7 @@ class UserLocation(models.Model):
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return {
-            "username": self.user.username,
-            "lat": self.latitude,
-            "long": self.longitude,
-        }
+        return f"{self.user.username}'s location ({self.latitude}, {self.longitude})"
 
 
 class Trip(models.Model):

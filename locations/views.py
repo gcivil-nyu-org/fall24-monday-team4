@@ -1,14 +1,33 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from .models import Trip, Match
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.utils import timezone
+from django.utils.timezone import make_aware
 from django.db.models import Q
 
 
 @login_required
 def create_trip(request):
+
+    active_trip = Trip.objects.filter(
+        user=request.user,
+        status="SEARCHING",
+        planned_departure__gte=timezone.now()
+    ).exists()
+
+    if active_trip:
+        return redirect("find_matches")
+
     if request.method == "POST":
+        # Convert the naive datetime to timezone-aware
+        planned_departure = make_aware(
+            datetime.strptime(
+                request.POST.get("planned_departure"),
+                '%Y-%m-%dT%H:%M'
+            )
+        )
+
         Trip.objects.update_or_create(
             user=request.user,
             status="SEARCHING",  # Only look for active searching trips
@@ -17,7 +36,7 @@ def create_trip(request):
                 "start_longitude": request.POST.get("start_longitude"),
                 "dest_latitude": request.POST.get("dest_latitude"),
                 "dest_longitude": request.POST.get("dest_longitude"),
-                "planned_departure": request.POST.get("planned_departure"),
+                "planned_departure": planned_departure,
             },
         )
         return redirect("find_matches")

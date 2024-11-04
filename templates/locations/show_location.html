@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}User Live Location{% endblock %}
+
+{% block content %}
+<h1>Your Current Location</h1>
+<div id="map" style="height: 500px; width: 100%;"></div>
+{% csrf_token %}
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    function convertToDMS(dd, isLat) {
+        const dir = isLat ? (dd > 0 ? 'N' : 'S') : (dd > 0 ? 'E' : 'W');
+        dd = Math.abs(dd);
+        const degrees = Math.floor(dd);
+        const minutes = Math.floor((dd - degrees) * 60);
+        const seconds = ((dd - degrees - minutes/60) * 3600).toFixed(1);
+        return `${degrees}°${minutes}'${seconds}"${dir}`;
+    }
+    
+    function updateLocation(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        // Initialize the map
+        const map = L.map('map').setView([latitude, longitude], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Add marker
+        L.marker([latitude, longitude]).addTo(map)
+            .bindPopup(`You are here:<br>
+                Latitude: ${convertToDMS(latitude, true)} (${latitude})<br>
+                Longitude: ${convertToDMS(longitude, false)} (${longitude})`)
+            .openPopup();
+
+        // Save to database on each page load
+        fetch('/locations/save_location/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'  // Use CSRF token for security
+            },
+            body: new URLSearchParams({
+                'latitude': latitude,
+                'longitude': longitude
+            })
+        });
+    }
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(updateLocation, function() {
+            alert('Unable to retrieve your location.');
+        }, {
+            enableHighAccuracy: true,
+            timeout: 10000
+        });
+    } else {
+        alert('Geolocation is not supported by this browser.');
+    }
+</script>
+{% endblock %}

@@ -2,6 +2,8 @@
 {% block title %}Find Matches{% endblock %}
 
 {% block content %}
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <div class="container mt-4">
     {% if error %}
         <div class="alert alert-warning">
@@ -16,7 +18,7 @@
             <div class="card-body">
                 <p>Departure: {{ user_trip.planned_departure }}</p>
                 <p>Status: {{ user_trip.status }}</p>
-                <div id="user-trip-map" style="height: 200px;" class="mb-3"></div>
+                <div id="user-trip-map" style="height: 400px;" class="mb-3"></div>
                 <a href="{% url 'home' %}" class="btn btn-primary">Modify Trip</a>
             </div>
         </div>
@@ -45,8 +47,11 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
 <script>
-    // Convert Django template variables to JSON
     const userTrip = {
         start_lat: "{{ user_trip.start_latitude|stringformat:'f' }}",
         start_lng: "{{ user_trip.start_longitude|stringformat:'f' }}",
@@ -54,34 +59,95 @@
         dest_lng: "{{ user_trip.dest_longitude|stringformat:'f' }}"
     };
 
-    const map = L.map('user-trip-map').setView([
+    if (window.map) {
+        window.map.remove();
+    }
+
+    window.map = L.map('user-trip-map').setView([
         parseFloat(userTrip.start_lat), 
         parseFloat(userTrip.start_lng)
-    ], 12);
+    ], 13);
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '© OpenStreetMap'
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    // Add markers for start and destination
+    const startIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    const destIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
     const startMarker = L.marker([
         parseFloat(userTrip.start_lat), 
         parseFloat(userTrip.start_lng)
-    ]).addTo(map).bindPopup('Your Start Location');
-
+    ], {icon: startIcon})
+    .bindPopup('Your Start Location')
+    .addTo(window.map);
+    
     const destMarker = L.marker([
         parseFloat(userTrip.dest_lat), 
         parseFloat(userTrip.dest_lng)
-    ]).addTo(map).bindPopup('Your Destination');
+    ], {icon: destIcon})
+    .bindPopup('Your Destination')
+    .addTo(window.map);
 
-    // Draw route line
-    const routeLine = L.polyline([
+    const routingControl = L.Routing.control({
+        waypoints: [
+            L.latLng(parseFloat(userTrip.start_lat), parseFloat(userTrip.start_lng)),
+            L.latLng(parseFloat(userTrip.dest_lat), parseFloat(userTrip.dest_lng))
+        ],
+        router: L.Routing.osrmv1({
+            serviceUrl: 'https://router.project-osrm.org/route/v1',
+            // Available profiles:
+            // 'foot' - Walking/Pedestrian routes
+            // 'bike' - Cycling routes
+            // 'car' - Driving routes (default)
+            // 'walking' - Alternative for foot
+            // 'cycling' - Alternative for bike
+            // 'driving' - Alternative for car
+            profile: 'foot'  
+            
+        }),
+        routeWhileDragging: false,
+        showAlternatives: false,
+        lineOptions: {
+            styles: [{color: 'blue', opacity: 0.6, weight: 4}]
+        },
+        createMarker: function() { return null; },  // Disable default markers
+        addWaypoints: false,  // Prevent adding new waypoints
+        draggableWaypoints: false,  // Prevent dragging waypoints
+        show: true  // Hide the routing instructions panel
+    }).addTo(window.map);
+
+    // const routeLine = L.polyline([
+    // [parseFloat(userTrip.start_lat), parseFloat(userTrip.start_lng)],
+    // [parseFloat(userTrip.dest_lat), parseFloat(userTrip.dest_lng)]
+    //     ], {
+    //         color: 'blue',
+    //         opacity: 0.6,
+    //         weight: 4,
+    //         dashArray: '10, 10'  // Makes line dashed
+    //     }).addTo(window.map);
+
+    // Fit bounds to markers
+    const bounds = L.latLngBounds(
         [parseFloat(userTrip.start_lat), parseFloat(userTrip.start_lng)],
         [parseFloat(userTrip.dest_lat), parseFloat(userTrip.dest_lng)]
-    ], {color: 'blue'}).addTo(map);
-
-    // Fit map to show entire route
-    map.fitBounds(routeLine.getBounds(), {padding: [50, 50]});
+    );
+    window.map.fitBounds(bounds, {padding: [50, 50]});
 </script>
 {% endblock %}
