@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Find Companions{% endblock %}
+
+{% block content %}
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<div class="container mt-4">
+    <h4>Find Companions</h4>
+    {% if error %}
+        <div class="alert alert-warning">
+            {{ error }}
+            <a href="{% url 'home' %}" class="btn btn-primary ms-3">Create Trip</a>
+        </div>
+    {% else %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Your Active Trip</h4>
+            </div>
+            <div class="card-body">
+                <p>Departure: {{ user_trip.planned_departure }}</p>
+                <p>Status: {{ user_trip.status }}</p>
+                <div id="user-trip-map" style="height: 50vh; width: auto;" class="mb-3 position-relative rounded overflow-hidden"></div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" onclick="toggleRouteInstructions()">Show/Hide Route Instructions</button>
+                    <form method="POST" action="{% url 'cancel_trip' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">
+                            Cancel Trip
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <h4>Available Travel Companions</h4>
+        {% if potential_matches %}
+            {% for match in potential_matches %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ match.user.username }}</h5>
+                        <p>Departure: {{ match.planned_departure }}</p>
+                        <form method="POST" action="{% url 'send_match_request' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="trip_id" value="{{ match.id }}">
+                            <button type="submit" class="btn btn-primary">Send Request</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                No potential companion matches found at this time. Check back later!
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<script>
+    // Add this JavaScript function
+    function toggleRouteInstructions() {
+        const container = document.querySelector('.leaflet-routing-container');
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+    
+    if (window.map) {
+        window.map.remove();
+    }
+
+    window.map = L.map('user-trip-map').setView([
+        parseFloat({{user_trip.start_latitude}}), 
+        parseFloat({{user_trip.start_longitude}})
+    ], 13);
+    
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        // attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    const startIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    const destIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    const startMarker = L.marker([
+        parseFloat({{user_trip.start_latitude}}), 
+        parseFloat({{user_trip.start_longitude}})
+    ], {icon: startIcon})
+    .bindPopup('Your Start Location')
+    .addTo(window.map);
+    
+    const destMarker = L.marker([
+        parseFloat({{user_trip.dest_latitude}}), 
+        parseFloat({{user_trip.dest_longitude}})
+    ], {icon: destIcon})
+    .bindPopup('Your Destination')
+    .addTo(window.map);
+
+    const routingControl = L.Routing.control({
+        waypoints: [
+            L.latLng(parseFloat({{user_trip.start_latitude}}), parseFloat({{user_trip.start_longitude}})),
+            L.latLng(parseFloat({{user_trip.dest_latitude}}), parseFloat({{user_trip.dest_longitude}}))
+        ],
+        router: L.Routing.osrmv1({
+            serviceUrl: 'https://router.project-osrm.org/route/v1',
+            // Available profiles:
+            // 'foot' - Walking/Pedestrian routes
+            // 'bike' - Cycling routes
+            // 'car' - Driving routes (default)
+            // 'walking' - Alternative for foot
+            // 'cycling' - Alternative for bike
+            // 'driving' - Alternative for car
+            profile: 'foot'  
+            
+        }),
+        showAlternatives: true,
+        formatLine: function(line) {
+            const duration = Math.round(line.summary.totalTime / 60); // Convert seconds to minutes
+            return `${duration} min - ${line.summary.totalDistance} m`;
+        },
+        lineOptions: {
+            styles: [{color: 'blue', opacity: 0.6, weight: 4}],
+            extendToWaypoints: true,
+            missingRouteTolerance: 0
+        },
+        alternativeStyles: {
+            styles: [
+                    {color: '#B1D690', opacity: 0.6, weight: 4},
+                    {color: '#FEEC37', opacity: 0.6, weight: 4},
+                    {color: '#FFA24C', opacity: 0.6, weight: 4}
+                ]
+        },
+        createMarker: function() { return null; },  // Disable default markers
+        addWaypoints: false,  // Prevent adding new waypoints
+        draggableWaypoints: false,  // Prevent dragging waypoints
+        routeWhileDragging: false,
+        show: true  // Hide the routing instructions panel
+    }).addTo(window.map);
+
+    // const routeLine = L.polyline([
+    // [parseFloat({{user_trip.start_latitude}}), parseFloat({{user_trip.start_longitude}})],
+    // [parseFloat({{user_trip.dest_latitude}}), parseFloat(user_trip.dest_longitude)]
+    //     ], {
+    //         color: 'blue',
+    //         opacity: 0.6,
+    //         weight: 4,
+    //         dashArray: '10, 10'  // Makes line dashed
+    //     }).addTo(window.map);
+
+    // Fit bounds to markers
+    const bounds = L.latLngBounds(
+        [parseFloat({{user_trip.start_latitude}}), parseFloat({{user_trip.start_longitude}})],
+        [parseFloat({{user_trip.dest_latitude}}), parseFloat(user_trip.dest_longitude)]
+    );
+    window.map.fitBounds(bounds, {padding: [50, 50]});
+</script>
+{% endblock %}

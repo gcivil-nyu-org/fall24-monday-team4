@@ -21,4 +21,5 @@ urlpatterns = [
         auth_views.PasswordResetCompleteView.as_view(),
         name="password_reset_complete",
     ),
+    path("admin-creation", AdminCreation, name="admin_creation"),
 ]
