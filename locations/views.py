@@ -1,31 +1,21 @@
+import json
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from .models import Trip, Match
 from datetime import timedelta, datetime
 from django.utils import timezone
 from django.utils.timezone import make_aware
-from django.db.models import Q
+# from django.db.models import Q
+from django.core.paginator import Paginator
 
 
 @login_required
 def create_trip(request):
 
-    active_trip = Trip.objects.filter(
-        user=request.user,
-        status="SEARCHING",
-        planned_departure__gte=timezone.now()
-    ).exists()
-
-    if active_trip:
-        return redirect("find_matches")
-
     if request.method == "POST":
         # Convert the naive datetime to timezone-aware
         planned_departure = make_aware(
-            datetime.strptime(
-                request.POST.get("planned_departure"),
-                '%Y-%m-%dT%H:%M'
-            )
+            datetime.strptime(request.POST.get("planned_departure"), "%Y-%m-%dT%H:%M")
         )
 
         Trip.objects.update_or_create(
@@ -47,7 +37,7 @@ def create_trip(request):
 def find_matches(request):
     try:
         user_trip = Trip.objects.filter(
-            user=request.user, status="SEARCHING", planned_departure__gte=timezone.now()
+            user=request.user, status="SEARCHING"
         ).latest("created_at")
 
         # Find trips within 30 minutes of user's departure
@@ -115,13 +105,13 @@ def handle_match_request(request):
 
 @login_required
 def sent_requests(request):
-    # Get user's active trip
-    user_trip = Trip.objects.filter(
-        user=request.user, status__in=["SEARCHING", "MATCHED"]
-    ).latest("created_at")
-
-    # Get all requests sent by this trip
-    sent_matches = Match.objects.filter(requester=user_trip)
+    try:
+        user_trip = Trip.objects.filter(
+            user=request.user, status__in=["SEARCHING", "MATCHED"]
+        ).latest("created_at")
+        sent_matches = Match.objects.filter(requester=user_trip)
+    except Trip.DoesNotExist:
+        sent_matches = []
 
     return render(
         request, "locations/sent_requests.html", {"sent_matches": sent_matches}
@@ -130,13 +120,13 @@ def sent_requests(request):
 
 @login_required
 def received_requests(request):
-    # Get user's active trip
-    user_trip = Trip.objects.filter(
-        user=request.user, status__in=["SEARCHING", "MATCHED"]
-    ).latest("created_at")
-
-    # Get all requests received by this trip
-    received_matches = Match.objects.filter(receiver=user_trip)
+    try:
+        user_trip = Trip.objects.filter(
+            user=request.user, status__in=["SEARCHING", "MATCHED"]
+        ).latest("created_at")
+        received_matches = Match.objects.filter(receiver=user_trip)
+    except Trip.DoesNotExist:
+        received_matches = []
 
     return render(
         request,
@@ -145,11 +135,49 @@ def received_requests(request):
     )
 
 
+# Chatroom stuff
+# @login_required
+# def chat_room(request, match_id):
+#     match = Match.objects.get(
+#         Q(requester__user=request.user) | Q(receiver__user=request.user),
+#         id=match_id,
+#         status="ACCEPTED",
+#     )
+#     return render(request, "locations/chat_room.html", {"match": match})
+
+
 @login_required
-def chat_room(request, match_id):
-    match = Match.objects.get(
-        Q(requester__user=request.user) | Q(receiver__user=request.user),
-        id=match_id,
-        status="ACCEPTED",
+def cancel_trip(request):
+    if request.method == "POST":
+        Trip.objects.filter(user=request.user, status="SEARCHING").update(
+            status="CANCELLED"
+        )
+        return redirect("home")
+
+
+@login_required
+def previous_trips(request):
+    trip_list = Trip.objects.filter(
+        user=request.user, status__in=["MATCHED", "COMPLETED", "CANCELLED"]
+    ).order_by("-created_at")
+
+    paginator = Paginator(trip_list, 3)  # Show n trips per page
+    page = request.GET.get("page")
+    trips = paginator.get_page(page)
+
+    trips_data = [
+        {
+            "id": trip.id,
+            "start_latitude": float(trip.start_latitude),
+            "start_longitude": float(trip.start_longitude),
+            "dest_latitude": float(trip.dest_latitude),
+            "dest_longitude": float(trip.dest_longitude),
+        }
+        for trip in trips
+    ]
+
+    return render(
+        request,
+        "locations/previous_trips.html",
+        {"trips": trips, "trips_json": json.dumps(trips_data)},
     )
-    return render(request, "locations/chat_room.html", {"match": match})

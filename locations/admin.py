@@ -1,11 +1,13 @@
 from django.contrib import admin
 from .models import UserLocation, Trip, Match
 
+
 @admin.register(UserLocation)
 class UserLocationAdmin(admin.ModelAdmin):
     list_display = ("user", "latitude", "longitude", "last_updated")
     search_fields = ("user__username",)
     list_filter = ("last_updated",)
+
 
 @admin.register(Trip)
 class TripAdmin(admin.ModelAdmin):
@@ -14,6 +16,7 @@ class TripAdmin(admin.ModelAdmin):
     search_fields = ("user__username",)
     readonly_fields = ("created_at",)
     list_per_page = 20
+
 
 @admin.register(Match)
 class MatchAdmin(admin.ModelAdmin):

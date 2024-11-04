@@ -1,10 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Find Matches{% endblock %}
+{% block title %}Find Companions{% endblock %}
 
 {% block content %}
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <div class="container mt-4">
+    <h4>Find Companions</h4>
     {% if error %}
         <div class="alert alert-warning">
             {{ error }}
@@ -18,8 +19,16 @@
             <div class="card-body">
                 <p>Departure: {{ user_trip.planned_departure }}</p>
                 <p>Status: {{ user_trip.status }}</p>
-                <div id="user-trip-map" style="height: 400px;" class="mb-3"></div>
-                <a href="{% url 'home' %}" class="btn btn-primary">Modify Trip</a>
+                <div id="user-trip-map" style="height: 50vh; width: auto;" class="mb-3 position-relative rounded overflow-hidden"></div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" onclick="toggleRouteInstructions()">Show/Hide Route Instructions</button>
+                    <form method="POST" action="{% url 'cancel_trip' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">
+                            Cancel Trip
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -40,37 +49,35 @@
             {% endfor %}
         {% else %}
             <div class="alert alert-info">
-                No potential matches found at this time. Check back later!
+                No potential companion matches found at this time. Check back later!
             </div>
         {% endif %}
     {% endif %}
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
-
 <script>
-    const userTrip = {
-        start_lat: "{{ user_trip.start_latitude|stringformat:'f' }}",
-        start_lng: "{{ user_trip.start_longitude|stringformat:'f' }}",
-        dest_lat: "{{ user_trip.dest_latitude|stringformat:'f' }}",
-        dest_lng: "{{ user_trip.dest_longitude|stringformat:'f' }}"
-    };
-
+    // Add this JavaScript function
+    function toggleRouteInstructions() {
+        const container = document.querySelector('.leaflet-routing-container');
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+    
     if (window.map) {
         window.map.remove();
     }
 
     window.map = L.map('user-trip-map').setView([
-        parseFloat(userTrip.start_lat), 
-        parseFloat(userTrip.start_lng)
+        parseFloat({{user_trip.start_latitude}}), 
+        parseFloat({{user_trip.start_longitude}})
     ], 13);
     
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        // attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
     const startIcon = L.icon({
@@ -92,23 +99,23 @@
     });
 
     const startMarker = L.marker([
-        parseFloat(userTrip.start_lat), 
-        parseFloat(userTrip.start_lng)
+        parseFloat({{user_trip.start_latitude}}), 
+        parseFloat({{user_trip.start_longitude}})
     ], {icon: startIcon})
     .bindPopup('Your Start Location')
     .addTo(window.map);
     
     const destMarker = L.marker([
-        parseFloat(userTrip.dest_lat), 
-        parseFloat(userTrip.dest_lng)
+        parseFloat({{user_trip.dest_latitude}}), 
+        parseFloat({{user_trip.dest_longitude}})
     ], {icon: destIcon})
     .bindPopup('Your Destination')
     .addTo(window.map);
 
     const routingControl = L.Routing.control({
         waypoints: [
-            L.latLng(parseFloat(userTrip.start_lat), parseFloat(userTrip.start_lng)),
-            L.latLng(parseFloat(userTrip.dest_lat), parseFloat(userTrip.dest_lng))
+            L.latLng(parseFloat({{user_trip.start_latitude}}), parseFloat({{user_trip.start_longitude}})),
+            L.latLng(parseFloat({{user_trip.dest_latitude}}), parseFloat({{user_trip.dest_longitude}}))
         ],
         router: L.Routing.osrmv1({
             serviceUrl: 'https://router.project-osrm.org/route/v1',
@@ -122,20 +129,33 @@
             profile: 'foot'  
             
         }),
-        routeWhileDragging: false,
-        showAlternatives: false,
+        showAlternatives: true,
+        formatLine: function(line) {
+            const duration = Math.round(line.summary.totalTime / 60); // Convert seconds to minutes
+            return `${duration} min - ${line.summary.totalDistance} m`;
+        },
         lineOptions: {
-            styles: [{color: 'blue', opacity: 0.6, weight: 4}]
+            styles: [{color: 'blue', opacity: 0.6, weight: 4}],
+            extendToWaypoints: true,
+            missingRouteTolerance: 0
+        },
+        alternativeStyles: {
+            styles: [
+                    {color: '#B1D690', opacity: 0.6, weight: 4},
+                    {color: '#FEEC37', opacity: 0.6, weight: 4},
+                    {color: '#FFA24C', opacity: 0.6, weight: 4}
+                ]
         },
         createMarker: function() { return null; },  // Disable default markers
         addWaypoints: false,  // Prevent adding new waypoints
         draggableWaypoints: false,  // Prevent dragging waypoints
+        routeWhileDragging: false,
         show: true  // Hide the routing instructions panel
     }).addTo(window.map);
 
     // const routeLine = L.polyline([
-    // [parseFloat(userTrip.start_lat), parseFloat(userTrip.start_lng)],
-    // [parseFloat(userTrip.dest_lat), parseFloat(userTrip.dest_lng)]
+    // [parseFloat({{user_trip.start_latitude}}), parseFloat({{user_trip.start_longitude}})],
+    // [parseFloat({{user_trip.dest_latitude}}), parseFloat(user_trip.dest_longitude)]
     //     ], {
     //         color: 'blue',
     //         opacity: 0.6,
@@ -145,8 +165,8 @@
 
     // Fit bounds to markers
     const bounds = L.latLngBounds(
-        [parseFloat(userTrip.start_lat), parseFloat(userTrip.start_lng)],
-        [parseFloat(userTrip.dest_lat), parseFloat(userTrip.dest_lng)]
+        [parseFloat({{user_trip.start_latitude}}), parseFloat({{user_trip.start_longitude}})],
+        [parseFloat({{user_trip.dest_latitude}}), parseFloat(user_trip.dest_longitude)]
     );
     window.map.fitBounds(bounds, {padding: [50, 50]});
 </script>

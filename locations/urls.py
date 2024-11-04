@@ -6,7 +6,8 @@ from .views import (
     find_matches,
     sent_requests,
     received_requests,
-    chat_room,
+    cancel_trip,
+    previous_trips,
 )
 
 urlpatterns = [
@@ -15,6 +16,7 @@ urlpatterns = [
     path("send_request/", send_match_request, name="send_match_request"),
     path("handle_request/", handle_match_request, name="handle_match_request"),
     path("sent_requests/", sent_requests, name="sent_requests"),
+    path("cancel_trip/", cancel_trip, name="cancel_trip"),
+    path("previous_trips/", previous_trips, name="previous_trips"),
     path("received_requests/", received_requests, name="received_requests"),
-    path("chat/<int:match_id>/", chat_room, name="chat_room"),
 ]

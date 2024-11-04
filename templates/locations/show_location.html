@@ -8,7 +8,6 @@
 <div id="map" style="height: 500px; width: 100%;"></div>
 {% csrf_token %}
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     function convertToDMS(dd, isLat) {
         const dir = isLat ? (dd > 0 ? 'N' : 'S') : (dd > 0 ? 'E' : 'W');
@@ -26,9 +25,9 @@
         // Initialize the map
         const map = L.map('map').setView([latitude, longitude], 13);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '© OpenStreetMap'
+            // attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
         // Add marker
@@ -57,7 +56,7 @@
             alert('Unable to retrieve your location.');
         }, {
             enableHighAccuracy: true,
-            timeout: 10000
+            timeout: 5000
         });
     } else {
         alert('Geolocation is not supported by this browser.');

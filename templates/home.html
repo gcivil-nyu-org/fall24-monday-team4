@@ -3,149 +3,188 @@
 {% block title%}Home{% endblock %}
 
 {% block content %}
+
 {% if user.is_authenticated %}
-<!-- Show map with user's current location if logged in -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<div class="container mt-4">
-    <h2>Create a Trip</h2>
-    <form method="POST" action="{% url 'create_trip' %}" class="mt-3" id="tripForm">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label class="form-label">Departure Date And Time</label>
-            <input type="datetime-local"
-                name="planned_departure"
-                class="form-control"
-                required
-                step="60"
-                min="{% now 'Y-m-d\TH:i' %}"
-                onmouseleave="if(this.value=='')this.value='{% now 'Y-m-d\TH:i' %}'">
+    {% if has_active_trip %}
+        <div class="container mt-4">
+            <div class="alert alert-info">
+                <h4>You have an active trip!</h4>
+                <p>You can only have one active trip at a time.</p>
+                <a href="{% url 'find_matches' %}" class="btn btn-primary">View Your Active Trip</a>
+            </div>
+        </div>
+    {% else %}
+        <!-- Show map with user's current location if logged in -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <div class="container mt-4">
+            <h2>Create a Trip</h2>
+            <form method="POST" action="{% url 'create_trip' %}" class="mt-3" id="tripForm">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Departure Date And Time</label>
+                    <input type="datetime-local"
+                        name="planned_departure"
+                        class="form-control"
+                        required
+                        step="60"
+                        min="{% now 'Y-m-d\TH:i' %}"
+                        onmouseleave="if(this.value=='')this.value='{% now 'Y-m-d\TH:i' %}'">
+                </div>
+                
+                <!-- Hidden fields for coordinates -->
+                <input type="hidden" name="start_latitude" id="start_latitude">
+                <input type="hidden" name="start_longitude" id="start_longitude">
+                <input type="hidden" name="dest_latitude" id="dest_latitude">
+                <input type="hidden" name="dest_longitude" id="dest_longitude">
+        
+                <div id="map" style="height: 500px;" class="mb-3 position-relative rounded overflow-hidden"></div>
+                <!-- <div class="position-relative">
+                    <div id="map" style="height: 500px;" class="mb-3 position-relative">
+                        <div id="loading" class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background-image: linear-gradient(140deg, #B9E5E8 20%, #7AB2D3 50%, #4A628A 80%);">
+                            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Loading map...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div> -->
+                <p>Click on map to set destination</p>
+                
+                <button type="submit" class="btn btn-primary" id="submitTrip">Create Trip</button>
+            </form>
         </div>
         
-        <!-- Hidden fields for coordinates -->
-        <input type="hidden" name="start_latitude" id="start_latitude">
-        <input type="hidden" name="start_longitude" id="start_longitude">
-        <input type="hidden" name="dest_latitude" id="dest_latitude">
-        <input type="hidden" name="dest_longitude" id="dest_longitude">
-
-        <div id="map" style="height: 400px;" class="mb-3"></div>
-        <p>Click on map to set destination</p>
-        
-        <button type="submit" class="btn btn-primary" id="submitTrip">Create Trip</button>
-    </form>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    let map;
-    let currentMarker;
-    let destMarker;
-    let currentPosition;
-    let currentMarkerCircle;
-    // let destMarkerCircle;
-
-    function convertToDMS(dd, isLat) {
-        const dir = isLat ? (dd > 0 ? 'N' : 'S') : (dd > 0 ? 'E' : 'W');
-        dd = Math.abs(dd);
-        const degrees = Math.floor(dd);
-        const minutes = Math.floor((dd - degrees) * 60);
-        const seconds = ((dd - degrees - minutes/60) * 3600).toFixed(1);
-        return `${degrees}°${minutes}'${seconds}"${dir}`;
-    }
-
-    function initMap(position) {
-        currentPosition = position;
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        const accuracy = position.coords.accuracy;
-
-        // Initialize map
-        map = L.map('map').setView([latitude, longitude], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        const currentIcon = L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        });
-
-        const destIcon = L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        });
-
-        // Add marker for current location
-        currentMarker = L.marker([latitude, longitude], {icon: currentIcon})
-            .bindPopup(`Current Location:<br>
-                Latitude: ${convertToDMS(latitude, true)} (${latitude})<br>
-                Longitude: ${convertToDMS(longitude, false)} (${longitude})`)
-            .openPopup();
-        
-        currentMarkerCircle = L.circle([latitude, longitude], {radius: accuracy})
-        
-        let currFeatureGroup = L.featureGroup([currentMarker, currentMarkerCircle]).addTo(map)
-
-        map.fitBounds(currFeatureGroup.getBounds())
-        
-        // Click event to set destination
-        map.on('click', function(e) {
-            if (destMarker) {
-                map.removeLayer(destMarker);
-            }
-            // if (destMarkerCircle) {
-            //     map.removeLayer(destMarkerCircle);
-            // }
-
-            destMarker = L.marker(e.latlng, {icon: destIcon})
-                .bindPopup(`Your Destination:<br>
-                Latitude: ${convertToDMS(e.latlng.lat, true)} (${e.latlng.lat})<br>
-                Longitude: ${convertToDMS(e.latlng.lng, false)} (${e.latlng.lng})`)
-                .openPopup()
-                .addTo(map);
+        <script>
+            let map;
+            let currentMarker;
+            let destMarker;
+            let currentPosition;
+            let currentMarkerCircle;
+            // let destMarkerCircle;
             
-            // destMarkerCircle = L.circle(e.latlng)
-            
-            // let destFeatureGroup = L.featureGroup([destMarker, destMarkerCircle]).addTo(map)
-
-            // map.fitBounds(destFeatureGroup.getBounds())
-            
-            document.getElementById('dest_latitude').value = e.latlng.lat;
-            document.getElementById('dest_longitude').value = e.latlng.lng;
-        });
-    }
+            const currentIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
     
-    document.getElementById('tripForm').addEventListener('submit', function(e) {
-        if (!destMarker) {
-            e.preventDefault();
-            alert('Please select a destination on the map');
-            return;
-        }
-        
-        // Set start location only when form is submitted
-        document.getElementById('start_latitude').value = currentPosition.coords.latitude;
-        document.getElementById('start_longitude').value = currentPosition.coords.longitude;
-    });
+            const destIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
 
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(initMap, function() {
-            alert('Unable to get your location');
-        });
-    } else {
-        alert('Geolocation is not supported by this browser');
-    }
-</script>
+            function convertToDMS(dd, isLat) {
+                const dir = isLat ? (dd > 0 ? 'N' : 'S') : (dd > 0 ? 'E' : 'W');
+                dd = Math.abs(dd);
+                const degrees = Math.floor(dd);
+                const minutes = Math.floor((dd - degrees) * 60);
+                const seconds = ((dd - degrees - minutes/60) * 3600).toFixed(1);
+                return `${degrees}°${minutes}'${seconds}"${dir}`;
+            }
+        
+            function initMap() {
+                // Initialize map centered on NYU initially
+                map = L.map('map').setView([40.7290, -73.9965], 13);
+                
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 20,
+                    // attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+
+                // Find user's location
+                map.locate({
+                    setView: true,
+                    enableHighAccuracy: true
+                });
+
+                // Handle location found
+                map.on('locationfound', function(e) {
+                    currentPosition = e;
+                    const latitude = e.latitude;
+                    const longitude = e.longitude;
+                    const accuracy = e.accuracy;
+
+                    // Add marker for current location
+                    currentMarker = L.marker([latitude, longitude], {icon: currentIcon})
+                        .bindPopup(`Current Location:<br>
+                            Latitude: ${convertToDMS(latitude, true)} (${latitude})<br>
+                            Longitude: ${convertToDMS(longitude, false)} (${longitude})<br>
+                            Accuracy: ${e.accuracy}m`)
+                        .openPopup();
+                    
+                    currentMarkerCircle = L.circle([latitude, longitude], {
+                        radius: accuracy,
+                        interactive: false
+                    });
+                    
+                    let currFeatureGroup = L.featureGroup([currentMarker, currentMarkerCircle]).addTo(map);
+                    map.fitBounds(currFeatureGroup.getBounds());
+
+                    // Click event to set destination (keeping your existing functionality)
+                    map.on('click', function(e) {
+                        if (destMarker) {
+                            map.removeLayer(destMarker);
+                        }
+
+                        destMarker = L.marker(e.latlng, {icon: destIcon})
+                            .bindPopup(`Your Destination:<br>
+                            Latitude: ${convertToDMS(e.latlng.lat, true)} (${e.latlng.lat})<br>
+                            Longitude: ${convertToDMS(e.latlng.lng, false)} (${e.latlng.lng})`)
+                            .openPopup()
+                            .addTo(map);
+                        
+                        document.getElementById('dest_latitude').value = e.latlng.lat;
+                        document.getElementById('dest_longitude').value = e.latlng.lng;
+                    });
+
+                    // // Remove loader after location is found
+                    // const loadingElement = document.getElementById('loading');
+                    // if (loadingElement) {
+                    //     loadingElement.remove();
+                    // }
+                });
+
+                // Handle location error
+                map.on('locationerror', function(e) {
+                    alert('Unable to find your location');
+                    // const loadingElement = document.getElementById('loading');
+                    // if (loadingElement) {
+                    //     loadingElement.remove();
+                    // }
+                });
+            }
+
+            // Keep your form submission handler
+            document.getElementById('tripForm').addEventListener('submit', function(e) {
+                if (!destMarker) {
+                    e.preventDefault();
+                    alert('Please select a destination on the map');
+                    return;
+                }
+                
+                document.getElementById('start_latitude').value = currentPosition.latitude;
+                document.getElementById('start_longitude').value = currentPosition.longitude;
+            });
+
+            // Wait for document and styles to load fully
+            document.addEventListener('DOMContentLoaded', function() {
+                // Small delay to ensure styles are applied
+                setTimeout(() => {
+                    initMap();
+                }, 100);
+            });
+        </script>
+    {% endif %}
 {% else %}
-<p>Welcome to Route Pals.</p>
-<a class="btn btn-secondary btn-lg" href="{% url 'signup' %}" role="button">Sign Up</a>
-<a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Log In</a>
+    <p>Welcome to Route Pals.</p>
+    <a class="btn btn-secondary btn-lg" href="{% url 'signup' %}" role="button">Sign Up</a>
+    <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Log In</a>
 {% endif %}
+
 {% endblock %}

@@ -33,6 +33,15 @@ class Trip(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     planned_departure = models.DateTimeField()
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(status="SEARCHING"),
+                name="unique_active_trip",
+            )
+        ]
+
     def __str__(self):
         return f"{self.user.username}'s trip on {self.created_at.date()}"
 

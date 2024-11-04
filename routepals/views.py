@@ -1,5 +1,16 @@
-from django.shortcuts import render_to_response
+from django.views.generic import TemplateView
+from locations.models import Trip
+from django.utils import timezone
 
 
-def index(request):
-    return render_to_response("base.html")
+class HomeView(TemplateView):
+    template_name = "home.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            context["has_active_trip"] = Trip.objects.filter(
+                user=self.request.user,
+                status="SEARCHING",
+            ).exists()
+        return context
