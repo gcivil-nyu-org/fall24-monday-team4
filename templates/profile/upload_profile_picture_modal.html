@@ -6,7 +6,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <form method="POST" enctype="multipart/form-data" >
+            <form method="POST" enctype="multipart/form-data" id="uploadForm" >
                     <div class="modal-body">
                         {% csrf_token %}
                         <div class="mb-3">
@@ -16,12 +16,18 @@
                             There was an error uploading your image. Please try again.
                         </div>
                         <div id="imagePreview" style="display: none; margin-top: 15px;">
-                            <img id="previewImage" src="#" alt="Image Preview" style="max-width: 100%; height: 700px; border-radius: 8px;"/>
+                            <img id="previewImage" src="#" alt="Image Preview" style="max-width: 100%; height: 500px; border-radius: 8px;"/>
+                        </div>
+                        <div id="loadingSpinner" style="display: none; text-align: center; margin-top: 15px;">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p>Uploading...</p>
                         </div>
                     </div>
                 <div class="modal-footer" style="display: flex; flex-direction: row; justify-content: space-between">
-                    <button type="submit" class="btn btn-primary">Upload</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="uploadButton">Upload</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close" id="cancelButton">Cancel</button>
                 </div>
             </form>
         </div>
@@ -34,11 +40,14 @@
         const modal = document.getElementById("uploadModal");
         const preview = document.getElementById("imagePreview");
         const previewImage = document.getElementById("previewImage");
+        const uploadButton = document.getElementById("uploadButton");
+        const cancelButton = document.getElementById("cancelButton");
+        const loadingSpinner = document.getElementById("loadingSpinner");
+        const userPicture = document.getElementById("activeUserPicture");
 
         if (fileInput) {
             fileInput.addEventListener("change", function(event) {
                 const file = event.target.files[0];
-
 
                 if (file) {
                     const reader = new FileReader();
@@ -61,6 +70,51 @@
             preview.style.display = "none";
             previewImage.src = "#";
             errorMessage.style.display = "none";
+        });
+
+        uploadButton.addEventListener("click", function(event) {
+            event.preventDefault();
+            const formData = new FormData(document.getElementById("uploadForm"));
+
+            loadingSpinner.style.display = "block";
+            uploadButton.disabled = true;
+            cancelButton.disabled = true;
+            preview.style.display = "none";
+
+            fetch("{% url 'upload_user_profile_picture' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        errorMessage.style.display = "none";
+                        fileInput.value = "";
+                        preview.style.display = "none";
+                        previewImage.src = "#";
+                        userPicture.src = data.url;
+
+                        const modalInstance = bootstrap.Modal.getInstance(modal);
+                        modalInstance.hide();
+
+                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                    } else {
+                        errorMessage.innerText = data.error || "There was an error uploading your image.";
+                        errorMessage.style.display = "block";
+                    }
+                })
+                .catch(error => {
+                    errorMessage.innerText = "Unexpected error: " + error;
+                    errorMessage.style.display = "block";
+                })
+                .finally(() => {
+                    loadingSpinner.style.display = "none";
+                    uploadButton.disabled = false;
+                    cancelButton.disabled = false;
+                });
         });
     });
 </script>

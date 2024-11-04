@@ -9,18 +9,18 @@
         <div class="col-md-8">
             <div class="card profile-card text-center shadow" style="margin-top: 5rem">
                 <div>
+                    <div class="row justify-content-center">
                     {% if profile.photo_key %}
-                        <img src="" alt="User Picture">
+                        <img src={{ profile_picture_url }} alt="User Picture" id="activeUserPicture" class="rounded-circle" style="padding: unset; width: 150px; height: 150px; margin-top: -75px; display: flex; align-items: center; justify-content: center;"/>
                     {% else %}
-                        <div class="row justify-content-center">
-                            <div class="rounded-circle" style="width: 150px; height: 150px; background-color: black; margin-top: -75px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
-                                ?
-                            </div>
+                        <div class="rounded-circle" style="width: 150px; height: 150px; background-color: black; margin-top: -75px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
+                            ?
                         </div>
                     {% endif %}
+                    </div>
                     {% if is_user %}
                         <button type="button" class="btn btn-outline-dark btn-sm mt-1" id="upload-button" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                            <i class="fa-solid fa-file-import"></i> Upload
+                            <i class="fa-solid fa-camera"></i> Manage Profile Picture
                         </button>
                         {% include 'profile/upload_profile_picture_modal.html' %}
                     {% endif %}
