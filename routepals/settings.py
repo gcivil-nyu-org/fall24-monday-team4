@@ -138,6 +138,10 @@ LOGGING = {
             "style": "{",
         },
     },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
     "handlers": {
         "console": {
             "level": "DEBUG",
@@ -152,6 +156,11 @@ LOGGING = {
             "propagate": True,
         },
         "user_profile": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "admin_user": {
             "handlers": ["console"],
             "level": "DEBUG",
             "propagate": False,

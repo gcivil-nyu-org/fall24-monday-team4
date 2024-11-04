@@ -27,4 +27,5 @@ urlpatterns = [
     path("", include("user_profile.urls")),
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
     path("locations/", include("locations.urls")),
+    path("", include("admin_user.urls"))
 ]

@@ -18,10 +18,12 @@
                             </div>
                         </div>
                     {% endif %}
-                    <button type="button" class="btn btn-outline-dark btn-sm mt-1" id="upload-button" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                        <i class="fa-solid fa-file-import"></i> Upload
-                    </button>
-                    {% include 'profile/upload_profile_picture_modal.html' %}
+                    {% if is_user %}
+                        <button type="button" class="btn btn-outline-dark btn-sm mt-1" id="upload-button" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                            <i class="fa-solid fa-file-import"></i> Upload
+                        </button>
+                        {% include 'profile/upload_profile_picture_modal.html' %}
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     <hr />
@@ -46,7 +48,7 @@
                     <div class="row justify-content-center" style="margin-top: 1rem; margin-bottom: 1rem;">
                         <div class="col d-flex align-items-center justify-content-center">
                             <h5 class="mb-0 me-2">About Me</h5>
-                            <button type="icon" class="btn btn-outline-dark btn-sm" id="edit-button"><i class="fa-solid fa-pen-to-square"></i></button>
+                            {% if is_user %} <button type="icon" class="btn btn-outline-dark btn-sm" id="edit-button"><i class="fa-solid fa-pen-to-square"></i></button> {% endif %}
                         </div>
                     </div>
                     <form method="POST" id="bio-form">
@@ -66,7 +68,7 @@
                             <button type="button" class="btn btn-sm btn-secondary" id="cancel-button">Cancel</button>
                         </div>
                     </form>
-                    <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button">Password Change</a></p>
+                    {% if is_user %} <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button">Password Change</a></p> {% endif %}
                     <hr />
                     <div class="social-icons">
                         <i class="fa-brands fa-instagram fa-2x" style="margin: 1rem"></i>
