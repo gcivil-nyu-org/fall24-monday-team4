@@ -9,8 +9,7 @@ from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 
-
-@login_required
+@login_required(login_url="home")
 def profile_view(request, user_id=None):
     if user_id is None:
         profile = get_object_or_404(UserProfile, user=request.user)
