@@ -7,6 +7,7 @@ s3_client = boto3.client(
     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
 )
 
+
 def generate_presigned_url(key, expiration=3600):
     """
     Generates a pre-signed URL to access a file in S3 with an expiration time.
@@ -25,6 +26,7 @@ def generate_presigned_url(key, expiration=3600):
     except Exception as e:
         print(f'Failed to generate pre-signed URL: {e}')
         return None
+
 
 def upload_file_to_s3(file, key):
     """

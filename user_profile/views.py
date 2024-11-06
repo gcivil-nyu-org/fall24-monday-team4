@@ -9,6 +9,7 @@ from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 
+
 @login_required(login_url="home")
 def profile_view(request, user_id=None):
     if user_id is None:
@@ -28,16 +29,26 @@ def profile_view(request, user_id=None):
         profile_picture_url = generate_presigned_url(profile.photo_key, expiration=3600)
     else:
         profile_picture_url = None
-    return render(request, "profile/user_profile.html",
-                  {"profile": profile, "is_user": is_user, "profile_picture_url": profile_picture_url})
+    return render(
+        request,
+        "profile/user_profile.html",
+        {
+            "profile": profile,
+            "is_user": is_user,
+            "profile_picture_url": profile_picture_url,
+        },
+    )
 
 
 def upload_profile_modal(request):
-    return render(request, 'profile/upload_profile_picture_modal.html', {"user": request.user})
+    return render(
+        request, "profile/upload_profile_picture_modal.html", {"user": request.user}
+    )
+
 
 def upload_profile_picture(request):
-    if request.method == 'POST' and request.FILES.get('photo'):
-        file = request.FILES['photo']
+    if request.method == "POST" and request.FILES.get("photo"):
+        file = request.FILES["photo"]
         unique_key = str(uuid.uuid4())
 
         try:
@@ -48,8 +59,8 @@ def upload_profile_picture(request):
             profile.file_type = file.content_type
             profile.save()
 
-            return JsonResponse({'success': True, 'url': s3_url})
+            return JsonResponse({"success": True, "url": s3_url})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            return JsonResponse({"success": False, "error": str(e)})
 
-    return JsonResponse({'success': False, 'error': 'Invalid request'})
+    return JsonResponse({"success": False, "error": "Invalid request"})

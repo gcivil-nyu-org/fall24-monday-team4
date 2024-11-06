@@ -26,5 +26,5 @@ urlpatterns = [
     path("", include("user_profile.urls")),
     path("", HomeView.as_view(), name="home"),
     path("locations/", include("locations.urls")),
-    path("", include("admin_user.urls"))
+    path("", include("admin_user.urls")),
 ]
