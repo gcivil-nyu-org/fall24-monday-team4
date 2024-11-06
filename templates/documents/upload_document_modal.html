@@ -1,0 +1,182 @@
+<div class="modal fade" id="uploadDocumentModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" id="modalDocument" style="width: 600px">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel">Upload a Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" id="uploadDocumentForm" >
+                <div class="modal-body" style="text-align: left">
+                    {% csrf_token %}
+                    <div class="row w-100" style="display: flex;" id="uploadRow">
+                        <div class="col-6" style="flex: 1; display: flex; flex-direction: column;">
+                            <div class="card shadow" style="height: 100%;">
+                                <div class="card-body" style="flex-grow: 1;">
+                                    <div class="mb-3">
+                                        <input class="form-control" type="file" name="document" id="document" accept=".pdf, .doc, .docx, .jpeg, .jpg, .png, .txt" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="fileName" class="form-label">Name</label>
+                                        <input class="form-control" type="text" name="fileName" id="fileName" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="fileDescription" class="form-label">Description of File</label>
+                                        <textarea class="form-control" id="fileDescription" rows="3" name="fileDescription"></textarea>
+                                    </div>
+
+                                    <div id="errorMessageDocuments" style="display: none; color: red; text-align: center; margin-top: 15px;">
+                                        There was an error uploading your document. Please try again.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col" style="flex: 1; display: none; flex-direction: column;" id="filePreviewSection">
+                            <div class="card shadow" style="height: 100%;">
+                                <div class="card-body" style="flex-grow: 1;">
+                                    <div id="uploadFileName" style="text-align: center; display: none"></div>
+                                    <div id="documentPreview" style="height: 100%; display: none; margin-top: 15px; margin-bottom: 15px; max-height: 600px">
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                </div>
+                    <div id="loadingSpinnerDocuments" style="display: none; text-align: center; margin-top: 15px;">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Saving...</p>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; flex-direction: row; justify-content: space-between">
+                    <button type="submit" class="btn btn-primary" id="uploadDocumentsButton">Upload</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close" id="cancelUploadButton">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const acceptableTypes = [
+            "image/png",
+            "text/plain",
+            "application/pdf",
+            "image/jpeg",
+        ];
+
+        const fileInput = document.getElementById("document");
+        const previewDiv = document.getElementById("documentPreview");
+        const filePreviewSection = document.getElementById("filePreviewSection");
+        const modalDocument = document.getElementById("modalDocument");
+        const uploadFileNameDiv = document.getElementById("uploadFileName");
+        const fileName = document.getElementById("fileName");
+        const fileDescription = document.getElementById("fileDescription");
+        const errorMessage = document.getElementById("errorMessageDocuments");
+        const modal = document.getElementById("uploadDocumentModal");
+        const uploadButton = document.getElementById("uploadDocumentsButton");
+        const cancelButton = document.getElementById("cancelUploadButton");
+        const loadingSpinner = document.getElementById("loadingSpinnerDocuments");
+        const uploadRow = document.getElementById("uploadRow");
+
+        fileInput.addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file && acceptableTypes.includes(file.type)) {
+                const reader = new FileReader();
+                modalDocument.style.width = "";
+                reader.onload = function(e) {
+                    previewDiv.innerHTML = "";
+
+                    if (["image/png", "image/jpeg"].includes(file.type)) {
+                        const img = document.createElement("img");
+                        img.src = e.target.result;
+                        img.style.width = "100%";
+                        img.style.height = "100%";
+                        previewDiv.appendChild(img);
+                    } else {
+                        const iframe = document.createElement("iframe");
+                        iframe.src = e.target.result;
+                        iframe.style.width = "100%";
+                        iframe.style.height = "500px";
+                        iframe.style.overflowY = "scroll";
+                        previewDiv.appendChild(iframe);
+                    }
+                    filePreviewSection.style.display = "flex";
+                    previewDiv.style.display = "block";
+
+                    uploadFileNameDiv.style.display = "block";
+                    const h5FileName = document.createElement("h5");
+                    h5FileName.textContent = file.name;
+                    uploadFileNameDiv.appendChild(h5FileName);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewDiv.style.display = "none";
+                filePreviewSection.style.display = "none";
+                modalDocument.style.width = "600px";
+            }
+        });
+
+        modal.addEventListener("hidden.bs.modal", function () {
+            fileInput.value = "";
+            fileName.value = "";
+            fileDescription.value = "";
+            previewDiv.style.display = "none";
+            filePreviewSection.style.display = "none";
+            errorMessage.style.display = "none";
+            modalDocument.style.width = "600px";
+        });
+
+        uploadButton.addEventListener("click", function(event) {
+            event.preventDefault();
+            const formData = new FormData(document.getElementById("uploadDocumentForm"));
+
+            loadingSpinner.style.display = "block";
+
+            uploadButton.disabled = true;
+            cancelButton.disabled = true;
+            uploadRow.style.display = "none";
+
+            fetch("{% url 'upload_document' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        fileInput.value = "";
+                        fileName.value = "";
+                        fileDescription.value = "";
+                        previewDiv.style.display = "none";
+                        filePreviewSection.style.display = "none";
+                        errorMessage.style.display = "none";
+                        modalDocument.style.width = "600px";
+
+                        const modalInstance = bootstrap.Modal.getInstance(modal);
+                        modalInstance.hide();
+
+                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                        location.reload();
+                    } else {
+                        errorMessage.innerText = data.error || "There was an error uploading your image.";
+                        errorMessage.style.display = "block";
+                    }
+                })
+                .catch(error => {
+                    errorMessage.innerText = "Unexpected error: " + error;
+                    errorMessage.style.display = "block";
+                })
+                .finally(() => {
+                    loadingSpinner.style.display = "none";
+                    uploadButton.disabled = false;
+                    cancelButton.disabled = false;
+                    uploadRow.style.display = "flex";
+                });
+        });
+    });
+</script>

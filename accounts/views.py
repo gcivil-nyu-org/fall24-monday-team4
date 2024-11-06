@@ -8,7 +8,11 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
 from django.contrib.messages.views import SuccessMessageMixin
-
+from .models import UserDocument
+from utils.s3_utils import upload_file_to_s3, generate_presigned_url
+import logging
+import uuid
+from django.http import JsonResponse
 
 def WelcomeEmail(user):
     subject = "Welcome to RoutePals!"
@@ -78,3 +82,35 @@ class ResetPassword(SuccessMessageMixin, PasswordResetView):
               and check your spam folder."
     )
     success_url = reverse_lazy("password_reset_done")
+
+def uploaded_documents_view(request):
+    documents = UserDocument.objects.filter(user=request.user, deleted_at__isnull=True)
+    return render(request, 'documents/user_document_list.html', {"user": request.user, "documents": documents})
+
+def upload_document_modal(request):
+    return render(request, 'documents/upload_document_modal.html', {"user": request.user})
+
+def upload_document(request):
+    if request.method == 'POST' and request.FILES.get('document'):
+        document = request.FILES['document']
+        name = request.POST.get('fileName')
+        description = request.POST.get('fileDescription')
+        user = request.user
+        unique_key = str(uuid.uuid4())
+
+        try:
+            s3_url = upload_file_to_s3(document, unique_key)
+
+            user_document = UserDocument.objects.create(
+                user=user,
+                filename=name,
+                description=description,
+                s3_key=unique_key,
+                file_type=document.content_type
+            )
+
+            return JsonResponse({'success': True, 'url': s3_url})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
