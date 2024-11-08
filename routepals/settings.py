@@ -39,14 +39,22 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "daphne",
     "django.contrib.staticfiles",
     "accounts",
     "locations",
     "bootstrap5",
     "user_profile",
     "fontawesomefree",
+    "chat",
+    "channels",
 ]
 
+
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+
+
+ASGI_APPLICATION = "routepals.asgi.application"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

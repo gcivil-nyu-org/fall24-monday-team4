@@ -4,10 +4,16 @@
 A brief description of your project goes here.
 
 ## Build Status
+### Master Branch
+[![Build Status](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4.svg?branch=master)](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4)
+### Develop Branch
 [![Build Status](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4.svg?branch=develop)](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4)
 
 ## Coverage
-[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=traivisCICD)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=traivisCICD)
+### Master Branch
+[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=develop)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=master)
+### Develop Branch
+[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=master)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=develop)
 
 ## Links
 1. [AWS EB Site](https://routepals-dev.us-west-2.elasticbeanstalk.com)
