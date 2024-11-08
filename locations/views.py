@@ -65,7 +65,6 @@ def create_trip(request):
 #         )
 
 
-
 @login_required
 def find_matches(request):
     try:
@@ -73,39 +72,39 @@ def find_matches(request):
         user_trip = Trip.objects.filter(user=request.user, status="SEARCHING").latest("created_at")
 
         # Convert the user's start and destination locations to H3 hexagons
-        user_start_hex = h3.latlng_to_cell(float(user_trip.start_latitude), float(user_trip.start_longitude), 9)
-        user_dest_hex = h3.latlng_to_cell(float(user_trip.dest_latitude), float(user_trip.dest_longitude), 9)
+        user_start_hex = h3.latlng_to_cell(float(user_trip.start_latitude), float(user_trip.start_longitude), 10)
+        user_dest_hex = h3.latlng_to_cell(float(user_trip.dest_latitude), float(user_trip.dest_longitude), 10)
 
-        # Define time window for potential matches (30 minutes before and after the user's departure time)
+        # Define time window
         time_min = user_trip.planned_departure - timedelta(minutes=30)
         time_max = user_trip.planned_departure + timedelta(minutes=30)
 
-        # Find nearby hexagons within a specified radius (k-ring) for start and destination
-        nearby_start_hexes = set(h3.grid_disk(user_start_hex, 1))  # Remove k= keyword argument
-        nearby_dest_hexes = set(h3.grid_disk(user_dest_hex, 1))    # Remove k= keyword argument
+        # Get nearby hexagons
+        nearby_start_hexes = set(h3.grid_disk(user_start_hex, 2))
+        nearby_dest_hexes = set(h3.grid_disk(user_dest_hex, 2))
 
-        # Query for potential matches within the time range, nearby start, and nearby destination hexes
-        potential_matches = Trip.objects.filter(
+        # First get all potential matches within the time window
+        time_matches = Trip.objects.filter(
             status="SEARCHING",
-            planned_departure__range=(time_min, time_max),
-            start_latitude__in=[
-                Decimal(str(h3.cell_to_latlng(hex)[0])) for hex in nearby_start_hexes  # Convert float to string
-            ],
-            start_longitude__in=[
-                Decimal(str(h3.cell_to_latlng(hex)[1])) for hex in nearby_start_hexes  # Convert float to string
-            ],
-            dest_latitude__in=[
-                Decimal(str(h3.cell_to_latlng(hex)[0])) for hex in nearby_dest_hexes  # Convert float to string
-            ],
-            dest_longitude__in=[
-                Decimal(str(h3.cell_to_latlng(hex)[1])) for hex in nearby_dest_hexes  # Convert float to string
-            ]
+            planned_departure__range=(time_min, time_max)
         ).exclude(user=request.user)
+
+        # Then filter by location
+        potential_matches = []
+        for trip in time_matches:
+            trip_start_hex = h3.latlng_to_cell(float(trip.start_latitude), float(trip.start_longitude), 10)
+            trip_dest_hex = h3.latlng_to_cell(float(trip.dest_latitude), float(trip.dest_longitude), 10)
+            
+            if trip_start_hex in nearby_start_hexes and trip_dest_hex in nearby_dest_hexes:
+                potential_matches.append(trip)
 
         return render(
             request,
             "locations/find_matches.html",
-            {"user_trip": user_trip, "potential_matches": potential_matches},
+            {
+                "user_trip": user_trip,
+                "potential_matches": potential_matches
+            },
         )
 
     except Trip.DoesNotExist:
@@ -114,6 +113,7 @@ def find_matches(request):
             "locations/find_matches.html",
             {"error": "No active trip found. Create a trip first."},
         )
+    
 
 @login_required
 def send_match_request(request):
