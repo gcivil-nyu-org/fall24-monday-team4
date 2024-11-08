@@ -1,0 +1,14 @@
+Django==4.2.16
+django-bootstrap-v5==1.0.11
+fontawesomefree==6.6.0
+psycopg2-binary==2.9.10
+requests==2.32.3
+python-dotenv==1.0.1
+black==24.10.0
+coverage==7.6.4
+coveralls==4.0.1
+flake8==7.1.1
+PyYAML==6.0.2
+awscli==1.35.20
+channels==4.1.0
+daphne==4.1.2
