@@ -8,16 +8,23 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card profile-card text-center shadow" style="margin-top: 5rem">
-                {% if profile.photo_key %}
-                    <img src="" alt="User Picture">
-                {% else %}
+                <div>
                     <div class="row justify-content-center">
+                    {% if profile.photo_key %}
+                        <img src={{ profile_picture_url }} alt="User Picture" id="activeUserPicture" class="rounded-circle" style="padding: unset; width: 150px; height: 150px; margin-top: -75px; display: flex; align-items: center; justify-content: center;"/>
+                    {% else %}
                         <div class="rounded-circle" style="width: 150px; height: 150px; background-color: black; margin-top: -75px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
                             ?
                         </div>
+                    {% endif %}
                     </div>
-                {% endif %}
-
+                    {% if is_user %}
+                        <button type="button" class="btn btn-outline-dark btn-sm mt-1" id="upload-button" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                            <i class="fa-solid fa-camera"></i> Manage Profile Picture
+                        </button>
+                        {% include 'profile/upload_profile_picture_modal.html' %}
+                    {% endif %}
+                </div>
                 <div class="card-body">
                     <hr />
                     <h2 class="username">{{ profile.user.username }}</h2>
@@ -41,7 +48,7 @@
                     <div class="row justify-content-center" style="margin-top: 1rem; margin-bottom: 1rem;">
                         <div class="col d-flex align-items-center justify-content-center">
                             <h5 class="mb-0 me-2">About Me</h5>
-                            <button type="icon" class="btn btn-outline-dark btn-sm" id="edit-button"><i class="fa-solid fa-pen-to-square"></i></button>
+                            {% if is_user %} <button type="icon" class="btn btn-outline-dark btn-sm" id="edit-button"><i class="fa-solid fa-pen-to-square"></i></button> {% endif %}
                         </div>
                     </div>
                     <form method="POST" id="bio-form">
@@ -61,8 +68,9 @@
                             <button type="button" class="btn btn-sm btn-secondary" id="cancel-button">Cancel</button>
                         </div>
                     </form>
-                    <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button">Password Change</a></p>
+                    {% if is_user %} <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button">Password Change</a></p> {% endif %}
                     <hr />
+                    {% if not is_user %}<button type="button" class="btn btn-danger btn-sm">Report User</button>{% endif %}
                     <div class="social-icons">
                         <i class="fa-brands fa-instagram fa-2x" style="margin: 1rem"></i>
                         <i class="fa-brands fa-facebook fa-2x" style="margin: 1rem"></i>
@@ -89,5 +97,6 @@
         editControls.style.display = 'none';
         textarea.value = originalValue;
     });
+
 </script>
 {% endblock %}
