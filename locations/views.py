@@ -8,6 +8,9 @@ from django.utils.timezone import make_aware
 # from django.db.models import Q
 from django.core.paginator import Paginator
 
+import h3
+from decimal import Decimal
+
 
 @login_required
 def create_trip(request):
@@ -33,19 +36,70 @@ def create_trip(request):
     return redirect("home")
 
 
+# @login_required
+# def find_matches(request):
+#     try:
+#         user_trip = Trip.objects.filter(user=request.user, status="SEARCHING").latest(
+#             "created_at"
+#         )
+
+#         # Find trips within 30 minutes of user's departure
+#         time_min = user_trip.planned_departure - timedelta(minutes=30)
+#         time_max = user_trip.planned_departure + timedelta(minutes=30)
+
+#         potential_matches = Trip.objects.filter(
+#             status="SEARCHING", planned_departure__range=(time_min, time_max)
+#         ).exclude(user=request.user)
+
+#         return render(
+#             request,
+#             "locations/find_matches.html",
+#             {"user_trip": user_trip, "potential_matches": potential_matches},
+#         )
+
+#     except Trip.DoesNotExist:
+#         return render(
+#             request,
+#             "locations/find_matches.html",
+#             {"error": "No active trip found. Create a trip first."},
+#         )
+
+
+
 @login_required
 def find_matches(request):
     try:
-        user_trip = Trip.objects.filter(user=request.user, status="SEARCHING").latest(
-            "created_at"
-        )
+        # Get the current user's active trip
+        user_trip = Trip.objects.filter(user=request.user, status="SEARCHING").latest("created_at")
 
-        # Find trips within 30 minutes of user's departure
+        # Convert the user's start and destination locations to H3 hexagons
+        user_start_hex = h3.latlng_to_cell(float(user_trip.start_latitude), float(user_trip.start_longitude), 9)
+        user_dest_hex = h3.latlng_to_cell(float(user_trip.dest_latitude), float(user_trip.dest_longitude), 9)
+
+        # Define time window for potential matches (30 minutes before and after the user's departure time)
         time_min = user_trip.planned_departure - timedelta(minutes=30)
         time_max = user_trip.planned_departure + timedelta(minutes=30)
 
+        # Find nearby hexagons within a specified radius (k-ring) for start and destination
+        nearby_start_hexes = set(h3.grid_disk(user_start_hex, 1))  # Remove k= keyword argument
+        nearby_dest_hexes = set(h3.grid_disk(user_dest_hex, 1))    # Remove k= keyword argument
+
+        # Query for potential matches within the time range, nearby start, and nearby destination hexes
         potential_matches = Trip.objects.filter(
-            status="SEARCHING", planned_departure__range=(time_min, time_max)
+            status="SEARCHING",
+            planned_departure__range=(time_min, time_max),
+            start_latitude__in=[
+                Decimal(str(h3.cell_to_latlng(hex)[0])) for hex in nearby_start_hexes  # Convert float to string
+            ],
+            start_longitude__in=[
+                Decimal(str(h3.cell_to_latlng(hex)[1])) for hex in nearby_start_hexes  # Convert float to string
+            ],
+            dest_latitude__in=[
+                Decimal(str(h3.cell_to_latlng(hex)[0])) for hex in nearby_dest_hexes  # Convert float to string
+            ],
+            dest_longitude__in=[
+                Decimal(str(h3.cell_to_latlng(hex)[1])) for hex in nearby_dest_hexes  # Convert float to string
+            ]
         ).exclude(user=request.user)
 
         return render(
@@ -60,7 +114,6 @@ def find_matches(request):
             "locations/find_matches.html",
             {"error": "No active trip found. Create a trip first."},
         )
-
 
 @login_required
 def send_match_request(request):
