@@ -1,0 +1,16 @@
+{% extends "registration/reg_base.html" %}
+
+{% block title %}Admin Creation{% endblock %}
+
+{% block fields %}
+<div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1">
+  <h5>Create an Administrator Account</h5>
+  <br/>
+  <form method="POST" class="form-group">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary btn-lg"
+      style="padding-left: 2.5rem; padding-right: 2.5rem;">Sign Up</button>
+  </form>
+</div>
+{% endblock %}

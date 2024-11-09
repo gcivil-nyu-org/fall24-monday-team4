@@ -1,13 +1,16 @@
-{% extends "base.html" %}
+{% extends "registration/reg_base.html" %}
 
 {% block title %}Sign Up{% endblock %}
 
-{% block content %}
-<h2>Sign Up</h2>
-<h4>Only NYU students can use Route Pals. Please sign up using your NYU email.</h4>
-<form method="POST" class="form-group">
+{% block fields %}
+<div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1">
+  <h5>Only NYU students can use Route Pals. Please sign up using your NYU email.</h5>
+  <br/>
+  <form method="POST" class="form-group">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Sign Up</button>
-</form>
+    <button type="submit" class="btn btn-primary btn-lg"
+      style="padding-left: 2.5rem; padding-right: 2.5rem;">Sign Up</button>
+  </form>
+</div>
 {% endblock %}
