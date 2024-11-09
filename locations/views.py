@@ -102,9 +102,9 @@ def find_matches(request):
             trip_dest_hex = h3.latlng_to_cell(
                 float(trip.dest_latitude), float(trip.dest_longitude), 10
             )
-
             if (
-                trip_start_hex in nearby_start_hexes and trip_dest_hex in nearby_dest_hexes
+                trip_start_hex in nearby_start_hexes
+                and trip_dest_hex in nearby_dest_hexes
             ):
                 potential_matches.append(trip)
 
