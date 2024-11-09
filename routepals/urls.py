@@ -26,4 +26,6 @@ urlpatterns = [
     path("", include("user_profile.urls")),
     path("", HomeView.as_view(), name="home"),
     path("locations/", include("locations.urls")),
+    path("chat/", include("chat.urls")),
+    path("", include("admin_user.urls")),
 ]

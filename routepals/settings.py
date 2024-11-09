@@ -39,14 +39,22 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "daphne",
     "django.contrib.staticfiles",
     "accounts",
     "locations",
     "bootstrap5",
     "user_profile",
     "fontawesomefree",
+    "chat",
+    "channels",
 ]
 
+
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+
+
+ASGI_APPLICATION = "routepals.asgi.application"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -139,6 +147,10 @@ LOGGING = {
             "style": "{",
         },
     },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
     "handlers": {
         "console": {
             "level": "DEBUG",
@@ -153,6 +165,11 @@ LOGGING = {
             "propagate": True,
         },
         "user_profile": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "admin_user": {
             "handlers": ["console"],
             "level": "DEBUG",
             "propagate": False,
@@ -194,3 +211,8 @@ EMAIL_HOST_USER = os.environ.get("EMAIL", "")
 EMAIL_HOST_PASSWORD = os.environ.get("APP_PASSWORD", "")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
+
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
