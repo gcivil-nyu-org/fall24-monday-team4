@@ -36,35 +36,6 @@ def create_trip(request):
     return redirect("home")
 
 
-# @login_required
-# def find_matches(request):
-#     try:
-#         user_trip = Trip.objects.filter(user=request.user, status="SEARCHING").latest(
-#             "created_at"
-#         )
-
-#         # Find trips within 30 minutes of user's departure
-#         time_min = user_trip.planned_departure - timedelta(minutes=30)
-#         time_max = user_trip.planned_departure + timedelta(minutes=30)
-
-#         potential_matches = Trip.objects.filter(
-#             status="SEARCHING", planned_departure__range=(time_min, time_max)
-#         ).exclude(user=request.user)
-
-#         return render(
-#             request,
-#             "locations/find_matches.html",
-#             {"user_trip": user_trip, "potential_matches": potential_matches},
-#         )
-
-#     except Trip.DoesNotExist:
-#         return render(
-#             request,
-#             "locations/find_matches.html",
-#             {"error": "No active trip found. Create a trip first."},
-#         )
-
-
 @login_required
 def find_matches(request):
     try:
