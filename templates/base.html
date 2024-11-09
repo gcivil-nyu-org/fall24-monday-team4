@@ -74,6 +74,11 @@
             <li class="nav-item">
               <a class="nav-link link-light" href="{% url 'user_document_list' %}">Documents</a>
             </li>
+            {% if user.userprofile.is_emergency_support %}
+            <li class="nav-item">
+              <a class="nav-link link-light" href="{% url 'emergency_support' %}">Emergency Support</a>
+            </li>
+            {% endif %}
           </ul>
         </div>
         <span class="navbar-text">
