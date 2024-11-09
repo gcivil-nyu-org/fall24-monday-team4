@@ -6,7 +6,6 @@ from utils.s3_utils import upload_file_to_s3, generate_presigned_url
 import logging
 import uuid
 from django.http import JsonResponse
-
 logger = logging.getLogger(__name__)
 
 
