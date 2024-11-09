@@ -9,7 +9,6 @@ from django.utils.timezone import make_aware
 from django.core.paginator import Paginator
 
 import h3
-from decimal import Decimal
 
 
 @login_required
@@ -40,11 +39,17 @@ def create_trip(request):
 def find_matches(request):
     try:
         # Get the current user's active trip
-        user_trip = Trip.objects.filter(user=request.user, status="SEARCHING").latest("created_at")
+        user_trip = Trip.objects.filter(user=request.user, status="SEARCHING").latest(
+            "created_at"
+        )
 
         # Convert the user's start and destination locations to H3 hexagons
-        user_start_hex = h3.latlng_to_cell(float(user_trip.start_latitude), float(user_trip.start_longitude), 10)
-        user_dest_hex = h3.latlng_to_cell(float(user_trip.dest_latitude), float(user_trip.dest_longitude), 10)
+        user_start_hex = h3.latlng_to_cell(
+            float(user_trip.start_latitude), float(user_trip.start_longitude), 10
+        )
+        user_dest_hex = h3.latlng_to_cell(
+            float(user_trip.dest_latitude), float(user_trip.dest_longitude), 10
+        )
 
         # Define time window
         time_min = user_trip.planned_departure - timedelta(minutes=30)
@@ -56,26 +61,28 @@ def find_matches(request):
 
         # First get all potential matches within the time window
         time_matches = Trip.objects.filter(
-            status="SEARCHING",
-            planned_departure__range=(time_min, time_max)
+            status="SEARCHING", planned_departure__range=(time_min, time_max)
         ).exclude(user=request.user)
 
         # Then filter by location
         potential_matches = []
         for trip in time_matches:
-            trip_start_hex = h3.latlng_to_cell(float(trip.start_latitude), float(trip.start_longitude), 10)
-            trip_dest_hex = h3.latlng_to_cell(float(trip.dest_latitude), float(trip.dest_longitude), 10)
-            
-            if trip_start_hex in nearby_start_hexes and trip_dest_hex in nearby_dest_hexes:
+            trip_start_hex = h3.latlng_to_cell(
+                float(trip.start_latitude), float(trip.start_longitude), 10
+            )
+            trip_dest_hex = h3.latlng_to_cell(
+                float(trip.dest_latitude), float(trip.dest_longitude), 10
+            )
+            if (
+                trip_start_hex in nearby_start_hexes
+                and trip_dest_hex in nearby_dest_hexes
+            ):
                 potential_matches.append(trip)
 
         return render(
             request,
             "locations/find_matches.html",
-            {
-                "user_trip": user_trip,
-                "potential_matches": potential_matches
-            },
+            {"user_trip": user_trip, "potential_matches": potential_matches},
         )
 
     except Trip.DoesNotExist:
@@ -84,7 +91,7 @@ def find_matches(request):
             "locations/find_matches.html",
             {"error": "No active trip found. Create a trip first."},
         )
-    
+
 
 @login_required
 def send_match_request(request):
