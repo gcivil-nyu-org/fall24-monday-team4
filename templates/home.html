@@ -30,6 +30,16 @@
                         min="{% now 'Y-m-d\TH:i' %}"
                         onmouseleave="if(this.value=='')this.value='{% now 'Y-m-d\TH:i' %}'">
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">Number of Companions</label>
+                    <select name="desired_companions" class="form-control" required>
+                        <option value="0">No Preference</option>
+                        <option value="1">1 Companion</option>
+                        <option value="2">2 Companions</option>
+                        <option value="3">3 Companions</option>
+                        <option value="4">4 Companions</option>
+                    </select>
+                </div>
                 
                 <!-- Hidden fields for coordinates -->
                 <input type="hidden" name="start_latitude" id="start_latitude">

@@ -19,7 +19,7 @@
             <div class="card-body">
                 <p>Departure: {{ user_trip.planned_departure }}</p>
                 <p>Status: {{ user_trip.status }}</p>
-                <div id="user-trip-map" style="height: 50vh; width: auto;" class="mb-3 position-relative rounded overflow-hidden"></div>
+                <div id="user-trip-map" style="height: 70vh; width: auto;" class="mb-3 position-relative rounded overflow-hidden"></div>
                 <div class="d-flex gap-2">
                     <button class="btn btn-secondary" onclick="toggleRouteInstructions()">Show/Hide Route Instructions</button>
                     <form method="POST" action="{% url 'cancel_trip' %}">
@@ -34,19 +34,47 @@
 
         <h4>Available Travel Companions</h4>
         {% if potential_matches %}
-            {% for match in potential_matches %}
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ match.user.username }}</h5>
-                        <p>Departure: {{ match.planned_departure }}</p>
-                        <form method="POST" action="{% url 'send_match_request' %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="trip_id" value="{{ match.id }}">
-                            <button type="submit" class="btn btn-primary">Send Request</button>
-                        </form>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                {% for matchdTrip in potential_matches %}
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                {% if matchdTrip.user.profile.photo_key %}
+                                    <img src="{{ matchdTrip.user.profile.get_photo_url }}" alt="Profile Picture"
+                                        class="rounded-circle me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                    <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                        style="width: 50px; height: 50px; background-color: black; color: white;">
+                                        ?
+                                    </div>
+                                {% endif %}
+                                <h5 class="card-title mb-0">{{ matchdTrip.user.username }}</h5>
+                            </div>
+                            <div class="mb-3">
+                                <p class="mb-0">Departure: {{ matchdTrip.planned_departure }}</p>
+                                {% if matchdTrip.desired_companions == 0 %}
+                                    <p class="mb-0">Group Size: Open to any</p>
+                                {% else %}
+                                    <p class="mb-0">Looking for: {{ matchdTrip.desired_companions }} companions</p>
+                                    <p class="mb-0">Spots left: {{ matchdTrip.spots_left }}</p>
+                                {% endif %}
+                            </div>
+                            <form method="POST" action="{% url 'send_match_request' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="trip_id" value="{{ matchdTrip.id }}">
+                                <button type="button"
+                                        class="request-btn btn {% if matchdTrip.has_pending_request %}btn-warning{% else %}btn-primary{% endif %}"
+                                        data-trip-id="{{ matchdTrip.id }}"
+                                        data-status="{% if matchdTrip.has_pending_request %}requested{% else %}send{% endif %}">
+                                    {{ matchdTrip.has_pending_request|yesno:"Requested,Request" }}
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
         {% else %}
             <div class="alert alert-info">
                 No potential companion matches found at this time. Check back later!
@@ -170,4 +198,37 @@
     );
     window.map.fitBounds(bounds, {padding: [50, 50]});
 </script>
+
+<script>
+    document.querySelectorAll('.request-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const tripId = this.dataset.tripId;
+            const action = this.dataset.status === 'requested' ? 'cancel' : 'send';
+    
+            fetch('{% url "send_match_request" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `trip_id=${tripId}&action=${action}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (action === 'send') {
+                        this.textContent = 'Requested';
+                        this.classList.replace('btn-primary', 'btn-warning');
+                        this.dataset.status = 'requested';
+                    } else {
+                        this.textContent = 'Request';
+                        this.classList.replace('btn-warning', 'btn-primary');
+                        this.dataset.status = 'send';
+                    }
+                }
+            });
+        });
+    });
+</script>
+
 {% endblock %}

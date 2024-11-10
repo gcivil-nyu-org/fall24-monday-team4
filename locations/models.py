@@ -32,6 +32,7 @@ class Trip(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     planned_departure = models.DateTimeField()
+    desired_companions = models.IntegerField(default=0)  # 0 means no preference
 
     class Meta:
         constraints = [

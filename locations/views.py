@@ -1,5 +1,6 @@
 import json
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from .models import Trip, Match
 from datetime import timedelta, datetime
@@ -29,6 +30,7 @@ def create_trip(request):
                 "dest_latitude": request.POST.get("dest_latitude"),
                 "dest_longitude": request.POST.get("dest_longitude"),
                 "planned_departure": planned_departure,
+                "desired_companions": request.POST.get("desired_companions"),
             },
         )
         return redirect("find_matches")
@@ -64,20 +66,49 @@ def find_matches(request):
             status="SEARCHING", planned_departure__range=(time_min, time_max)
         ).exclude(user=request.user)
 
-        # Then filter by location
+        # Then filter by location and companion preferences
         potential_matches = []
         for trip in time_matches:
+            # Check location match
             trip_start_hex = h3.latlng_to_cell(
                 float(trip.start_latitude), float(trip.start_longitude), 10
             )
             trip_dest_hex = h3.latlng_to_cell(
                 float(trip.dest_latitude), float(trip.dest_longitude), 10
             )
-            if (
-                trip_start_hex in nearby_start_hexes
-                and trip_dest_hex in nearby_dest_hexes
-            ):
-                potential_matches.append(trip)
+            
+            if (trip_start_hex in nearby_start_hexes and 
+                trip_dest_hex in nearby_dest_hexes):
+                
+                # Get current accepted matches count
+                accepted_matches = Match.objects.filter(
+                    receiver=trip, 
+                    status='ACCEPTED'
+                ).count()
+                
+                # Skip if trip is full
+                if trip.desired_companions != 0 and accepted_matches >= trip.desired_companions:
+                    continue
+                    
+                # Match if either has no preference or same number
+                if (user_trip.desired_companions == 0 or 
+                    trip.desired_companions == 0 or 
+                    user_trip.desired_companions == trip.desired_companions):
+                    
+                    # Add matches count info
+                    trip.current_matches = accepted_matches
+                    trip.spots_left = "No limit" if trip.desired_companions == 0 else (
+                        trip.desired_companions - accepted_matches
+                    )
+
+                    # Add existing match status checks
+                    trip.has_pending_request = Match.objects.filter(
+                        requester__user=request.user,
+                        receiver=trip,
+                        status='PENDING'
+                    ).exists()
+                    
+                    potential_matches.append(trip)
 
         return render(
             request,
@@ -97,14 +128,27 @@ def find_matches(request):
 def send_match_request(request):
     if request.method == "POST":
         receiver_trip_id = request.POST.get("trip_id")
-        user_trip = Trip.objects.filter(user=request.user, status="SEARCHING").latest(
-            "created_at"
-        )
+        action = request.POST.get("action")
+        user_trip = Trip.objects.filter(user=request.user, status="SEARCHING").latest("created_at")
 
-        Match.objects.create(
-            requester=user_trip, receiver_id=receiver_trip_id, status="PENDING"
-        )
-        return redirect("find_matches")
+        try:
+            if action == "cancel":
+                Match.objects.filter(
+                    requester=user_trip,
+                    receiver_id=receiver_trip_id,
+                    status="PENDING"
+                ).delete()
+            else:
+                Match.objects.get_or_create(
+                    requester=user_trip,
+                    receiver_id=receiver_trip_id,
+                    defaults={'status': 'PENDING'}
+                )
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
 @login_required
