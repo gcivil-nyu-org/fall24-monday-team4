@@ -70,7 +70,10 @@
                     </form>
                     {% if is_user %} <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button">Password Change</a></p> {% endif %}
                     <hr />
-                    {% if not is_user %}<button type="button" class="btn btn-danger btn-sm">Report User</button>{% endif %}
+                    {% if not is_user %}
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reportUserModal">Report User</button>
+                    {% include 'profile/report_user_modal.html' %}
+                    {% endif %}
                     <div class="social-icons">
                         <i class="fa-brands fa-instagram fa-2x" style="margin: 1rem"></i>
                         <i class="fa-brands fa-facebook fa-2x" style="margin: 1rem"></i>

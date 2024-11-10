@@ -31,3 +31,18 @@ class UserDocument(models.Model):
 
     class Meta:
         db_table = "user_documents"
+
+class UserReports(models.Model):
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_made', null=False)
+    reported_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_received', null=False)
+    subject = models.CharField(max_length=255, null=False)
+    description = models.TextField(null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_acknowledged = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Report by {self.reporter.username} on {self.reported_user.username}"
+
+    class Meta:
+        db_table = "user_reports"
+
