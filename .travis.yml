@@ -16,6 +16,7 @@ before_script:
   - psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';" -U postgres
   - psql -c "CREATE DATABASE $DB_NAME;" -U postgres
   - psql -c "ALTER USER $DB_USER WITH SUPERUSER;" -U postgres
+  - python manage.py migrate --fake locations zero
   - python manage.py makemigrations
   - python manage.py migrate
   - python manage.py collectstatic --noinput
