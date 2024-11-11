@@ -3,25 +3,30 @@
 
 {% block content %}
 
-<!-- templates/chat/create_chat_room.html -->
+
 <div class="container mt-3">
     <h1>Create a new chat room</h1>
-    <form method="post" style="display: flex; flex-direction: column; align-items: flex-start;">
+    <form method="POST">
         {% csrf_token %}
-        <div class="form-group" style="margin-bottom: 1rem;">
-            {{ form.name.label_tag }}
-            {{ form.name }}
+        <div class="form-group">
+          <label for="id_name">Name</label>
+          <input type="text" class="form-control" name="name" id="id_name" placeholder="Enter a name for the chat room">
         </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-            {{ form.description.label_tag }}
-            {{ form.description }}
+        <div class="form-group">
+          <label for="id_description">Description</label>
+          <textarea class="form-control" name="description" id="id_description" rows="3" placeholder="Enter a description for the chat room"></textarea>
         </div>
-        <div class="form-group" style="margin-bottom: 1rem;">
-            {{ form.users.label_tag }}
-            {{ form.users }}
+        <div class="form-group">
+            <label for="id_users">Users</label>
+            <select multiple class="form-control" name="users" id="id_users">
+                {% for user in form.users %}
+                {{ user }}
+                {% endfor %}
+            </select>
         </div>
-        <button type="submit" class="btn btn-primary">Create</button>
+        <br/>
+        <button type="submit" class="btn btn-primary">Submit</button>
     </form>
-</div>
+</div>   
 
 {% endblock %}

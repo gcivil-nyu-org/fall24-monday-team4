@@ -7,15 +7,20 @@
     <title>Chat Rooms</title>
 </head>
 <body>
-    <h1>Chat Rooms</h1>
-    <ul>
+    <div class="mb-2 d-flex w-100 justify-content-between">
+        <h1>Chat Rooms</h1>
+        <a class="btn btn-primary btn-lg" href="{% url 'create_chat_room' %}" role="button">Create a new chat room</a>
+    </div>
+    <div class="list-group mt-3">
         {% for chat_room in chat_rooms %}
             {% if request.user in chat_room.users.all %}
-                <li><a href="{% url 'chat_room' chat_room.pk %}">{{ chat_room.name }}</a></li>
+                <a href="{% url 'chat_room' chat_room.pk %}" class="list-group-item list-group-item-action flex-column align-items-start">
+                    <h5 class="mb-1">{{ chat_room.name }}</h5>
+                    <small>{{ chat_room.description }}</small>
+                </a>
             {% endif %}
         {% endfor %}
-    </ul>
-    <p><a href="{% url 'create_chat_room' %}">Create a new chat room</a></p>
+    </div>
 </body>
 </html>
 
