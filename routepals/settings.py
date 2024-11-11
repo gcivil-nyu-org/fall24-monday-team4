@@ -51,9 +51,28 @@ INSTALLED_APPS = [
 ]
 
 
-CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+if "RDS_HOSTNAME" in os.environ:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [("routepals.rlytsp.ng.0001.usw2.cache.amazonaws.com", 6379)],
+            },
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            # 'BACKEND': 'channels.layers.InMemoryChannelLayer'
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [("127.0.0.1", 6379)],
+            },
+        }
+    }
 
 
+WSGI_APPLICATION = "routepals.wsgi.application"
 ASGI_APPLICATION = "routepals.asgi.application"
 
 MIDDLEWARE = [
@@ -216,3 +235,10 @@ AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}

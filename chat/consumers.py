@@ -7,12 +7,15 @@ from .models import Message, ChatRoom
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.roomGroupName = "group_chat_gfg"
-        await self.channel_layer.group_add(self.roomGroupName, self.channel_name)
+        # Get room id from URL route
+        self.room_id = self.scope["url_route"]["kwargs"]["chatroom_id"]
+        self.room_group_name = f"chat_{self.room_id}"
+
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
-        await self.channel.name.group_discard(self.roomGroupName, self.channel_name)
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)

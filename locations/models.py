@@ -2,6 +2,7 @@ from django.db import models
 
 # locations/models.py
 from django.contrib.auth.models import User
+from chat.models import ChatRoom
 
 
 class UserLocation(models.Model):
@@ -34,6 +35,9 @@ class Trip(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     planned_departure = models.DateTimeField()
     desired_companions = models.IntegerField(default=0)  # 0 means no preference
+    chatroom = models.ForeignKey(
+        ChatRoom, null=True, on_delete=models.SET_NULL, related_name="trips"
+    )
 
     class Meta:
         constraints = [
@@ -63,7 +67,7 @@ class Match(models.Model):
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     created_at = models.DateTimeField(auto_now_add=True)
-    room_id = models.CharField(max_length=100, unique=True, null=True)
+    chatroom = models.ForeignKey(ChatRoom, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return f"Match between {self.requester.user.username} and {self.receiver.user.username}"

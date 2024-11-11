@@ -13,13 +13,18 @@
                         <div class="col-md-4">
                             <p><strong>Status:</strong> 
                                 <span class="badge {% if trip.status == 'MATCHED' %}bg-success
-                                               {% elif trip.status == 'COMPLETED' %}bg-info
-                                               {% else %}bg-secondary{% endif %}">
+                                            {% elif trip.status == 'COMPLETED' %}bg-info
+                                            {% else %}bg-secondary{% endif %}">
                                     {{ trip.status }}
                                 </span>
                             </p>
                             <p><strong>Planned Departure:</strong> {{ trip.planned_departure }}</p>
                             <p><strong>Created:</strong> {{ trip.created_at }}</p>
+                            {% if trip.status == 'COMPLETED' and trip.chatroom %}
+                                <a href="{% url 'chat_room' trip.chatroom.id %}?archive=true" class="btn btn-outline-info">
+                                    <i class="fa-solid fa-history"></i> View Chat History
+                                </a>
+                            {% endif %}
                         </div>
                         <div class="col-md-8">
                             <div id="map-{{ trip.id }}" style="height: 300px;" class="mb-3 position-relative rounded overflow-hidden"></div>

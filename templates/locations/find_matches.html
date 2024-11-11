@@ -51,6 +51,13 @@
                                     </span>
                                 {% endif %}
                             {% endwith %}
+                        {% elif user_trip.status == "IN_PROGRESS" %}
+                            <form method="POST" action="{% url 'complete_trip' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-info" onclick="return confirm('Are you sure you want to complete this trip?')">
+                                    <i class="fa-solid fa-flag-checkered"></i> Complete Trip
+                                </button>
+                            </form>
                         {% endif %}
                         <button class="btn btn-secondary" onclick="toggleRouteInstructions()">Show/Hide Route Instructions</button>
                         <form method="POST" action="{% url 'cancel_trip' %}">
@@ -60,11 +67,22 @@
                             </button>
                         </form>
                     </div>
-                    {% if user_trip.status == "IN_PROGRESS" %}
-                        <button class="btn btn-primary" id="toggleLocations" onclick="toggleLiveLocations()">
-                            <i class="fa-solid fa-location-dot"></i> Show Live Locations
-                        </button>
-                    {% endif %}
+                    <div class="d-flex gap-2">
+                        {% if user_trip.status == "MATCHED" or user_trip.status == "IN_PROGRESS" %}
+                            {% with accepted_match=user_trip|first_accepted_match %}
+                                {% if accepted_match.room_id %}
+                                <a href="{% url 'chat_room' accepted_match.chatroom.id %}" class="btn btn-warning">
+                                    <i class="fa-solid fa-comments"></i> Group Chat
+                                </a>
+                                {% endif %}
+                            {% endwith %}
+                        {% endif %}
+                        {% if user_trip.status == "IN_PROGRESS" %}
+                            <button class="btn btn-primary" id="toggleLocations" onclick="toggleLiveLocations()">
+                                <i class="fa-solid fa-location-dot"></i> Show Live Locations
+                            </button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

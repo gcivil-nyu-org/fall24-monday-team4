@@ -20,8 +20,12 @@ class TripAdmin(admin.ModelAdmin):
 
 @admin.register(Match)
 class MatchAdmin(admin.ModelAdmin):
-    list_display = ("requester", "receiver", "status", "created_at", "room_id")
+    list_display = ("requester", "receiver", "status", "created_at", "chatroom")
     list_filter = ("status", "created_at")
-    search_fields = ("room_id", "requester__user__username", "receiver__user__username")
+    search_fields = (
+        "chatroom__name",
+        "requester__user__username",
+        "receiver__user__username",
+    )
     readonly_fields = ("created_at",)
     list_per_page = 20
