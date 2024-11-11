@@ -35,7 +35,7 @@
                         {% endif %}
                     </td>
                     <td>{{ item.date_joined|date:"Y-m-d H:i:s" }}</td>
-                    <td><a href="{% url 'user_profile' item.id %}"><button type="button" class="btn btn-outline-primary btn-sm">View</button></a></td>
+                    <td><a href="{% url 'user_profile' item.id %}"><button type="button" class="btn btn-primary btn-sm">View</button></a></td>
                 </tr>
             {% endfor %}
             </tbody>
