@@ -3,24 +3,27 @@
 
 {% block content %}
   <body>
-    <center><h1>Hello , Welcome to my chat site ! {{request.user}}</h1></center>
-    <br>
-    {% if request.user.is_authenticated  %}
-    {% endif %}
     <div
       class="chat__item__container"
       id="id_chat_item_container"
-      style="font-size: 20px"
+      style="font-size: 20px; height: 100%"
     >
       {% for message in messages %}
-      <div>{{message.user.username}} : {{message.message}}</div>
+        {% if message.user == request.user %}
+          <div class="alert alert-primary mb-3 p-2 text-end float-end" style="width: 60%">{{message.message}}</div>
+        {% else %}
+          <small>{{message.user.username}}</small>
+          <div class="alert alert-secondary mb-3 p-2 float-left" style="width: 60%">{{message.message}}</div>
+        {% endif %}
       {% endfor %}
-      <br />
-      <input type="text" id="id_message_send_input" />
-      <button type="submit" id="id_message_send_button">Send Message</button>
-      <br />
-      <br />
     </div>
+    <div class="form-group mt-auto">
+      <input type="text" class="form-control mb-2" id="id_message_send_input" />
+      <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary" id="id_message_send_button">Send Message</button>
+      </div>
+      </div>
+
     <script>
       const chatSocket = new WebSocket("ws://" + window.location.host + "/");
       chatSocket.onopen = function (e) {
@@ -50,7 +53,9 @@
       chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
         var div = document.createElement("div");
-        div.innerHTML = data.username + " : " + data.message;
+        div.className = "alert alert-primary mb-3 p-2 text-end float-end";
+        div.style.cssText= "width:60%";
+        div.innerHTML = data.message;
         document.querySelector("#id_message_send_input").value = "";
         document.querySelector("#id_chat_item_container").appendChild(div);
       };

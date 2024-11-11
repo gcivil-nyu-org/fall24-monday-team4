@@ -44,7 +44,7 @@ def create_chat_room(request):
             chat_room.users.add(
                 request.user
             )  # Add the requesting user to the chat room
-            return redirect("index")
+            return redirect("chat")
     else:
         form = ChatRoomForm(initial={"users": [request.user.id]})
     return render(request, "chat/create_chat_room.html", {"form": form})
