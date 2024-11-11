@@ -18,6 +18,7 @@ class Trip(models.Model):
     STATUS_CHOICES = [
         ("SEARCHING", "Searching for companion"),
         ("MATCHED", "Matched"),
+        ("IN_PROGRESS", "In Progress"),
         ("COMPLETED", "Completed"),
         ("CANCELLED", "Cancelled"),
     ]

@@ -2,7 +2,7 @@ import json
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
-from .models import Trip, Match
+from .models import Trip, Match, UserLocation
 from datetime import timedelta, datetime
 from django.utils.timezone import make_aware
 
@@ -10,6 +10,41 @@ from django.utils.timezone import make_aware
 from django.core.paginator import Paginator
 
 import h3
+
+
+@login_required
+def update_location(request):
+    if request.method == 'POST':
+        try:
+            lat = request.POST.get('latitude')
+            lng = request.POST.get('longitude')
+            UserLocation.objects.update_or_create(
+                user=request.user,
+                defaults={'latitude': lat, 'longitude': lng}
+            )
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def get_trip_locations(request):
+    try:
+        # Get current user's active trip
+        trip = Trip.objects.get(user=request.user, status="IN_PROGRESS")
+        
+        # Get matched users' locations
+        matched_users = trip.received_matches.filter(
+            status='ACCEPTED', 
+            receiver__status='IN_PROGRESS'
+        ).values_list('receiver__user', flat=True)
+        
+        locations = UserLocation.objects.filter(
+            user__in=matched_users
+        ).values('user__username', 'latitude', 'longitude', 'last_updated')
+        
+        return JsonResponse({'success': True, 'locations': list(locations)})
+    except Trip.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'No active trip found'})
 
 
 @login_required
@@ -209,17 +244,17 @@ def received_requests(request):
         {"received_matches": received_matches},
     )
 
-
-# Chatroom stuff
-# @login_required
-# def chat_room(request, match_id):
-#     match = Match.objects.get(
-#         Q(requester__user=request.user) | Q(receiver__user=request.user),
-#         id=match_id,
-#         status="ACCEPTED",
-#     )
-#     return render(request, "locations/chat_room.html", {"match": match})
-
+# locations/views.py
+@login_required
+def start_trip(request):
+    if request.method == "POST":
+        trip = Trip.objects.get(user=request.user, status="MATCHED")
+        # Check again if conditions are met
+        accepted_matches = trip.received_matches.filter(status='ACCEPTED').count()
+        if trip.desired_companions == 0 or accepted_matches >= trip.desired_companions:
+            trip.status = "IN_PROGRESS"
+            trip.save()
+        return redirect('find_matches')
 
 @login_required
 def cancel_trip(request):

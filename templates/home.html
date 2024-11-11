@@ -22,16 +22,24 @@
                 {% csrf_token %}
                 <div class="mb-3">
                     <label class="form-label">Departure Date And Time</label>
-                    <input type="datetime-local"
-                        name="planned_departure"
-                        class="form-control"
-                        required
-                        step="60"
-                        min="{% now 'Y-m-d\TH:i' %}"
-                        onmouseleave="if(this.value=='')this.value='{% now 'Y-m-d\TH:i' %}'">
+                    <div class="col-md-3"> <!-- or col-md-4 for smaller, col-md-8 for larger -->
+                        <div class="input-group">
+                            <input type="datetime-local"
+                                name="planned_departure"
+                                class="form-control"
+                                required
+                                step="60"
+                                min="{% now 'Y-m-d\TH:i' %}"
+                                onmouseleave="if(this.value=='')this.value='{% now 'Y-m-d\TH:i' %}'">
+                            <button type="button" class="btn btn-secondary" onclick="setCurrentTime()">Now</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Number of Companions</label>
+                    <label class="form-label">Number of Companions 
+                        <i class="fa-solid fa-circle-info" data-bs-toggle="tooltip" data-bs-placement="right" 
+                           title="Group size (excluding yourself)"></i>
+                    </label>
                     <select name="desired_companions" class="form-control" required>
                         <option value="0">No Preference</option>
                         <option value="1">1 Companion</option>
@@ -62,6 +70,19 @@
                 <button type="submit" class="btn btn-primary" id="submitTrip">Create Trip</button>
             </form>
         </div>
+        
+        <script>
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+
+            function setCurrentTime() {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                document.querySelector('input[name="planned_departure"]').value = now.toISOString().slice(0,16);
+            }
+        </script>
         
         <script>
             let map;

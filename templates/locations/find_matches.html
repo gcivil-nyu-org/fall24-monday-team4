@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load trip_filters %}
 {% block title %}Find Companions{% endblock %}
 
 {% block content %}
@@ -17,17 +18,53 @@
                 <h4>Your Active Trip</h4>
             </div>
             <div class="card-body">
-                <p>Departure: {{ user_trip.planned_departure }}</p>
-                <p>Status: {{ user_trip.status }}</p>
+                <div class="mb-3">
+                    <p class="mb-0"><strong>Departure:</strong> {{ user_trip.planned_departure }}</p>
+                    <p class="mb-0"><strong>Status:</strong> 
+                        <span class="badge {% if user_trip.status == 'MATCHED' %}bg-warning
+                                       {% elif user_trip.status == 'IN_PROGRESS' %}bg-info
+                                       {% elif user_trip.status == 'COMPLETED' %}bg-success
+                                       {% else %}bg-secondary{% endif %}">
+                            {{ user_trip.status }}
+                        </span>
+                    </p>
+                    {% if user_trip.desired_companions == 0 %}
+                        <p class="mb-0"><strong>Group Size:</strong> Open to any</p>
+                    {% else %}
+                        <p class="mb-0"><strong>Looking for:</strong> {{ user_trip.desired_companions }} companions</p>
+                        <p class="mb-0"><strong>Spots left:</strong> {{ user_trip.spots_left }}</p>
+                    {% endif %}
+                </div>
                 <div id="user-trip-map" style="height: 70vh; width: auto;" class="mb-3 position-relative rounded overflow-hidden"></div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-secondary" onclick="toggleRouteInstructions()">Show/Hide Route Instructions</button>
-                    <form method="POST" action="{% url 'cancel_trip' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">
-                            Cancel Trip
+                <div class="d-flex gap-2 justify-content-between">
+                    <div class="d-flex gap-2">
+                        {% if user_trip.status == "MATCHED" %}
+                            {% with match_count=user_trip|accepted_matches_count %}
+                                {% if user_trip.desired_companions == 0 or match_count >= user_trip.desired_companions %}
+                                    <form method="POST" action="{% url 'start_trip' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success">Start Trip</button>
+                                    </form>
+                                {% else %}
+                                    <span class="text-warning align-self-center">
+                                        Waiting for {{ user_trip.desired_companions|sub:match_count }} more companions before trip can start
+                                    </span>
+                                {% endif %}
+                            {% endwith %}
+                        {% endif %}
+                        <button class="btn btn-secondary" onclick="toggleRouteInstructions()">Show/Hide Route Instructions</button>
+                        <form method="POST" action="{% url 'cancel_trip' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">
+                                Cancel Trip
+                            </button>
+                        </form>
+                    </div>
+                    {% if user_trip.status == "IN_PROGRESS" %}
+                        <button class="btn btn-primary" id="toggleLocations" onclick="toggleLiveLocations()">
+                            <i class="fa-solid fa-location-dot"></i> Show Live Locations
                         </button>
-                    </form>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -94,7 +131,12 @@
         }
     }
     
+    // At the start, before creating new map
     if (window.map) {
+        // Clear all markers and controls
+        window.map.eachLayer((layer) => {
+            layer.remove();
+        });
         window.map.remove();
     }
 
@@ -106,7 +148,7 @@
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         // attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+    }).addTo(window.map);
 
     const startIcon = L.icon({
         iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
@@ -194,9 +236,170 @@
     // Fit bounds to markers
     const bounds = L.latLngBounds(
         [parseFloat({{user_trip.start_latitude}}), parseFloat({{user_trip.start_longitude}})],
-        [parseFloat({{user_trip.dest_latitude}}), parseFloat(user_trip.dest_longitude)]
+        [parseFloat({{user_trip.dest_latitude}}), parseFloat({{user_trip.dest_longitude}})]
     );
+
     window.map.fitBounds(bounds, {padding: [50, 50]});
+
+    // Map Stuff For Live Tracking
+    let locationUpdateInterval = null;
+    let companionMarkers = {};
+    let userLocationMarker = null;
+    let userMarkerCircle = null;  // For accuracy radius
+    let currFeatureGroup = null;
+    let locationFoundHandler = null;
+
+    const userIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    let showingLocations = false;
+
+    function toggleLiveLocations() {
+        const button = document.getElementById('toggleLocations');
+        showingLocations = !showingLocations;
+        
+        if (showingLocations) {
+            button.innerHTML = '<i class="fa-solid fa-location-dot"></i> Hide Live Locations';
+            if (currFeatureGroup) currFeatureGroup.addTo(window.map);
+            Object.values(companionMarkers).forEach(marker => marker.addTo(window.map));
+        } else {
+            button.innerHTML = '<i class="fa-solid fa-location-dot"></i> Show Live Locations';
+            if (currFeatureGroup) window.map.removeLayer(currFeatureGroup);
+            Object.values(companionMarkers).forEach(marker => window.map.removeLayer(marker));
+        }
+    }
+
+    function updateUserLocation() {
+        // Remove previous listener if exists
+        if (locationFoundHandler) {
+            window.map.off('locationfound', locationFoundHandler);
+        }
+
+        window.map.locate({
+            setView: false,  // Don't auto-pan to location
+            enableHighAccuracy: true
+        });
+
+        locationFoundHandler = function(e) {
+            const latitude = e.latitude;
+            const longitude = e.longitude;
+            const accuracy = e.accuracy;
+            const pos = [latitude, longitude];
+
+            // Update or create marker
+            if (userLocationMarker) {
+                userLocationMarker.setLatLng(pos);
+            } else {
+                userLocationMarker = L.marker(pos, {icon: userIcon})
+                .bindPopup(`Your Current Location:<br>
+                    Latitude: ${latitude}<br>
+                    Longitude: ${longitude}<br>
+                    Accuracy: ${accuracy}m`)    
+            }
+
+            // Update or create accuracy circle
+            if (userMarkerCircle) {
+                userMarkerCircle.setLatLng(pos);
+                userMarkerCircle.setRadius(accuracy);
+            } else {
+                userMarkerCircle = L.circle(pos, {
+                    radius: accuracy,
+                    interactive: false
+                })    
+            }
+
+            // Remove old feature group if exists
+            if (currFeatureGroup) {
+                window.map.removeLayer(currFeatureGroup);
+            }
+
+            currFeatureGroup = L.featureGroup([userLocationMarker, userMarkerCircle])                        
+                                    
+            if (showingLocations) {
+                currFeatureGroup.addTo(window.map);
+            }
+
+            // Send location to server
+            fetch('{% url "update_location" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: new URLSearchParams({
+                    'latitude': latitude,
+                    'longitude': longitude
+                })
+            });
+        };
+
+        window.map.on('locationfound', locationFoundHandler);
+
+        window.map.on('locationerror', function(e) {
+            console.log('Unable to find location:', e.message);
+        });
+    }
+
+    // Different icons for companions
+    const companionIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    function updateCompanionLocations() {
+        fetch('{% url "get_trip_locations" %}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    data.locations.forEach(loc => {
+                        let marker = companionMarkers[loc.user__username];
+                        const position = [loc.latitude, loc.longitude];
+                        
+                        if (marker) {
+                            marker.setLatLng(position);
+                        } else {
+                            marker = L.marker(position, {icon: companionIcon})
+                                .bindPopup(loc.user__username)
+                            companionMarkers[loc.user__username] = marker;
+                        }
+
+                        if (showingLocations) {
+                            marker.addTo(window.map);
+                        }
+                    });
+                }
+            });
+    }
+
+    // Start/stop location updates based on trip status
+    if ("{{user_trip.status}}" == "IN_PROGRESS"){
+        // Update location every 10 seconds
+        locationUpdateInterval = setInterval(() => {
+            updateUserLocation();
+            updateCompanionLocations();
+        }, 10000);
+        
+        // Initial update
+        updateUserLocation();
+        updateCompanionLocations();
+    }
+
+    // Cleanup on page unload
+    window.onunload = function() {
+        if (locationUpdateInterval) {
+            clearInterval(locationUpdateInterval);
+        }
+    };
 </script>
 
 <script>
