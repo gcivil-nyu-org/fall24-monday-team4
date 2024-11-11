@@ -1,15 +1,28 @@
 container_commands:
-  01_migrate:
+  00_make_executable:
+    command: "chmod +x /opt/elasticbeanstalk/hooks/appdeploy/pre/50start_supervisord.sh"
+
+  01_start_supervisord:
+    command: "/opt/elasticbeanstalk/hooks/appdeploy/pre/50start_supervisord.sh"
+    leader_only: true
+  
+  02_start_daphne:
+    command: "supervisorctl -c /opt/python/etc/supervisord.conf start daphne >> /var/log/daphne_supervisor_start.log 2>&1"
+    leader_only: true
+
+  03_migrate:
     command: "source /var/app/venv/*/bin/activate && python3 manage.py migrate --noinput"
     leader_only: true
-  02_createsuperuser:
+  
+  04_createsuperuser:
     command: |
       if [ ! -f /var/app/superuser_created ]; then
         source /var/app/venv/*/bin/activate && python3 manage.py createsuperuser --noinput
         touch /var/app/superuser_created
       fi
     leader_only: true
-  03_collectstatic:
+  
+  05_collectstatic:
     command: "python manage.py collectstatic --noinput"
 
 option_settings:
@@ -52,18 +65,6 @@ option_settings:
   aws:elasticbeanstalk:environment:process:https:
       Port: '443'
       Protocol: HTTPS
-
-container_commands:
-  00_make_executable:
-    command: "chmod +x /opt/elasticbeanstalk/hooks/appdeploy/pre/50start_supervisord.sh"
-
-  01_start_supervisord:
-    command: "/opt/elasticbeanstalk/hooks/appdeploy/pre/50start_supervisord.sh"
-    leader_only: true
-  
-  02_start_daphne:
-    command: "supervisorctl -c /opt/python/etc/supervisord.conf start daphne >> /var/log/daphne_supervisor_start.log 2>&1"
-    leader_only: true
 
 files:
   "/opt/elasticbeanstalk/hooks/appdeploy/pre/50start_supervisord.sh":

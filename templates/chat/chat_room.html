@@ -43,7 +43,7 @@
 <script>
     const messageContainer = document.getElementById('messageContainer');
     
-    {% if not is_archive %}
+    if (!{{is_archive}}) {
       const messageInput = document.getElementById('messageInput');
       const sendButton = document.getElementById('sendButton');
       const statusDiv = document.getElementById('connectionStatus');
@@ -126,7 +126,7 @@
               chatSocket.close();
           }
       });
-    {% endif %}
+    }
 
     // Scroll to bottom on load
     messageContainer.scrollTop = messageContainer.scrollHeight;
