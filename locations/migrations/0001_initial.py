@@ -65,6 +65,7 @@ class Migration(migrations.Migration):
                 ("latitude", models.DecimalField(decimal_places=6, max_digits=11)),
                 ("longitude", models.DecimalField(decimal_places=6, max_digits=11)),
                 ("last_updated", models.DateTimeField(auto_now=True)),
+                ("panic", models.BooleanField(default=False)),
                 (
                     "user",
                     models.OneToOneField(
