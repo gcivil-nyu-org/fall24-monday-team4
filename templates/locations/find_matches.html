@@ -22,121 +22,330 @@
                     <p class="mb-0"><strong>Departure:</strong> {{ user_trip.planned_departure }}</p>
                     <p class="mb-0"><strong>Status:</strong> 
                         <span class="badge {% if user_trip.status == 'MATCHED' %}bg-warning
-                                       {% elif user_trip.status == 'IN_PROGRESS' %}bg-info
-                                       {% elif user_trip.status == 'COMPLETED' %}bg-success
-                                       {% else %}bg-secondary{% endif %}">
-                            {{ user_trip.status }}
+                            {% elif user_trip.status == 'READY' %}bg-info
+                            {% elif user_trip.status == 'IN_PROGRESS' %}bg-primary
+                            {% else %}bg-secondary{% endif %}">
+                                {{ user_trip.status }}
+                                {% if user_trip.status == 'SEARCHING' %}
+                                    ({{ user_trip.accepted_companions_count }}/{{ user_trip.desired_companions }})
+                                {% endif %}
                         </span>
+                        {% if user_trip.status == 'IN_PROGRESS' %}
+                            <small class="text-muted">
+                                ({{ user_trip|completion_votes_count }}/{{ user_trip|total_group_members }} votes for completion)
+                            </small>
+                        {% endif %}
                     </p>
-                    {% if user_trip.desired_companions == 0 %}
-                        <p class="mb-0"><strong>Group Size:</strong> Open to any</p>
-                    {% else %}
-                        <p class="mb-0"><strong>Looking for:</strong> {{ user_trip.desired_companions }} companions</p>
-                        <p class="mb-0"><strong>Spots left:</strong> {{ user_trip.spots_left }}</p>
-                    {% endif %}
+                    <p class="mb-0"><strong>Looking for:</strong> {{ user_trip.desired_companions }} companions</p>
+                    <p class="mb-0"><strong>Companions Matched:</strong> {{ user_trip.accepted_companions_count }} / {{ user_trip.desired_companions }}</p>
                 </div>
                 <div id="user-trip-map" style="height: 70vh; width: auto;" class="mb-3 position-relative rounded overflow-hidden"></div>
                 <div class="d-flex gap-2 justify-content-between">
                     <div class="d-flex gap-2">
                         {% if user_trip.status == "MATCHED" %}
-                            {% with match_count=user_trip|accepted_matches_count %}
-                                {% if user_trip.desired_companions == 0 or match_count >= user_trip.desired_companions %}
+                            {% with match_count=user_trip.accepted_companions_count %}
+                                {% if match_count >= user_trip.desired_companions %}
                                     <form method="POST" action="{% url 'start_trip' %}" class="d-inline">
                                         {% csrf_token %}
-                                        <button type="submit" class="btn btn-success">Start Trip</button>
+                                        <button type="submit" class="btn btn-info">
+                                            Ready to Start
+                                        </button>
                                     </form>
                                 {% else %}
                                     <span class="text-warning align-self-center">
-                                        Waiting for {{ user_trip.desired_companions|sub:match_count }} more companions before trip can start
+                                        Waiting for {{ user_trip.desired_companions|sub:match_count }} more companions
                                     </span>
                                 {% endif %}
                             {% endwith %}
+                        {% elif user_trip.status == "READY" %}
+                            <span class="text-secondary align-self-center">
+                                <strong>Waiting for Others...</strong> 
+                            </span>
                         {% elif user_trip.status == "IN_PROGRESS" %}
                             <form method="POST" action="{% url 'complete_trip' %}" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-info" onclick="return confirm('Are you sure you want to complete this trip?')">
-                                    <i class="fa-solid fa-flag-checkered"></i> Complete Trip
+                                <button type="submit" class="btn btn-success" {% if user_trip.completion_requested %}disabled{% endif %}>
+                                    {% if user_trip.completion_requested %}
+                                        Completion Requested
+                                    {% else %}
+                                        <i class="fa-solid fa-flag-checkered"></i> Request Completion
+                                    {% endif %}
                                 </button>
                             </form>
                         {% endif %}
                         <button class="btn btn-secondary" onclick="toggleRouteInstructions()">Show/Hide Route Instructions</button>
-                        <form method="POST" action="{% url 'cancel_trip' %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">
-                                Cancel Trip
-                            </button>
-                        </form>
+                        {% if user_trip.status in "SEARCHING,MATCHED,READY" %}
+                            <form method="POST" action="{% url 'cancel_trip' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">
+                                    Cancel Trip
+                                </button>
+                            </form>
+                        {% endif %}
                     </div>
                     <div class="d-flex gap-2">
-                        {% if user_trip.status == "MATCHED" or user_trip.status == "IN_PROGRESS" %}
-                            {% with accepted_match=user_trip|first_accepted_match %}
-                                {% if accepted_match.room_id %}
-                                <a href="{% url 'chat_room' accepted_match.chatroom.id %}" class="btn btn-warning">
+                        {% if user_trip.status in "MATCHED,READY,IN_PROGRESS" %}
+                            {% if user_trip.status == "IN_PROGRESS" %}
+                                <button type="button" 
+                                        class="btn btn-primary" 
+                                        id="toggleLocations" 
+                                        onclick="toggleLiveLocations()">
+                                    <i class="fa-solid fa-location-dot"></i> Hide Live Locations
+                                </button>
+                            {% endif %}
+                            {% if user_trip.chatroom %}
+                                <button type="button" 
+                                        class="btn btn-warning" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#chatModal"
+                                        data-chatroom-id="{{ user_trip.chatroom.id }}">
                                     <i class="fa-solid fa-comments"></i> Group Chat
-                                </a>
-                                {% endif %}
-                            {% endwith %}
-                        {% endif %}
-                        {% if user_trip.status == "IN_PROGRESS" %}
-                            <button class="btn btn-primary" id="toggleLocations" onclick="toggleLiveLocations()">
-                                <i class="fa-solid fa-location-dot"></i> Show Live Locations
-                            </button>
+                                </button>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
             </div>
         </div>
 
-        <h4>Available Travel Companions</h4>
-        {% if potential_matches %}
-            <div class="row row-cols-1 row-cols-md-3 g-4">
-                {% for matchdTrip in potential_matches %}
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                {% if matchdTrip.user.profile.photo_key %}
-                                    <img src="{{ matchdTrip.user.profile.get_photo_url }}" alt="Profile Picture"
-                                        class="rounded-circle me-2" style="width: 50px; height: 50px; object-fit: cover;">
-                                {% else %}
-                                    <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
-                                        style="width: 50px; height: 50px; background-color: black; color: white;">
-                                        ?
+        <!-- Only show potential matches if not enough matches and still searching -->
+        {% if user_trip.status == "SEARCHING" %}
+            <!-- Existing potential matches section -->
+            <h4>Available Travel Companions</h4>
+            {% if potential_matches %}
+                <div class="row row-cols-1 row-cols-md-3 g-4">
+                    {% for match_trip in potential_matches %}
+                        <div class="col">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        {% if match_trip.user.profile.photo_key %}
+                                            <img src="{{ match_trip.user.profile.get_photo_url }}" alt="Profile Picture"
+                                                class="rounded-circle me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                                style="width: 50px; height: 50px; background-color: black; color: white;">
+                                                ?
+                                            </div>
+                                        {% endif %}
+                                        <h5 class="card-title mb-0">{{ match_trip.user.username }}</h5>
                                     </div>
-                                {% endif %}
-                                <h5 class="card-title mb-0">{{ matchdTrip.user.username }}</h5>
+                                    <div class="mb-3">
+                                        <p class="mb-0">Departure: {{ match_trip.planned_departure }}</p>
+                                        <p class="mb-0">Looking for: {{ match_trip.desired_companions }} companions</p>
+                                        <p class="mb-0">Companions Matched: {{ match_trip.accepted_companions_count }} / {{ match_trip.desired_companions }}</p>
+                                    </div>
+                                    <form method="POST" action="{% url 'send_match_request' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="trip_id" value="{{ match_trip.id }}">
+                                        <button type="button"
+                                                class="request-btn btn {% if match_trip|has_pending_match:user_trip %}btn-warning{% else %}btn-primary{% endif %}"
+                                                data-trip-id="{{ match_trip.id }}"
+                                                data-status="{% if match_trip|has_pending_match:user_trip %}requested{% else %}send{% endif %}">
+                                            {{ match_trip|has_pending_match:user_trip|yesno:"Requested,Request" }}
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <p class="mb-0">Departure: {{ matchdTrip.planned_departure }}</p>
-                                {% if matchdTrip.desired_companions == 0 %}
-                                    <p class="mb-0">Group Size: Open to any</p>
-                                {% else %}
-                                    <p class="mb-0">Looking for: {{ matchdTrip.desired_companions }} companions</p>
-                                    <p class="mb-0">Spots left: {{ matchdTrip.spots_left }}</p>
-                                {% endif %}
-                            </div>
-                            <form method="POST" action="{% url 'send_match_request' %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="trip_id" value="{{ matchdTrip.id }}">
-                                <button type="button"
-                                        class="request-btn btn {% if matchdTrip.has_pending_request %}btn-warning{% else %}btn-primary{% endif %}"
-                                        data-trip-id="{{ matchdTrip.id }}"
-                                        data-status="{% if matchdTrip.has_pending_request %}requested{% else %}send{% endif %}">
-                                    {{ matchdTrip.has_pending_request|yesno:"Requested,Request" }}
-                                </button>
-                            </form>
                         </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    No potential companion matches found at this time. Check back later!
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <div class="modal fade" id="chatModal" tabindex="-1" aria-labelledby="chatModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="chatModalLabel">Group Chat</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="chatModalBody">
+                        <!-- Chat content will be loaded here -->
                     </div>
                 </div>
-                {% endfor %}
             </div>
-        {% else %}
-            <div class="alert alert-info">
-                No potential companion matches found at this time. Check back later!
-            </div>
-        {% endif %}
+        </div>
     {% endif %}
 </div>
+
+<script>
+    function loadChat(chatroomId, isArchive = false) {
+        const modalBody = document.getElementById('chatModalBody');
+        const modalTitle = document.getElementById('chatModalLabel');
+        
+        modalTitle.textContent = isArchive ? 'Archived Chat History' : 'Group Chat';
+        
+        if (window.chatSocket) {
+            window.chatSocket.close();
+        }
+
+        fetch(`/chat/chatrooms/${chatroomId}/?modal=true&archive=${isArchive}`)
+            .then(response => response.text())
+            .then(html => {
+                modalBody.innerHTML = html;
+                if (!isArchive) {
+                    initializeChat(chatroomId);
+                }
+            });
+    }
+
+    function initializeChat(chatroomId) {
+        window.currentChatroomId = chatroomId;  
+
+        const messageContainer = document.getElementById('messageContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const statusDiv = document.getElementById('connectionStatus');
+
+        window.chatSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/chat/' + chatroomId + '/'
+        );
+
+        window.chatSocket.onopen = function(e) {
+            if (statusDiv) statusDiv.style.display = 'none';
+        };
+
+        window.chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'system') {
+                addSystemMessage(data.message);
+            } else {
+                addUserMessage(data.username, data.message);
+            }
+            if (messageContainer) {
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
+        };
+
+        window.chatSocket.onclose = function(e) {
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = 'Connection lost. Reconnecting...';
+            }
+        };
+        
+        function addUserMessage(username, message) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message';
+
+            const flexDiv = document.createElement('div');
+            flexDiv.className = `d-flex flex-column ${username === "{{ request.user.username }}" ? 'align-items-end' : 'align-items-start'}`;
+
+            // Username above bubble
+            const usernameSpan = document.createElement('small');
+            usernameSpan.className = 'text-muted mb-0';
+            usernameSpan.textContent = username;
+
+            // Message bubble
+            const msgContent = document.createElement('div');
+            msgContent.className = `message-content p-2 rounded mb-0 ${username === "{{ request.user.username }}" ? 'bg-primary text-white' : 'bg-light'}`;
+
+            // Message text
+            const messageText = document.createElement('p');
+            messageText.className = 'mb-0';
+            messageText.textContent = message;
+
+            // Timestamp below bubble
+            const timestampSpan = document.createElement('small');
+            timestampSpan.className = 'message-timestamp text-muted';
+            timestampSpan.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+            // Assemble the message
+            msgContent.appendChild(messageText);
+            flexDiv.appendChild(usernameSpan);
+            flexDiv.appendChild(msgContent);
+            flexDiv.appendChild(timestampSpan);
+            msgDiv.appendChild(flexDiv);
+
+            messageContainer.appendChild(msgDiv);
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        function addSystemMessage(message) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message mb-3 system-message';
+
+            const msgContent = document.createElement('div');
+            msgContent.className = 'message-content p-3 rounded bg-light text-dark';
+
+            const timestampSpan = document.createElement('small');
+            timestampSpan.className = 'text-muted';
+            timestampSpan.textContent = `System Message - ${new Date().toLocaleTimeString()}`;
+
+            const messageText = document.createElement('p');
+            messageText.className = 'm-0';
+            messageText.textContent = message;
+
+            msgContent.appendChild(timestampSpan);
+            msgContent.appendChild(messageText);
+            msgDiv.appendChild(msgContent);
+
+            messageContainer.appendChild(msgDiv);
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        if (sendButton && messageInput) {
+            sendButton.onclick = sendMessage;
+            messageInput.onkeyup = function(e) {
+                if (e.keyCode === 13 && !e.shiftKey) {
+                    sendMessage();
+                }
+            };
+        }
+    }
+
+    function sendMessage() {
+        const messageInput = document.getElementById('messageInput');
+        const message = messageInput.value.trim();
+        
+        if (message && window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
+            window.chatSocket.send(JSON.stringify({
+                'message': message,
+                'username': '{{ request.user.username }}',
+                'chat_room': window.currentChatroomId
+            }));
+            messageInput.value = '';
+        }
+    }
+
+    $('#chatModal').on('show.bs.modal', function (e) {
+        sessionStorage.setItem('chatModalOpen', 'true');
+        // Get chatroom ID either from clicked button or stored value
+        const chatroomId = e?.relatedTarget?.getAttribute('data-chatroom-id') || 
+                        sessionStorage.getItem('currentChatroomId');
+        if (chatroomId) {
+            sessionStorage.setItem('currentChatroomId', chatroomId);
+            loadChat(chatroomId);
+        }
+    });
+
+    $('#chatModal').on('hidden.bs.modal', function () {
+        sessionStorage.removeItem('chatModalOpen');
+        sessionStorage.removeItem('currentChatroomId');
+        if (window.chatSocket) {
+            window.chatSocket.close();
+            window.chatSocket = null;
+        }
+        document.getElementById('chatModalBody').innerHTML = '';
+    });
+    
+    // Check on page load if modal should be open
+    document.addEventListener('DOMContentLoaded', function() {
+        if (sessionStorage.getItem('chatModalOpen') === 'true') {
+            const chatroomId = sessionStorage.getItem('currentChatroomId');
+            if (chatroomId) {
+                loadChat(chatroomId);
+                $('#chatModal').modal('show');
+            }
+        }
+    });
+</script>
+
 
 <script>
     // Add this JavaScript function
@@ -276,12 +485,21 @@
         shadowSize: [41, 41]
     });
 
-    let showingLocations = false;
+    let showingLocations = sessionStorage.getItem('showLocations') !== 'false';   
+
+    const button = document.getElementById('toggleLocations');
+    if (button) {  // Make sure button exists
+        button.innerHTML = showingLocations ? 
+            '<i class="fa-solid fa-location-dot"></i> Hide Live Locations' : 
+            '<i class="fa-solid fa-location-dot"></i> Show Live Locations';
+    }
 
     function toggleLiveLocations() {
         const button = document.getElementById('toggleLocations');
         showingLocations = !showingLocations;
         
+        sessionStorage.setItem('showLocations', showingLocations);
+
         if (showingLocations) {
             button.innerHTML = '<i class="fa-solid fa-location-dot"></i> Hide Live Locations';
             if (currFeatureGroup) currFeatureGroup.addTo(window.map);
@@ -405,7 +623,7 @@
         locationUpdateInterval = setInterval(() => {
             updateUserLocation();
             updateCompanionLocations();
-        }, 10000);
+        }, 30000);
         
         // Initial update
         updateUserLocation();

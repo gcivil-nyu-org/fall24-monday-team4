@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load trip_filters %}
 {% block title %}Previous Trips{% endblock %}
 
 {% block content %}
@@ -12,18 +13,36 @@
                     <div class="row">
                         <div class="col-md-4">
                             <p><strong>Status:</strong> 
-                                <span class="badge {% if trip.status == 'MATCHED' %}bg-success
-                                            {% elif trip.status == 'COMPLETED' %}bg-info
+                                <span class="badge {% if trip.status == 'COMPLETED' %}bg-success
+                                            {% elif trip.status == 'CANCELLED' %}bg-danger
                                             {% else %}bg-secondary{% endif %}">
                                     {{ trip.status }}
                                 </span>
                             </p>
                             <p><strong>Planned Departure:</strong> {{ trip.planned_departure }}</p>
+                            <p><strong>Final Group Size:</strong> {{ trip.accepted_companions_count|add:1 }}</p>
                             <p><strong>Created:</strong> {{ trip.created_at }}</p>
+                            {% if trip.matches.exists or trip.matched_with.exists %}
+                            <p><strong>Companions:</strong></p>
+                            <ul>
+                                {% for match in trip|accepted_matches %}
+                                <li>
+                                    {% if match.trip1.user == user %}
+                                        {{ match.trip2.user.username }}
+                                    {% else %}
+                                        {{ match.trip1.user.username }}
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
                             {% if trip.status == 'COMPLETED' and trip.chatroom %}
-                                <a href="{% url 'chat_room' trip.chatroom.id %}?archive=true" class="btn btn-outline-info">
-                                    <i class="fa-solid fa-history"></i> View Chat History
-                                </a>
+                                <button type="button" class="btn btn-secondary" 
+                                        onclick="loadChat('{{ trip.chatroom.id }}', true)" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#chatModal">
+                                    <i class="fa-solid fa-history"></i> View Chat Archive
+                                </button>
                             {% endif %}
                         </div>
                         <div class="col-md-8">
@@ -82,12 +101,73 @@
             </ul>
         </nav>
         {% endif %}
+
+        <div class="modal fade" id="chatModal" tabindex="-1" aria-labelledby="chatModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="chatModalLabel">Archived Chat History</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="chatModalBody">
+                        <!-- Chat content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
     {% else %}
         <div class="alert alert-info">
             You don't have any previous trips.
         </div>
     {% endif %}
 </div>
+
+
+<script>
+    function loadChat(chatroomId, isArchive = false) {
+        const modalBody = document.getElementById('chatModalBody');
+        const modalTitle = document.getElementById('chatModalLabel');
+        
+        modalTitle.textContent = isArchive ? 'Archived Chat History' : 'Group Chat';
+        
+        fetch(`/chat/chatrooms/${chatroomId}/?modal=true&archive=${isArchive}`)
+            .then(response => response.text())
+            .then(html => {modalBody.innerHTML = html;});
+    }
+    
+    $('#chatModal').on('show.bs.modal', function (e) {
+        sessionStorage.setItem('chatModalOpen', 'true');
+        // Get chatroom ID either from clicked button or stored value
+        const chatroomId = e?.relatedTarget?.getAttribute('data-chatroom-id') || 
+                        sessionStorage.getItem('currentChatroomId');
+        if (chatroomId) {
+            sessionStorage.setItem('currentChatroomId', chatroomId);
+            loadChat(chatroomId);
+        }
+    });
+
+    $('#chatModal').on('hidden.bs.modal', function () {
+        sessionStorage.removeItem('chatModalOpen');
+        sessionStorage.removeItem('currentChatroomId');
+        if (window.chatSocket) {
+            window.chatSocket.close();
+            window.chatSocket = null;
+        }
+        document.getElementById('chatModalBody').innerHTML = '';
+    });
+    
+    // Check on page load if modal should be open
+    document.addEventListener('DOMContentLoaded', function() {
+        if (sessionStorage.getItem('chatModalOpen') === 'true') {
+            const chatroomId = sessionStorage.getItem('currentChatroomId');
+            if (chatroomId) {
+                loadChat(chatroomId);
+                $('#chatModal').modal('show');
+            }
+        }
+    });
+    
+</script>
 
 <script>
     const startIcon = L.icon({

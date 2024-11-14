@@ -19,9 +19,17 @@ class Trip(models.Model):
     STATUS_CHOICES = [
         ("SEARCHING", "Searching for companion"),
         ("MATCHED", "Matched"),
+        ("READY", "Ready to Start"),
         ("IN_PROGRESS", "In Progress"),
         ("COMPLETED", "Completed"),
         ("CANCELLED", "Cancelled"),
+    ]
+
+    DESIRED_COMPANIONS_CHOICES = [
+        (1, "1 Companion"),
+        (2, "2 Companions"),
+        (3, "3 Companions"),
+        (4, "4 Companions"),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -34,10 +42,15 @@ class Trip(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     planned_departure = models.DateTimeField()
-    desired_companions = models.IntegerField(default=0)  # 0 means no preference
+    desired_companions = models.PositiveSmallIntegerField(
+        choices=DESIRED_COMPANIONS_CHOICES, default=1
+    )
     chatroom = models.ForeignKey(
         ChatRoom, null=True, on_delete=models.SET_NULL, related_name="trips"
     )
+    completion_requested = models.BooleanField(default=False)
+    matched_companions = models.ManyToManyField('self', through='Match', symmetrical=False)
+    accepted_companions_count = models.IntegerField(default=0)
 
     class Meta:
         constraints = [
@@ -59,15 +72,15 @@ class Match(models.Model):
         ("DECLINED", "Declined"),
     ]
 
-    requester = models.ForeignKey(
-        Trip, on_delete=models.CASCADE, related_name="requested_matches"
-    )
-    receiver = models.ForeignKey(
-        Trip, on_delete=models.CASCADE, related_name="received_matches"
-    )
+    trip1 = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='matches')
+    trip2 = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='matched_with')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     created_at = models.DateTimeField(auto_now_add=True)
     chatroom = models.ForeignKey(ChatRoom, null=True, on_delete=models.SET_NULL)
+    
 
     def __str__(self):
-        return f"Match between {self.requester.user.username} and {self.receiver.user.username}"
+        return f"Match between {self.trip1.user.username} and {self.trip2.user.username}"
+    
+    class Meta:
+        unique_together = ['trip1', 'trip2']  # Prevent duplicate matches

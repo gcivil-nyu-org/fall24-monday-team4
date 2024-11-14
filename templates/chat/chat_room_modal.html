@@ -1,0 +1,87 @@
+{% block content %}
+
+<style>
+    .system-message .message-content {
+        background-color: #f8a167 !important;  /* Lighter gray background */
+        border-left: 4px solid orange;       /* Bootstrap primary blue */
+        font-style: italic;
+        width: 100%;
+        text-align: center;
+        padding: 8px;                         /* Added padding */
+        border-radius: 8px;                   /* Rounded corners */
+    }
+    
+    .system-message small {
+        color: orange !important;            /* Darker gray for better readability */
+        font-weight: 500;
+    }
+    
+    .chat-messages {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;                          /* Slightly more spacing */
+    }
+    
+    .message-timestamp {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    
+    /* User messages */
+    .message-content.bg-primary {
+        background-color: #1386f7 !important; /* Sender messages */
+        color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .message-content.bg-light {
+        background-color: #e5e5ea !important; /* Receiver messages */
+        color: #000000;
+        border-radius: 12px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+</style>
+
+
+<div class="d-flex flex-column" style="height: 80vh;">  <!-- Parent container -->
+    <div class="chat-messages p-3 flex-grow-1 overflow-auto" id="messageContainer">
+        {% for message in messages %}
+            <div class="message {% if message.user.username == 'System' %}system-message{% endif %}">
+                {% if message.user.username == 'System' %}
+                    <div class="message-content p-2 rounded">
+                        {{ message.message }}
+                        <small class="message-timestamp d-block mt-1">{{ message.created_at|date:'g:i A' }}</small>
+                    </div>
+                {% else %}
+                    <div class="d-flex flex-column {% if message.user == request.user %}align-items-end{% else %}align-items-start{% endif %}">
+                        <small class="text-muted mb-0">{{ message.user.username }}</small>
+                        <div class="message-content p-2 rounded mb-0 {% if message.user == request.user %}bg-primary text-white{% else %}bg-light{% endif %}">
+                            <p class="mb-0">{{ message.message }}</p>
+                        </div>
+                        <small class="message-timestamp text-muted">{{ message.created_at|date:'g:i A' }}</small>
+                    </div>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="h-100 d-flex align-items-center justify-content-center">
+                <div class="text-muted">No messages yet</div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if not is_archive %}
+        <div class="p-3 border-top">  <!-- Fixed bottom container -->
+            <div class="input-group">
+                <input type="text" id="messageInput" class="form-control" placeholder="Type your message...">
+                <button class="btn btn-primary" id="sendButton" type="button">Send</button>
+            </div>
+            <div id="connectionStatus" class="alert alert-warning mt-2" style="display: none;">
+                Connecting...
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+

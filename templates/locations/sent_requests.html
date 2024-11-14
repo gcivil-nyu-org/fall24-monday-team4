@@ -8,20 +8,19 @@
         {% for match in sent_matches %}
             <div class="card mb-3">
                 <div class="card-body">
-                    <h5 class="card-title">Request to {{ match.receiver.user.username }}</h5>
-                    <p>Their Departure: {{ match.receiver.planned_departure }}</p>
+                    <h5 class="card-title">Request to {{ match.trip2.user.username }}</h5>
+                    <p>Their Trip Details:</p>
+                    <ul>
+                        <p>Departure: {{ match.trip2.planned_departure }}</p>
+                        <p>Group Size: {{ match.trip2.accepted_companions_count }}/{{ match.trip2.desired_companions }}</p>
+                    </ul>
                     <p>Status: 
                         <span class="badge {% if match.status == 'PENDING' %}bg-warning
-                                         {% elif match.status == 'ACCEPTED' %}bg-success
-                                         {% else %}bg-danger{% endif %}">
+                                        {% elif match.status == 'ACCEPTED' %}bg-success
+                                        {% else %}bg-danger{% endif %}">
                             {{ match.status }}
                         </span>
                     </p>
-                    <!-- {% if match.status == 'ACCEPTED' %}
-                        <a href="{% url 'chat_room' match.id %}" class="btn btn-success">
-                            Open Chat
-                        </a>
-                    {% endif %} -->
                 </div>
             </div>
         {% endfor %}

@@ -8,24 +8,22 @@ class UserLocationAdmin(admin.ModelAdmin):
     search_fields = ("user__username",)
     list_filter = ("last_updated",)
 
-
 @admin.register(Trip)
 class TripAdmin(admin.ModelAdmin):
-    list_display = ("user", "status", "created_at", "planned_departure")
+    list_display = ("user", "status", "created_at", "planned_departure", "accepted_companions_count")
     list_filter = ("status", "created_at", "planned_departure")
     search_fields = ("user__username",)
-    readonly_fields = ("created_at",)
+    readonly_fields = ("created_at", "accepted_companions_count")
     list_per_page = 20
-
 
 @admin.register(Match)
 class MatchAdmin(admin.ModelAdmin):
-    list_display = ("requester", "receiver", "status", "created_at", "chatroom")
+    list_display = ("trip1", "trip2", "status", "created_at", "chatroom")
     list_filter = ("status", "created_at")
     search_fields = (
         "chatroom__name",
-        "requester__user__username",
-        "receiver__user__username",
+        "trip1__user__username",
+        "trip2__user__username",
     )
     readonly_fields = ("created_at",)
     list_per_page = 20

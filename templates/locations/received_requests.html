@@ -8,8 +8,12 @@
         {% for match in received_matches %}
             <div class="card mb-3">
                 <div class="card-body">
-                    <h5 class="card-title">Request from {{ match.requester.user.username }}</h5>
-                    <p>Their Departure: {{ match.requester.planned_departure }}</p>
+                    <h5 class="card-title">Request from {{ match.trip1.user.username }}</h5>
+                    <p>Their Trip Details:</p>
+                    <ul>
+                        <p>Departure: {{ match.trip1.planned_departure }}</p>
+                        <p>Group Size: {{ match.trip1.accepted_companions_count }}/{{ match.trip1.desired_companions }}</p>
+                    </ul>
                     {% if match.status == 'PENDING' %}
                         <form method="POST" action="{% url 'handle_match_request' %}" class="d-inline">
                             {% csrf_token %}
@@ -23,19 +27,7 @@
                             <input type="hidden" name="action" value="decline">
                             <button type="submit" class="btn btn-danger">Decline</button>
                         </form>
-                    {% else %}
-                        <p>Status: 
-                            <span class="badge {% if match.status == 'ACCEPTED' %}bg-success
-                                             {% else %}bg-danger{% endif %}">
-                                {{ match.status }}
-                            </span>
-                        </p>
                     {% endif %}
-                    <!-- {% if match.status == 'ACCEPTED' %}
-                        <a href="{% url 'chat_room' match.id %}" class="btn btn-success">
-                            Open Chat
-                        </a>
-                    {% endif %} -->
                 </div>
             </div>
         {% endfor %}

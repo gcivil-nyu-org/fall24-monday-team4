@@ -10,6 +10,6 @@ class HomeView(TemplateView):
         if self.request.user.is_authenticated:
             context["has_active_trip"] = Trip.objects.filter(
                 user=self.request.user,
-                status="SEARCHING",
+                status__in=["SEARCHING", "MATCHED", "READY", "IN_PROGRESS"]
             ).exists()
         return context
