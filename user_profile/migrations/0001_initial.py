@@ -31,6 +31,9 @@ class Migration(migrations.Migration):
                 ("file_name", models.CharField(blank=True, max_length=255, null=True)),
                 ("file_type", models.CharField(blank=True, max_length=50, null=True)),
                 ("is_emergency_support", models.BooleanField(default=False)),
+                ("file_name", models.CharField(blank=True, max_length=255, null=True)),
+                ("file_type", models.CharField(blank=True, max_length=50, null=True)),
+                ("is_emergency_support", models.BooleanField(default=False)),
                 (
                     "user",
                     models.OneToOneField(
