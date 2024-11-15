@@ -110,51 +110,134 @@
 
         <!-- Only show potential matches if not enough matches and still searching -->
         {% if user_trip.status == "SEARCHING" %}
-            <!-- Existing potential matches section -->
-            <h4>Available Travel Companions</h4>
-            {% if potential_matches %}
-                <div class="row row-cols-1 row-cols-md-3 g-4">
-                    {% for match_trip in potential_matches %}
-                        <div class="col">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center mb-3">
-                                        {% if match_trip.user.profile.photo_key %}
-                                            <img src="{{ match_trip.user.profile.get_photo_url }}" alt="Profile Picture"
-                                                class="rounded-circle me-2" style="width: 50px; height: 50px; object-fit: cover;">
-                                        {% else %}
-                                            <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
-                                                style="width: 50px; height: 50px; background-color: black; color: white;">
-                                                ?
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Available Travel Companions</h4>
+                </div>
+                <div class="card-body">
+                    {% if potential_matches %}
+                        <div class="row row-cols-1 row-cols-md-3 g-4">
+                            {% for match_trip in potential_matches %}
+                                <div class="col">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center mb-3">
+                                                {% if match_trip.user.profile.photo_key %}
+                                                    <img src="{{ match_trip.user.profile.get_photo_url }}" alt="Profile Picture"
+                                                        class="rounded-circle me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                                {% else %}
+                                                    <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                                        style="width: 50px; height: 50px; background-color: black; color: white;">
+                                                        ?
+                                                    </div>
+                                                {% endif %}
+                                                <h5 class="card-title mb-0">{{ match_trip.user.username }}</h5>
                                             </div>
-                                        {% endif %}
-                                        <h5 class="card-title mb-0">{{ match_trip.user.username }}</h5>
+                                            <div class="mb-3">
+                                                <p class="mb-0">Departure: {{ match_trip.planned_departure }}</p>
+                                                <p class="mb-0">Looking for: {{ match_trip.desired_companions }} companions</p>
+                                                <p class="mb-0">Companions Matched: {{ match_trip.accepted_companions_count }} / {{ match_trip.desired_companions }}</p>
+                                            </div>
+                                            <form method="POST" action="{% url 'send_match_request' %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="trip_id" value="{{ match_trip.id }}">
+                                                <button type="button"
+                                                        class="request-btn btn {% if match_trip|has_pending_match:user_trip %}btn-warning{% else %}btn-primary{% endif %}"
+                                                        data-trip-id="{{ match_trip.id }}"
+                                                        data-status="{% if match_trip|has_pending_match:user_trip %}requested{% else %}send{% endif %}">
+                                                    {{ match_trip|has_pending_match:user_trip|yesno:"Requested,Request" }}
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <p class="mb-0">Departure: {{ match_trip.planned_departure }}</p>
-                                        <p class="mb-0">Looking for: {{ match_trip.desired_companions }} companions</p>
-                                        <p class="mb-0">Companions Matched: {{ match_trip.accepted_companions_count }} / {{ match_trip.desired_companions }}</p>
-                                    </div>
-                                    <form method="POST" action="{% url 'send_match_request' %}">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="trip_id" value="{{ match_trip.id }}">
-                                        <button type="button"
-                                                class="request-btn btn {% if match_trip|has_pending_match:user_trip %}btn-warning{% else %}btn-primary{% endif %}"
-                                                data-trip-id="{{ match_trip.id }}"
-                                                data-status="{% if match_trip|has_pending_match:user_trip %}requested{% else %}send{% endif %}">
-                                            {{ match_trip|has_pending_match:user_trip|yesno:"Requested,Request" }}
-                                        </button>
-                                    </form>
                                 </div>
-                            </div>
+                            {% endfor %}
                         </div>
-                    {% endfor %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            No potential companion matches found at this time. Check back later!
+                        </div>
+                    {% endif %}
                 </div>
-            {% else %}
-                <div class="alert alert-info">
-                    No potential companion matches found at this time. Check back later!
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Sent Requests</h4>
                 </div>
-            {% endif %}
+                <div class="card-body">
+                    {% if sent_matches %}
+                        <div class="row row-cols-1 row-cols-md-3 g-4">
+                            {% for match in sent_matches %}
+                                <div class="col">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Request to {{ match.trip2.user.username }}</h5>
+                                            <p>Their Trip Details:</p>
+                                            <p>Departure: {{ match.trip2.planned_departure }}</p>
+                                            <p>Group Size: {{ match.trip2.accepted_companions_count }}/{{ match.trip2.desired_companions }}</p>
+                                            <p>Status: 
+                                                <span class="badge {% if match.status == 'PENDING' %}bg-warning
+                                                            {% elif match.status == 'ACCEPTED' %}bg-success
+                                                            {% else %}bg-danger{% endif %}">
+                                                    {{ match.status }}
+                                                </span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            You haven't sent any requests yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        
+            <!-- Add Received Requests Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Received Requests</h4>
+                </div>
+                <div class="card-body">
+                    {% if received_matches %}
+                        <div class="row row-cols-1 row-cols-md-3 g-4">
+                            {% for match in received_matches %}
+                                <div class="col">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Request from {{ match.trip1.user.username }}</h5>
+                                            <p>Their Trip Details:</p>
+                                            <p>Departure: {{ match.trip1.planned_departure }}</p>
+                                            <p>Group Size: {{ match.trip1.accepted_companions_count }}/{{ match.trip1.desired_companions }}</p>
+                                            {% if match.status == 'PENDING' %}
+                                                <form method="POST" action="{% url 'handle_match_request' %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="match_id" value="{{ match.id }}">
+                                                    <input type="hidden" name="action" value="accept">
+                                                    <button type="submit" class="btn btn-success">Accept</button>
+                                                </form>
+                                                <form method="POST" action="{% url 'handle_match_request' %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="match_id" value="{{ match.id }}">
+                                                    <input type="hidden" name="action" value="decline">
+                                                    <button type="submit" class="btn btn-danger">Decline</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            You don't have any pending requests.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
         {% endif %}
 
         <div class="modal fade" id="chatModal" tabindex="-1" aria-labelledby="chatModalLabel" aria-hidden="true">
@@ -344,6 +427,41 @@
             }
         }
     });
+</script>
+
+<script>
+    // Add this near your other trip-related JavaScript
+    let tripSocket = null;
+
+    function connectTripWebSocket() {
+        tripSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/trip/{{ user_trip.id }}/'
+        );
+
+        tripSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'status_update') {
+                // Any status change triggers a reload
+                location.reload();
+            }
+        };
+        tripSocket.onclose = function(e) {
+            console.log('Trip socket closed unexpectedly');
+            setTimeout(connectTripWebSocket, 1000);  // Try to reconnect
+        };
+    }
+
+    // Connect when page loads if there's an active trip
+    if ("{{ user_trip.id }}") {
+        connectTripWebSocket();
+    }
+
+    // Cleanup on page unload
+    window.onbeforeunload = function() {
+        if (tripSocket) {
+            tripSocket.close();
+        }
+    };
 </script>
 
 

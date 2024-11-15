@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from .models import Trip, Match, UserLocation, User
-from chat.models import ChatRoom, Message
+from chat.models import ChatRoom
 from datetime import timedelta, datetime
 from django.utils.timezone import make_aware
 
@@ -15,6 +15,18 @@ from django.db.models import Q, F
 from django.core.paginator import Paginator
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+
+
+def broadcast_trip_update(trip_id, status, message):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"trip_{trip_id}",
+        {
+            "type": "trip_status_update",
+            "status": status,
+            "message": message
+        }
+    )
 
 
 @login_required 
@@ -103,6 +115,8 @@ def find_matches(request):
         )
         
         potential_matches = []
+        sent_matches = []
+        received_matches = []
         if user_trip.status == "SEARCHING":
             # Define time window
             time_min = user_trip.planned_departure - timedelta(minutes=30)
@@ -131,17 +145,37 @@ def find_matches(request):
             ).exclude(
                 matches__trip2=user_trip,  # No existing match attempts
             )
-
+            
             # Filter by location
             potential_matches = [
                 trip for trip in potential_matches
                 if h3.latlng_to_cell(float(trip.start_latitude), float(trip.start_longitude), 10) in h3.grid_disk(user_start_hex, 2)
                 and h3.latlng_to_cell(float(trip.dest_latitude), float(trip.dest_longitude), 10) in h3.grid_disk(user_dest_hex, 2)
             ]
+            
+            # Broadcast to all potential matches that they should refresh
+            for match in potential_matches:
+                broadcast_trip_update(
+                    match.id,
+                    "SEARCHING",
+                    "New potential companion available"
+                )
+            
+            # Add sent and received matches
+            sent_matches = Match.objects.filter(
+                trip1=user_trip
+            ).select_related('trip2__user')
+            
+            received_matches = Match.objects.filter(
+                trip2=user_trip,
+                status="PENDING"
+            ).select_related('trip1__user')
 
         return render(request, "locations/find_matches.html", {
             "user_trip": user_trip, 
-            "potential_matches": potential_matches
+            "potential_matches": potential_matches,
+            "sent_matches": sent_matches,
+            "received_matches": received_matches
         })
 
     except Trip.DoesNotExist:
@@ -163,12 +197,25 @@ def send_match_request(request):
                     trip2_id=trip_id, 
                     status="PENDING"
                 ).delete()
+                
+                broadcast_trip_update(
+                    trip_id,
+                    "UNREQUESTED",
+                    "New match request recinded"
+                )
             else:
                 Match.objects.get_or_create(
                     trip1=user_trip,
                     trip2_id=trip_id,
                     defaults={"status": "PENDING"}
                 )
+
+                broadcast_trip_update(
+                    trip_id,
+                    "REQUESTED",
+                    "New match request received"
+                )
+
             return JsonResponse({"success": True})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
@@ -201,6 +248,13 @@ def handle_match_request(request):
                         accepted_companions_count=F('accepted_companions_count') + 1,
                         status='MATCHED'  # Both trips should be MATCHED first
                     )
+                    
+                    # Broadcast update to both users
+                    broadcast_trip_update(
+                        trip.id, 
+                        "MATCHED",
+                        f"Match accepted between {match.trip1.user.username} and {match.trip2.user.username}"
+                    )
 
                     # Check and update status if matched
                     trip.refresh_from_db()
@@ -229,6 +283,13 @@ def handle_match_request(request):
             else:
                 match.status = "DECLINED"
                 match.save()
+
+                # Notify the requester their request was declined
+                broadcast_trip_update(
+                    match.trip1.id,
+                    "SEARCHING",
+                    f"{request.user.username} declined your request"
+                )
             
             return redirect("find_matches")
 
@@ -254,7 +315,17 @@ def sent_requests(request):
         sent_matches = Match.objects.filter(
             trip1=user_trip
         ).select_related('trip2__user')  # Optimize by pre-fetching the other user's data
-        
+
+        # When someone views their sent requests, the receivers' pages update
+        # Broadcast to anyone whose requests we're viewing
+        # so their pages update if we accept/decline
+        # for match in sent_matches:
+        #     broadcast_trip_update(
+        #         match.trip2.id,
+        #         match.trip2.status,
+        #         "Request list updated"
+        #     )
+
     except Trip.DoesNotExist:
         sent_matches = []
 
@@ -277,6 +348,16 @@ def received_requests(request):
             status="PENDING"
         ).select_related('trip1__user')  # Optimize by pre-fetching user data
         
+        # When someone views their received requests, the senders' pages update
+        # # Broadcast to anyone who sent us requests
+        # # so their pages update when we view them
+        # for match in received_matches:
+        #     broadcast_trip_update(
+        #         match.trip1.id,
+        #         match.trip1.status,
+        #         "Request list updated"
+        #     )
+
     except Trip.DoesNotExist:
         received_matches = []
 
@@ -310,6 +391,9 @@ def start_trip(request):
             trip.status = "READY"
             trip.save()
 
+            # Broadcast update
+            broadcast_trip_update(trip.id, "READY", f"{request.user.username} is ready to start")
+            
             if trip.chatroom:
                 send_system_message(
                     trip.chatroom.id, 
@@ -332,6 +416,11 @@ def start_trip(request):
             trip.status = "IN_PROGRESS"  # Update the current trip too
             trip.save() 
             
+            # Broadcast update to all participants
+            broadcast_trip_update(trip.id, "IN_PROGRESS", "Trip is now in progress")
+            for matched_trip in matched_trips:
+                broadcast_trip_update(matched_trip.id, "IN_PROGRESS", "Trip is now in progress")
+
             if trip.chatroom:
                 send_system_message(
                     trip.chatroom.id, 
@@ -355,7 +444,7 @@ def cancel_trip(request):
             ).update(status="DECLINED")
 
             # Update all matched trips' companion counts
-            matched_trips = Trip.objects.filter(
+            affected_trips = Trip.objects.filter(
                     (Q(matches__trip2=trip, matches__status="ACCEPTED") | 
                     Q(matched_with__trip2=trip, matched_with__status="ACCEPTED") | 
                     Q(matches__trip1=trip, matches__status="ACCEPTED") | 
@@ -363,17 +452,40 @@ def cancel_trip(request):
                     status__in=["MATCHED", "READY"]
                 ).exclude(id=trip.id).distinct()
             
-            for matched_trip in matched_trips:
-                matched_trip.accepted_companions_count = (
-                    matched_trip.matches.filter(status="ACCEPTED").count()
+            for affected_trip in affected_trips:
+                affected_trip.accepted_companions_count = (
+                    affected_trip.matches.filter(status="ACCEPTED").count()
                 )
-                matched_trip.status = "SEARCHING"
-                matched_trip.save()
+                affected_trip.status = "SEARCHING"
+                affected_trip.save()
+                
+                broadcast_trip_update(
+                    affected_trip.id,
+                    "SEARCHING",
+                    f"{request.user.username} has cancelled their trip"
+                )
 
             # Update the cancelled trip
             trip.status = "CANCELLED"
             trip.accepted_companions_count = 0
             trip.save()
+
+            # Also broadcast to potential matches who might now be compatible
+            time_min = trip.planned_departure - timedelta(minutes=30)
+            time_max = trip.planned_departure + timedelta(minutes=30)
+            
+            potential_matches = Trip.objects.filter(
+                status="SEARCHING",
+                planned_departure__range=(time_min, time_max),
+                desired_companions=trip.desired_companions
+            ).exclude(user=request.user)
+
+            for match in potential_matches:
+                broadcast_trip_update(
+                    match.id,
+                    "SEARCHING",
+                    "New potential companion available"
+                )
 
             return redirect("home")
             
@@ -463,6 +575,13 @@ def complete_trip(request):
                 matched_trips.update(
                     status="COMPLETED", 
                     completion_requested=True 
+                    )
+                # Broadcast completion to all participants
+                for matched_trip in matched_trips:
+                    broadcast_trip_update(
+                        matched_trip.id, 
+                        "COMPLETED",
+                        "Trip has been completed"
                     )
             return redirect("previous_trips")
     return redirect("find_matches")
