@@ -1,9 +1,14 @@
 import json
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
-from .models import Trip, Match
+from .models import Trip, Match, UserLocation
 from datetime import timedelta, datetime
 from django.utils.timezone import make_aware
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404
+from user_profile.models import UserProfile
+from django.http import JsonResponse
+from django.contrib.auth.models import User
 
 # from django.db.models import Q
 from django.core.paginator import Paginator
@@ -180,4 +185,82 @@ def previous_trips(request):
         request,
         "locations/previous_trips.html",
         {"trips": trips, "trips_json": json.dumps(trips_data)},
+    )
+
+
+@login_required
+def trigger_panic(request):
+    if request.method == "POST":
+        try:
+            user_location = UserLocation.objects.get(user=request.user)
+            user_location.panic = True
+            user_location.save()
+            return JsonResponse({"success": True, "message": "Panic mode activated."})
+        except UserLocation.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "message": "User location not found."}
+            )
+    return JsonResponse({"success": False, "message": "Invalid request method."})
+
+
+@login_required
+def cancel_panic(request, panic_username):
+    if request.method == "POST":
+        try:
+            user_location = UserLocation.objects.get(
+                user=User.objects.get(username=panic_username)
+            )
+            user_location.panic = False
+            user_location.save()
+            return JsonResponse({"success": True, "message": "Panic mode deactivated."})
+        except UserLocation.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "message": "User location not found."}, status=404
+            )
+    return JsonResponse(
+        {"success": False, "message": "Invalid request method."}, status=405
+    )
+
+
+@login_required(login_url="home")
+def emergency_support_view(request):
+    # Fetch user locations regardless of request type
+    user_locations = UserLocation.objects.select_related("user").all()
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        user_locations_data = [
+            {
+                "id": location.id,
+                "latitude": float(location.latitude),
+                "longitude": float(location.longitude),
+                "username": location.user.username,
+                "panic": location.panic,
+            }
+            for location in user_locations
+        ]
+        return JsonResponse(user_locations_data, safe=False)
+
+    # Check if the user is authorized for emrgency support
+    profile = get_object_or_404(UserProfile, user=request.user)
+    if not profile.is_emergency_support:
+        return HttpResponseForbidden()
+
+    # Prepare data for rendering the template
+    user_locations_data = [
+        {
+            "id": location.id,
+            "latitude": float(location.latitude),
+            "longitude": float(location.longitude),
+            "username": location.user.username,
+            "panic": location.panic,
+        }
+        for location in user_locations
+    ]
+
+    return render(
+        request,
+        "locations/emergency_support.html",
+        {
+            "user_locations": user_locations,
+            "user_locations_json": json.dumps(user_locations_data),
+        },
     )
