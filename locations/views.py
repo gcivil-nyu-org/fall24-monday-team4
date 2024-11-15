@@ -103,11 +103,11 @@ def create_trip(request):
                 "desired_companions": int(request.POST.get("desired_companions")),
             },
         )
-        return redirect("find_matches")
+        return redirect("current_trip")
     return redirect("home")
 
 @login_required
-def find_matches(request):
+def current_trip(request):
     try:
         user_trip = Trip.objects.get(
             user=request.user,
@@ -140,7 +140,9 @@ def find_matches(request):
                 desired_companions=user_trip.desired_companions,
                 accepted_companions_count__lt=F('desired_companions')
             ).exclude(
-                user=request.user
+                Q(user=request.user) |
+                Q(matches__trip2=user_trip, matches__status="DECLINED") |  # They declined us
+                Q(matched_with__trip1=user_trip, matched_with__status="DECLINED")  # We declined them
             ).exclude(
                 matches__trip2=user_trip,  # No existing match attempts
             )
@@ -165,15 +167,14 @@ def find_matches(request):
                 status="PENDING"
             ).select_related('trip1__user')
 
-        return render(request, "locations/find_matches.html", {
+        return render(request, "locations/current_trip.html", {
             "user_trip": user_trip, 
             "potential_matches": potential_matches,
-            "sent_matches": sent_matches,
             "received_matches": received_matches
         })
 
     except Trip.DoesNotExist:
-        return render(request, "locations/find_matches.html", {
+        return render(request, "locations/current_trip.html", {
             "error": "No active trip found. Create a trip first."
         })
 
@@ -285,7 +286,7 @@ def handle_match_request(request):
                     f"{request.user.username} declined your request"
                 )
             
-            return redirect("find_matches")
+            return redirect("current_trip")
 
         except Match.DoesNotExist:
             messages.error(request, "Match request not found or already handled")
@@ -295,7 +296,7 @@ def handle_match_request(request):
             messages.error(request, "An error occurred while processing the match")
             logger.error(f"Match handling error: {str(e)}")
 
-    return redirect("find_matches")
+    return redirect("current_trip")
 
 
 def send_system_message(chat_room_id, message):
@@ -358,7 +359,7 @@ def start_trip(request):
                     "All members are ready. Trip is now in progress!"
                 )
 
-        return redirect("find_matches")
+        return redirect("current_trip")
 
 @login_required
 def cancel_trip(request):
@@ -515,4 +516,4 @@ def complete_trip(request):
                         "Trip has been completed"
                     )
             return redirect("previous_trips")
-    return redirect("find_matches")
+    return redirect("current_trip")

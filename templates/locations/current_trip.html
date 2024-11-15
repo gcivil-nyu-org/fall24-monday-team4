@@ -6,7 +6,6 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <div class="container mt-4">
-    <h4>Find Companions</h4>
     {% if error %}
         <div class="alert alert-warning">
             {{ error }}
@@ -107,7 +106,7 @@
                 </div>
             </div>
         </div>
-        
+
         {% if user_trip.status == "SEARCHING" %}
             <div class="card mb-4">
                 <div class="card-header">

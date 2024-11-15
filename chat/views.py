@@ -28,7 +28,7 @@ def chat_room(request, pk):
                 Q(trip1__status__in=valid_statuses) | Q(trip2__status__in=valid_statuses),
                 chatroom=chat_room
             ).exists():
-                return redirect("find_matches")
+                return redirect("current_trip")
 
         messages = Message.objects.filter(chat_room=chat_room).order_by("created_at")
         template = "chat/chat_room_modal.html" if is_modal else "chat/chat_room.html"
