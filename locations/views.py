@@ -115,7 +115,6 @@ def find_matches(request):
         )
         
         potential_matches = []
-        sent_matches = []
         received_matches = []
         if user_trip.status == "SEARCHING":
             # Define time window
@@ -160,11 +159,6 @@ def find_matches(request):
                     "SEARCHING",
                     "New potential companion available"
                 )
-            
-            # Add sent and received matches
-            sent_matches = Match.objects.filter(
-                trip1=user_trip
-            ).select_related('trip2__user')
             
             received_matches = Match.objects.filter(
                 trip2=user_trip,
@@ -303,69 +297,6 @@ def handle_match_request(request):
 
     return redirect("find_matches")
 
-
-@login_required
-def sent_requests(request):
-    try:
-        user_trip = Trip.objects.filter(
-            user=request.user, 
-            status__in=["SEARCHING", "MATCHED"]
-        ).latest("created_at")
-        
-        sent_matches = Match.objects.filter(
-            trip1=user_trip
-        ).select_related('trip2__user')  # Optimize by pre-fetching the other user's data
-
-        # When someone views their sent requests, the receivers' pages update
-        # Broadcast to anyone whose requests we're viewing
-        # so their pages update if we accept/decline
-        # for match in sent_matches:
-        #     broadcast_trip_update(
-        #         match.trip2.id,
-        #         match.trip2.status,
-        #         "Request list updated"
-        #     )
-
-    except Trip.DoesNotExist:
-        sent_matches = []
-
-    return render(
-        request, 
-        "locations/sent_requests.html", 
-        {"sent_matches": sent_matches}
-    )
-
-@login_required
-def received_requests(request):
-    try:
-        user_trip = Trip.objects.filter(
-            user=request.user, 
-            status__in=["SEARCHING", "MATCHED"]
-        ).latest("created_at")
-        
-        received_matches = Match.objects.filter(
-            trip2=user_trip,
-            status="PENDING"
-        ).select_related('trip1__user')  # Optimize by pre-fetching user data
-        
-        # When someone views their received requests, the senders' pages update
-        # # Broadcast to anyone who sent us requests
-        # # so their pages update when we view them
-        # for match in received_matches:
-        #     broadcast_trip_update(
-        #         match.trip1.id,
-        #         match.trip1.status,
-        #         "Request list updated"
-        #     )
-
-    except Trip.DoesNotExist:
-        received_matches = []
-
-    return render(
-        request, 
-        "locations/received_requests.html", 
-        {"received_matches": received_matches}
-    )
 
 def send_system_message(chat_room_id, message):
     channel_layer = get_channel_layer()
