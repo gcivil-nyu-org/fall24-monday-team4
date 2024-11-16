@@ -16,3 +16,4 @@ Twisted==24.10.0
 redis==5.2.0
 supervisor==4.2.5
 cryptography==43.0.3
+pusher==3.3.2
