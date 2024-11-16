@@ -17,7 +17,7 @@ def chat_room(request, pk):
         if is_archive:
             if not Match.objects.filter(
                 Q(trip1__user=request.user) | Q(trip2__user=request.user),
-                Q(trip1__status="COMPLETED") | Q(trip2__status="COMPLETED"),
+                Q(trip1__status__in=["COMPLETED","CANCELLED"]) | Q(trip2__status__in=["COMPLETED","CANCELLED"]),
                 chatroom=chat_room
             ).exists():
                 return redirect("previous_trips")

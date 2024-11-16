@@ -65,14 +65,14 @@
             <div class="message {% if message.message_type == 'SYSTEM' %}system-message{% endif %}">
                 {% if message.message_type == 'SYSTEM' %}
                     <div class="message-content p-2 rounded">
-                        <strong>{{ message.message }}</strong>
+                        <strong>{{ message.decrypt_message }}</strong>
                         <small class="message-timestamp d-block mt-1">{{ message.created_at|date:'g:i A' }}</small>
                     </div>
                 {% else %}
                     <div class="d-flex flex-column {% if message.user == request.user %}align-items-end{% else %}align-items-start{% endif %}">
                         <small class="text-muted mb-0">{{ message.user.username }}</small>
                         <div class="message-content p-2 rounded mb-0 {% if message.user == request.user %}bg-primary text-white{% else %}bg-light{% endif %}">
-                            <p class="mb-0">{{ message.message }}</p>
+                            <p class="mb-0">{{ message.decrypt_message }}</p>
                         </div>
                         <small class="message-timestamp text-muted">{{ message.created_at|date:'g:i A' }}</small>
                     </div>
@@ -88,7 +88,7 @@
     {% if not is_archive %}
         <div class="p-3 border-top">  <!-- Fixed bottom container -->
             <div class="input-group">
-                <input type="text" id="messageInput" class="form-control" placeholder="Type your message...">
+                <input type="text" id="messageInput" class="form-control" maxlength="1000" placeholder="Type your message (max 1000 characters)...">
                 <button class="btn btn-primary" id="sendButton" type="button">Send</button>
             </div>
             <div id="connectionStatus" class="alert alert-warning mt-2" style="display: none;">
@@ -110,6 +110,14 @@
             const messageInput = document.getElementById('messageInput');
             const sendButton = document.getElementById('sendButton');
             const statusDiv = document.getElementById('connectionStatus');
+
+            messageInput.addEventListener('input', function() {
+                const maxLength = 1000;
+                if (this.value.length > maxLength) {
+                    alert(`Message cannot exceed ${maxLength} characters`);
+                    this.value = this.value.slice(0, maxLength);
+                }
+            });
             
             const chatChannel = window.pusher.subscribe('chat-{{ chat_room.id }}');
             
@@ -205,8 +213,7 @@
             
             sendButton.onclick = function(e) {
                 const message = messageInput.value.trim();
-                if (message) {
-                    console.log(message)
+                if (message && message.length <= 1000) {
                     fetch('/chat/send_message/', {
                         method: 'POST',
                         headers: {

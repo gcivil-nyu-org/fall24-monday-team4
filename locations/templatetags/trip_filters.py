@@ -9,7 +9,9 @@ register = template.Library()
 
 @register.filter
 def all_matches(trip):
-    return trip.matches.all() | trip.matched_with.all()
+    return Match.objects.filter(
+        Q(trip1=trip) | Q(trip2=trip)
+    ).distinct()
 
 
 @register.filter

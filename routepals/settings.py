@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import base64
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -213,7 +214,10 @@ AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME")
 
-PUSHER_APP_ID =  os.environ.get("PUSHER_APP_ID")
+PUSHER_APP_ID = os.environ.get("PUSHER_APP_ID")
 PUSHER_KEY = os.environ.get("PUSHER_KEY")
-PUSHER_SECRET =  os.environ.get("PUSHER_SECRET")
-PUSHER_CLUSTER =  os.environ.get("PUSHER_CLUSTER")
+PUSHER_SECRET = os.environ.get("PUSHER_SECRET")
+PUSHER_CLUSTER = os.environ.get("PUSHER_CLUSTER")
+
+# Generate this once and store securely
+ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY").encode()

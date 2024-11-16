@@ -42,7 +42,7 @@
                                     {% endfor %}
                                 </ul>
                             {% endif %}
-                            {% if trip.status == 'COMPLETED' and trip.chatroom %}
+                            {% if trip.status in "CANCELLED,COMPLETED," and trip.chatroom %}
                                 <button type="button" class="btn btn-secondary" 
                                         onclick="loadChat('{{ trip.chatroom.id }}', true)" 
                                         data-bs-toggle="modal" 
