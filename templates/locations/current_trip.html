@@ -256,7 +256,9 @@
         const channel = window.pusher.subscribe(`chat-${chatroomId}`);
 
         channel.bind('message-event', function(data) {
+            console.log('Message received:', data);  // Debug line
             if (data.type === 'system') {
+                console.log('System message detected:', data.message);  // Debug line
                 addSystemMessage(data.message);
             } else {
                 addUserMessage(data.username, data.message);

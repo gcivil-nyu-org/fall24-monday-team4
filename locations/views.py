@@ -317,6 +317,7 @@ def handle_match_request(request):
 
 
 def send_system_message(chat_room_id, message):
+    print(f"Sending system message to chat-{chat_room_id}: {message}")  # Debug line
     pusher_client.trigger(
         f'chat-{chat_room_id}',
         'message-event',
