@@ -101,6 +101,7 @@ def create_trip(request):
                 "dest_longitude": request.POST.get("dest_longitude"),
                 "planned_departure": planned_departure,
                 "desired_companions": int(request.POST.get("desired_companions")),
+                "search_radius": int(request.POST.get("search_radius")),
             },
         )
         return redirect("current_trip")
@@ -108,75 +109,123 @@ def create_trip(request):
 
 @login_required
 def current_trip(request):
-    try:
-        user_trip = Trip.objects.get(
-            user=request.user,
-            status__in=["SEARCHING", "MATCHED", "READY", "IN_PROGRESS"]
-        )
-        
-        potential_matches = []
-        received_matches = []
-        if user_trip.status == "SEARCHING":
-            # Define time window
-            time_min = user_trip.planned_departure - timedelta(minutes=30)
-            time_max = user_trip.planned_departure + timedelta(minutes=30)
+   try:
+       user_trip = Trip.objects.get(
+           user=request.user,
+           status__in=["SEARCHING", "MATCHED", "READY", "IN_PROGRESS"]
+       )
+       
+       potential_matches = []
+       received_matches = []
+       if user_trip.status == "SEARCHING":
+           # Define time window
+           time_min = user_trip.planned_departure - timedelta(minutes=30)
+           time_max = user_trip.planned_departure + timedelta(minutes=30)
 
-            # Convert locations to hexagons once
-            user_start_hex = h3.latlng_to_cell(
-                float(user_trip.start_latitude), 
-                float(user_trip.start_longitude), 
-                10
-            )
-            user_dest_hex = h3.latlng_to_cell(
-                float(user_trip.dest_latitude), 
-                float(user_trip.dest_longitude), 
-                10
-            )
-            
-            # Find potential matches in one query
-            potential_matches = Trip.objects.filter(
-                status="SEARCHING",
-                planned_departure__range=(time_min, time_max),
-                desired_companions=user_trip.desired_companions,
-                accepted_companions_count__lt=F('desired_companions')
-            ).exclude(
-                Q(user=request.user) |
-                Q(matches__trip2=user_trip, matches__status="DECLINED") |  # They declined us
-                Q(matched_with__trip1=user_trip, matched_with__status="DECLINED")  # We declined them
-            ).exclude(
-                matches__trip2=user_trip,  # No existing match attempts
-            )
-            
-            # Filter by location
-            potential_matches = [
-                trip for trip in potential_matches
-                if h3.latlng_to_cell(float(trip.start_latitude), float(trip.start_longitude), 10) in h3.grid_disk(user_start_hex, 2)
-                and h3.latlng_to_cell(float(trip.dest_latitude), float(trip.dest_longitude), 10) in h3.grid_disk(user_dest_hex, 2)
-            ]
-            
-            # Broadcast to all potential matches that they should refresh
-            for match in potential_matches:
-                broadcast_trip_update(
-                    match.id,
-                    "SEARCHING",
-                    "New potential companion available"
-                )
-            
-            received_matches = Match.objects.filter(
-                trip2=user_trip,
-                status="PENDING"
-            ).select_related('trip1__user')
+           # Find potential matches in one query without search_radius filter first
+           potential_matches = Trip.objects.filter(
+               status="SEARCHING",
+               planned_departure__range=(time_min, time_max),
+               desired_companions=user_trip.desired_companions,
+               accepted_companions_count__lt=F('desired_companions')
+           ).exclude(
+               Q(user=request.user) |
+               Q(matches__trip2=user_trip, matches__status="DECLINED") |  # They declined us
+               Q(matched_with__trip1=user_trip, matched_with__status="DECLINED")  # We declined them
+           ).exclude(
+               matches__trip2=user_trip,  # No existing match attempts
+           )
 
-        return render(request, "locations/current_trip.html", {
-            "user_trip": user_trip, 
-            "potential_matches": potential_matches,
-            "received_matches": received_matches
-        })
+           # Filter by location using the minimum search radius of each pair
+           filtered_matches = []
+           for potential_trip in potential_matches:
+               # Use the minimum search radius of both trips
+               min_radius = min(user_trip.search_radius, potential_trip.search_radius)
+               
+               # Get resolution and ring size based on minimum radius
+               resolution, ring_size = get_h3_resolution_and_ring_size(min_radius)
+               
+               # Convert locations to hexagons with calculated resolution
+               user_start_hex = h3.latlng_to_cell(
+                   float(user_trip.start_latitude), 
+                   float(user_trip.start_longitude), 
+                   resolution
+               )
+               user_dest_hex = h3.latlng_to_cell(
+                   float(user_trip.dest_latitude), 
+                   float(user_trip.dest_longitude), 
+                   resolution
+               )
+               
+               potential_start_hex = h3.latlng_to_cell(
+                   float(potential_trip.start_latitude), 
+                   float(potential_trip.start_longitude), 
+                   resolution
+               )
+               potential_dest_hex = h3.latlng_to_cell(
+                   float(potential_trip.dest_latitude), 
+                   float(potential_trip.dest_longitude), 
+                   resolution
+               )
+               
+               # Check if locations are within the minimum search radius
+               if (potential_start_hex in h3.grid_disk(user_start_hex, ring_size) and
+                   potential_dest_hex in h3.grid_disk(user_dest_hex, ring_size)):
+                   filtered_matches.append(potential_trip)
 
-    except Trip.DoesNotExist:
-        return render(request, "locations/current_trip.html", {
-            "error": "No active trip found. Create a trip first."
-        })
+           potential_matches = filtered_matches
+           
+           # Broadcast to all potential matches that they should refresh
+           for match in potential_matches:
+               broadcast_trip_update(
+                   match.id,
+                   "SEARCHING",
+                   "New potential companion available"
+               )
+           
+           received_matches = Match.objects.filter(
+               trip2=user_trip,
+               status="PENDING"
+           ).select_related('trip1__user')
+
+       return render(request, "locations/current_trip.html", {
+           "user_trip": user_trip, 
+           "potential_matches": potential_matches,
+           "received_matches": received_matches
+       })
+
+   except Trip.DoesNotExist:
+       return render(request, "locations/current_trip.html", {
+           "error": "No active trip found. Create a trip first."
+       })
+
+def get_h3_resolution_and_ring_size(radius_meters):
+    """
+    Convert a radius in meters to appropriate H3 resolution and ring size.
+    Returns (resolution, ring_size) tuple.
+    """
+    # H3 resolutions and their approximate edge lengths in meters
+    # These are approximate values - adjust based on your needs
+    resolution_map = [
+        (8, 461.354684),   # ~460m
+        (9, 174.375668),   # ~174m
+        (10, 65.907807),   # ~66m
+        (11, 24.910561),   # ~25m
+        (12, 9.415526),    # ~9.4m
+    ]
+    
+    # Find the appropriate resolution
+    chosen_res = 10  # default
+    for res, edge_length in resolution_map:
+        if edge_length < radius_meters / 2:
+            chosen_res = res
+            break
+    
+    # Calculate ring size based on radius and edge length
+    chosen_edge_length = [edge for res, edge in resolution_map if res == chosen_res][0]
+    ring_size = max(1, int(radius_meters / (chosen_edge_length * 2)))
+    
+    return chosen_res, ring_size
 
 @login_required
 def send_match_request(request):

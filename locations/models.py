@@ -14,7 +14,6 @@ class UserLocation(models.Model):
     def __str__(self):
         return f"{self.user.username}'s location ({self.latitude}, {self.longitude})"
 
-
 class Trip(models.Model):
     STATUS_CHOICES = [
         ("SEARCHING", "Searching for companion"),
@@ -32,6 +31,15 @@ class Trip(models.Model):
         (4, "4 Companions"),
     ]
 
+    RADIUS_CHOICES = [
+        (200, "200 meters"),
+        (500, "500 meters"),
+        (1000, "1 kilometer"),
+        (2000, "2 kilometers"),
+        (5000, "5 kilometers"),
+    ]
+
+    # Fields
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     start_latitude = models.DecimalField(max_digits=11, decimal_places=6)
     start_longitude = models.DecimalField(max_digits=11, decimal_places=6)
@@ -51,6 +59,11 @@ class Trip(models.Model):
     completion_requested = models.BooleanField(default=False)
     matched_companions = models.ManyToManyField('self', through='Match', symmetrical=False)
     accepted_companions_count = models.IntegerField(default=0)
+    search_radius = models.IntegerField(
+        choices=RADIUS_CHOICES,
+        default=500,
+        help_text="Maximum distance to search for companions"
+    )
 
     class Meta:
         constraints = [
@@ -63,8 +76,7 @@ class Trip(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s trip on {self.created_at.date()}"
-
-
+    
 class Match(models.Model):
     STATUS_CHOICES = [
         ("PENDING", "Pending"),
