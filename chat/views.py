@@ -8,6 +8,7 @@ from utils.pusher_client import pusher_client
 from django.db.models import Q
 from django.conf import settings
 
+
 @login_required
 def chat_room(request, pk):
     try:
@@ -25,8 +26,9 @@ def chat_room(request, pk):
             valid_statuses = ["MATCHED", "READY", "IN_PROGRESS"]
             if not Match.objects.filter(
                 Q(trip1__user=request.user) | Q(trip2__user=request.user),
-                Q(trip1__status__in=valid_statuses) | Q(trip2__status__in=valid_statuses),
-                chatroom=chat_room
+                Q(trip1__status__in=valid_statuses)
+                | Q(trip2__status__in=valid_statuses),
+                chatroom=chat_room,
             ).exists():
                 return redirect("current_trip")
 

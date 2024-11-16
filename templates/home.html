@@ -47,6 +47,15 @@
                         <option value="4">4 Companions</option>
                     </select>
                 </div>
+                <div class="mb-3">
+                    <label for="search_radius" class="form-label">Search Radius</label>
+                    <select name="search_radius" id="search_radius" class="form-select" required>
+                        <option value="200" selected>200 meters</option>
+                        <option value="500">500 meters</option>
+                        <option value="750">750 meters</option>
+                        <option value="1000">1 kilometer</option>
+                    </select>
+                </div>
                 
                 <!-- Hidden fields for coordinates -->
                 <input type="hidden" name="start_latitude" id="start_latitude">
