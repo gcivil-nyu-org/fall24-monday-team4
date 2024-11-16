@@ -13,7 +13,6 @@ def chat_room(request, pk):
     try:
         chat_room = ChatRoom.objects.get(pk=pk)
         is_archive = request.GET.get("archive") == "true"
-        is_modal = request.GET.get("modal") == "true"
 
         if is_archive:
             if not Match.objects.filter(
@@ -32,9 +31,8 @@ def chat_room(request, pk):
                 return redirect("current_trip")
 
         messages = Message.objects.filter(chat_room=chat_room).order_by("created_at")
-        template = "chat/chat_room_modal.html" if is_modal else "chat/chat_room.html"
-
-        return render(request, template, {
+        
+        return render(request, "chat/chat_room_modal.html", {
             "chat_room": chat_room,
             "messages": messages,
             "is_archive": is_archive,
@@ -42,7 +40,40 @@ def chat_room(request, pk):
             "pusher_cluster": settings.PUSHER_CLUSTER
         })
     
+    
     except ChatRoom.DoesNotExist:
         return JsonResponse({"error": "Chat room not found"}, status=404)
     except ValueError:
         return JsonResponse({"error": "Invalid chat room ID"}, status=400)
+
+@login_required
+def send_message(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            chat_room = ChatRoom.objects.get(id=data['chat_room'])
+            message_text = data['message']
+
+            # Create and save the message
+            Message.objects.create(
+                chat_room=chat_room,
+                user=request.user,
+                message=message_text
+            )
+
+            # Broadcast via Pusher
+            pusher_client.trigger(
+                f'chat-{chat_room.id}',
+                'message_event',
+                {
+                    'message': message_text,
+                    'username': request.user.username,
+                    'type': 'user'
+                }
+            )
+            
+            return JsonResponse({'success': True})
+        except (ChatRoom.DoesNotExist, KeyError, json.JSONDecodeError) as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=405)

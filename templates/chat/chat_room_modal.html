@@ -1,19 +1,34 @@
 {% block content %}
 
 <style>
-    .system-message .message-content {
-        background-color: #f8a167 !important;  /* Lighter gray background */
-        border-left: 4px solid orange;       /* Bootstrap primary blue */
-        font-style: italic;
+    .system-message {
+        display: flex;
+        justify-content: center;  /* Center horizontally */
         width: 100%;
-        text-align: center;
-        padding: 8px;                         /* Added padding */
-        border-radius: 8px;                   /* Rounded corners */
     }
-    
+    /* Update the system message CSS */
+    .system-message .message-content {
+        background-color: #fdeddb !important;  /* Light blue background */
+        border-radius: 8px;
+        color: #e49131;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        display: inline-flex;  /* Changed to inline-flex */
+        width: auto;
+    }
+
+    .system-message .message-content:before {
+        content: "\f05a";  /* Font Awesome info icon */
+        font-family: "Font Awesome 6 Free";
+        font-size: 25px;
+        font-weight: 400;  /* Changed to 400 for outlined version */
+        color: #c46b04;  /* Blue color for icon */
+    }   
+
     .system-message small {
-        color: orange !important;            /* Darker gray for better readability */
-        font-weight: 500;
+        color: #000000 !important;  /* Subtle gray for timestamp */
     }
     
     .chat-messages {
@@ -47,10 +62,10 @@
 <div class="d-flex flex-column" style="height: 80vh;">  <!-- Parent container -->
     <div class="chat-messages p-3 flex-grow-1 overflow-auto" id="messageContainer">
         {% for message in messages %}
-            <div class="message {% if message.user.username == 'System' %}system-message{% endif %}">
-                {% if message.user.username == 'System' %}
+            <div class="message {% if message.message_type == 'SYSTEM' %}system-message{% endif %}">
+                {% if message.message_type == 'SYSTEM' %}
                     <div class="message-content p-2 rounded">
-                        {{ message.message }}
+                        <strong>{{ message.message }}</strong>
                         <small class="message-timestamp d-block mt-1">{{ message.created_at|date:'g:i A' }}</small>
                     </div>
                 {% else %}
@@ -65,7 +80,7 @@
             </div>
         {% empty %}
             <div class="h-100 d-flex align-items-center justify-content-center">
-                <div class="text-muted">No messages yet</div>
+                <div class="text-muted" id="placeholderText">No messages yet</div>
             </div>
         {% endfor %}
     </div>
@@ -80,8 +95,154 @@
                 Connecting...
             </div>
         </div>
-    {% endif %}
-</div>
+        {% endif %}
+    </div>
+    
+    <script>
+        const messageContainer = document.getElementById('messageContainer');
+        
+        {% if not is_archive %}
+            
+            {% if messages %}
+                document.getElementById('placeholderText')?.remove();
+            {% endif %}
+            
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const statusDiv = document.getElementById('connectionStatus');
+            
+            const chatChannel = window.pusher.subscribe('chat-{{ chat_room.id }}');
+            
+            chatChannel.bind('message_event', function(data) {
+                document.getElementById('placeholderText')?.remove();
+                
+                if (data.type === 'system') {
+                    addSystemMessage(data.message);
+                } else {
+                    addUserMessage(data.username, data.message);
+                }
+            });
 
+            window.pusher.connection.bind('state_change', function(states) {
+                if (states.current === 'connected') {
+                    statusDiv.style.display = 'none';
+                } else {
+                    statusDiv.style.display = 'block';
+                    statusDiv.className = 'alert alert-warning mt-2';
+                    statusDiv.textContent = 'Connection lost. Reconnecting...';
+                }
+            });
+
+           function addUserMessage(username, message) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message';
+
+                const flexDiv = document.createElement('div');
+                flexDiv.className = `d-flex flex-column ${username === "{{ request.user.username }}" ? 'align-items-end' : 'align-items-start'}`;
+
+                // Username above bubble
+                const usernameSpan = document.createElement('small');
+                usernameSpan.className = 'text-muted mb-0';
+                usernameSpan.textContent = username;
+
+                // Message bubble
+                const msgContent = document.createElement('div');
+                msgContent.className = `message-content p-2 rounded mb-0 ${username === "{{ request.user.username }}" ? 'bg-primary text-white' : 'bg-light'}`;
+
+                // Message text
+                const messageText = document.createElement('p');
+                messageText.className = 'mb-0';
+                messageText.textContent = message;
+
+                // Timestamp below bubble
+                const timestampSpan = document.createElement('small');
+                timestampSpan.className = 'message-timestamp text-muted';
+                timestampSpan.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+                // Assemble the message
+                msgContent.appendChild(messageText);
+                flexDiv.appendChild(usernameSpan);
+                flexDiv.appendChild(msgContent);
+                flexDiv.appendChild(timestampSpan);
+                msgDiv.appendChild(flexDiv);
+
+                messageContainer.appendChild(msgDiv);
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
+
+            function addSystemMessage(message) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message mb-3 system-message';
+                
+                const msgContent = document.createElement('div');
+                msgContent.className = 'message-content p-2 rounded';
+                
+                // Message text
+                const strong = document.createElement('strong');
+                const messageText = document.createElement('p');
+
+                messageText.className = 'mb-0';
+                messageText.textContent = message;
+                
+                // Timestamp
+                const timestampSpan = document.createElement('small');
+                timestampSpan.className = 'message-timestamp d-block mt-1';
+                timestampSpan.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                
+                strong.appendChild(messageText)
+                msgContent.appendChild(strong);
+                msgContent.appendChild(timestampSpan);
+                msgDiv.appendChild(msgContent);
+                messageContainer.appendChild(msgDiv);
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
+
+            messageInput.onkeyup = function(e) {
+                if (e.keyCode === 13 && !e.shiftKey) {
+                    sendButton.click();
+                }
+            };
+            
+            sendButton.onclick = function(e) {
+                const message = messageInput.value.trim();
+                if (message) {
+                    console.log(message)
+                    fetch('/chat/send_message/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            'message': message,
+                            'chat_room': '{{ chat_room.id }}'
+                        })
+                    }).then(response => {
+                        if (response.ok) {
+                            messageInput.value = '';
+                        } else {
+                            console.error('Failed to send message');
+                        }
+                    });
+                }
+            };
+
+
+            // Cleanup on page unload
+            window.onbeforeunload = function() {
+                window.pusher.unsubscribe('chat-{{ chat_room.id }}');
+            };
+
+            // Cleanup on component unmount
+            document.addEventListener("visibilitychange", function() {
+                if (document.visibilityState === 'hidden') {
+                    window.pusher.unsubscribe('chat-{{ chat_room.id }}');
+                }
+            });
+        {% endif %}
+    
+    // Always scroll to bottom on load
+    messageContainer.scrollTop = messageContainer.scrollHeight;
+</script>
 {% endblock %}
 

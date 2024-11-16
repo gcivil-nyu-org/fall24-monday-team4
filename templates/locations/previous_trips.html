@@ -23,18 +23,24 @@
                             <p><strong>Final Group Size:</strong> {{ trip.accepted_companions_count|add:1 }}</p>
                             <p><strong>Created:</strong> {{ trip.created_at }}</p>
                             {% if trip.matches.exists or trip.matched_with.exists %}
-                            <p><strong>Companions:</strong></p>
-                            <ul>
-                                {% for match in trip|accepted_matches %}
-                                <li>
-                                    {% if match.trip1.user == user %}
-                                        {{ match.trip2.user.username }}
-                                    {% else %}
-                                        {{ match.trip1.user.username }}
-                                    {% endif %}
-                                </li>
-                                {% endfor %}
-                            </ul>
+                                <p><strong>Companions:</strong></p>
+                                <ul>
+                                    {% for match in trip|all_matches %}
+                                    <li>
+                                        {% if match.trip1.user == user %}
+                                            {{ match.trip2.user.username }}
+                                        {% else %}
+                                            {{ match.trip1.user.username }}
+                                        {% endif %}
+                                        :
+                                        <span class="badge {% if match.status == 'ACCEPTED' %}bg-success
+                                                    {% elif match.status == 'DECLINED' %}bg-danger
+                                                    {% else %}bg-warning{% endif %}">
+                                            {{ match.status }}
+                                        </span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
                             {% endif %}
                             {% if trip.status == 'COMPLETED' and trip.chatroom %}
                                 <button type="button" class="btn btn-secondary" 
@@ -109,7 +115,7 @@
                         <h5 class="modal-title" id="chatModalLabel">Archived Chat History</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body" id="chatModalBody">
+                    <div class="modal-body p-0" id="chatModalBody">
                         <!-- Chat content will be loaded here -->
                     </div>
                 </div>
@@ -124,49 +130,20 @@
 
 
 <script>
-    function loadChat(chatroomId, isArchive = false) {
+    function loadChat(chatroomId, isArchive) {
         const modalBody = document.getElementById('chatModalBody');
-        const modalTitle = document.getElementById('chatModalLabel');
         
-        modalTitle.textContent = isArchive ? 'Archived Chat History' : 'Group Chat';
-        
-        fetch(`/chat/chatrooms/${chatroomId}/?modal=true&archive=${isArchive}`)
+        fetch(`/chat/chatrooms/${chatroomId}/?archive=${isArchive}`)
             .then(response => response.text())
-            .then(html => {modalBody.innerHTML = html;});
+            .then(html => {
+                modalBody.innerHTML = html;
+                modalBody.querySelectorAll('script').forEach(script => eval(script.innerHTML));
+            });
+
     }
     
-    $('#chatModal').on('show.bs.modal', function (e) {
-        sessionStorage.setItem('chatModalOpen', 'true');
-        // Get chatroom ID either from clicked button or stored value
-        const chatroomId = e?.relatedTarget?.getAttribute('data-chatroom-id') || 
-                        sessionStorage.getItem('currentChatroomId');
-                        if (chatroomId) {
-                            sessionStorage.setItem('currentChatroomId', chatroomId);
-            loadChat(chatroomId);
-        }
-    });
-    
     $('#chatModal').on('hidden.bs.modal', function () {
-        const chatroomId = e?.relatedTarget?.getAttribute('data-chatroom-id') || 
-                        sessionStorage.getItem('currentChatroomId');
-        if (window.pusher) {
-            window.pusher.unsubscribe(`chat-${chatroomId}`);
-            window.pusher = null;
-        }
-        sessionStorage.removeItem('chatModalOpen');
-        sessionStorage.removeItem('currentChatroomId');
         document.getElementById('chatModalBody').innerHTML = '';
-    });
-    
-    // Check on page load if modal should be open
-    document.addEventListener('DOMContentLoaded', function() {
-        if (sessionStorage.getItem('chatModalOpen') === 'true') {
-            const chatroomId = sessionStorage.getItem('currentChatroomId');
-            if (chatroomId) {
-                loadChat(chatroomId);
-                $('#chatModal').modal('show');
-            }
-        }
     });
     
 </script>

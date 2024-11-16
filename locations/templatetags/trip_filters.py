@@ -8,12 +8,8 @@ register = template.Library()
 
 
 @register.filter
-def accepted_matches(trip):
-    # Get matches from both directions where the trip was either trip1 or trip2
-    return Match.objects.filter(
-        (Q(trip1=trip) | Q(trip2=trip)),
-        status="ACCEPTED"
-    )
+def all_matches(trip):
+    return trip.matches.all() | trip.matched_with.all()
 
 
 @register.filter

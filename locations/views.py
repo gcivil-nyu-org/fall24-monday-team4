@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from .models import Trip, Match, UserLocation, User
-from chat.models import ChatRoom
+from chat.models import ChatRoom, Message
 from datetime import timedelta, datetime
 from django.utils.timezone import make_aware
 
@@ -186,7 +186,8 @@ def current_trip(request):
             "potential_matches": potential_matches,
             "received_matches": received_matches,
             "pusher_key": settings.PUSHER_KEY,
-            "pusher_cluster": settings.PUSHER_CLUSTER
+            "pusher_cluster": settings.PUSHER_CLUSTER,
+
         })
 
 
@@ -316,14 +317,18 @@ def handle_match_request(request):
     return redirect("current_trip")
 
 
-def send_system_message(chat_room_id, message):
-    print(f"Sending system message to chat-{chat_room_id}: {message}")  # Debug line
+def send_system_message(chat_room, message):
+    Message.objects.create(
+        chat_room=chat_room,
+        message=message,
+        message_type='SYSTEM'
+    )
+    
     pusher_client.trigger(
-        f'chat-{chat_room_id}',
-        'message-event',
+        f'chat-{chat_room.id}',
+        'message_event',
         {
             'message': message,
-            'username': "System",
             'type': 'system'
         }
     )
@@ -347,7 +352,7 @@ def start_trip(request):
             
             if trip.chatroom:
                 send_system_message(
-                    trip.chatroom.id, 
+                    trip.chatroom, 
                     f"{request.user.username} is ready to start the trip."
                 )
 
@@ -374,7 +379,7 @@ def start_trip(request):
 
             if trip.chatroom:
                 send_system_message(
-                    trip.chatroom.id, 
+                    trip.chatroom, 
                     "All members are ready. Trip is now in progress!"
                 )
 
@@ -388,20 +393,20 @@ def cancel_trip(request):
                 user=request.user, 
                 status__in=["SEARCHING", "MATCHED", "READY"]
             )
-
+            
+            # Update all matched trips' companion counts
+            affected_trips = list(Trip.objects.filter(
+                (Q(matches__trip2=trip, matches__status="ACCEPTED") |
+                Q(matched_with__trip2=trip, matched_with__status="ACCEPTED") |
+                Q(matches__trip1=trip, matches__status="ACCEPTED") |
+                Q(matched_with__trip1=trip, matched_with__status="ACCEPTED")),
+                status__in=["MATCHED", "READY"]  # Add this back
+             ).exclude(id=trip.id).distinct())
+            
             # Cancel all associated matches at once
             Match.objects.filter(
                 Q(trip1=trip) | Q(trip2=trip)
             ).update(status="DECLINED")
-
-            # Update all matched trips' companion counts
-            affected_trips = Trip.objects.filter(
-                    (Q(matches__trip2=trip, matches__status="ACCEPTED") | 
-                    Q(matched_with__trip2=trip, matched_with__status="ACCEPTED") | 
-                    Q(matches__trip1=trip, matches__status="ACCEPTED") | 
-                    Q(matched_with__trip1=trip, matched_with__status="ACCEPTED")),
-                    status__in=["MATCHED", "READY"]
-                ).exclude(id=trip.id).distinct()
             
             for affected_trip in affected_trips:
                 affected_trip.accepted_companions_count = (
@@ -431,9 +436,9 @@ def cancel_trip(request):
                 desired_companions=trip.desired_companions
             ).exclude(user=request.user)
 
-            for match in potential_matches:
+            for tripMatch in potential_matches:
                 broadcast_trip_update(
-                    match.id,
+                    tripMatch.id,
                     "SEARCHING",
                     "New potential companion available"
                 )
@@ -496,7 +501,7 @@ def complete_trip(request):
             
             if trip.chatroom:
                 send_system_message(
-                    trip.chatroom.id,
+                    trip.chatroom,
                     f"{request.user.username} has voted to complete the trip."
                 )
 
@@ -519,7 +524,7 @@ def complete_trip(request):
             if completion_votes >= total_members / 2:
                 if trip.chatroom:
                     send_system_message(
-                        trip.chatroom.id,
+                        trip.chatroom,
                         "Majority has voted to complete the trip. Trip is now archived."
                     )
                 # Complete all trips in one query

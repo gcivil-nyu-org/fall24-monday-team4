@@ -15,6 +15,10 @@ class ChatRoom(models.Model):
 
 class Message(models.Model):
     chat_room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)  # Make user nullable
     message = models.TextField()
+    message_type = models.CharField(max_length=10, choices=[
+        ('USER', 'User Message'),
+        ('SYSTEM', 'System Alert')
+    ], default='USER')
     created_at = models.DateTimeField(auto_now_add=True)
