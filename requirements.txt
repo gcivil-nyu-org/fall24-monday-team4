@@ -10,11 +10,8 @@ coveralls==4.0.1
 flake8==7.1.1
 PyYAML==6.0.2
 awscli==1.35.20
-daphne==4.1.2
-channels==4.1.0
 boto3==1.35.57
 h3==4.1.2
 Twisted==24.10.0
-channels-redis==4.2.0
 redis==5.2.0
 supervisor==4.2.5

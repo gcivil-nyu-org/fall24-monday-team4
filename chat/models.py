@@ -17,12 +17,15 @@ class ChatRoom(models.Model):
 
 class Message(models.Model):
     chat_room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)  # Make user nullable
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, null=True
+    )  # Make user nullable
     message = models.TextField()
-    message_type = models.CharField(max_length=10, choices=[
-        ('USER', 'User Message'),
-        ('SYSTEM', 'System Alert')
-    ], default='USER')
+    message_type = models.CharField(
+        max_length=10,
+        choices=[("USER", "User Message"), ("SYSTEM", "System Alert")],
+        default="USER",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def encrypt_message(self, raw_message):
@@ -30,12 +33,12 @@ class Message(models.Model):
         return f.encrypt(raw_message.encode()).decode()
 
     def decrypt_message(self):
-        if self.message_type == 'SYSTEM':
+        if self.message_type == "SYSTEM":
             return self.message
         f = Fernet(settings.ENCRYPTION_KEY)
         return f.decrypt(self.message.encode()).decode()
 
     def save(self, *args, **kwargs):
-        if self.message_type != 'SYSTEM' and not self.pk:
+        if self.message_type != "SYSTEM" and not self.pk:
             self.message = self.encrypt_message(self.message)
         super().save(*args, **kwargs)

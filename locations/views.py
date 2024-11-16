@@ -13,20 +13,13 @@ from django.utils.timezone import make_aware
 
 from django.db.models import Q, F
 from django.core.paginator import Paginator
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 from utils.pusher_client import pusher_client
 from django.conf import settings
 
 
 def broadcast_trip_update(trip_id, status, message):
     pusher_client.trigger(
-        f'trip-{trip_id}',
-        'status-update',
-        {
-            'status': status,
-            'message': message
-        }
+        f"trip-{trip_id}", "status-update", {"status": status, "message": message}
     )
 
 
@@ -39,7 +32,7 @@ def update_location(request):
             UserLocation.objects.update_or_create(
                 user=request.user, defaults={"latitude": lat, "longitude": lng}
             )
-            
+
             # # Add Pusher broadcast for location update
             # pusher_client.trigger(
             #     f'location-updates',
@@ -191,20 +184,22 @@ def current_trip(request):
                 broadcast_trip_update(
                     match.id, "SEARCHING", "New potential companion available"
                 )
-            
+
             received_matches = Match.objects.filter(
                 trip2=user_trip, status="PENDING"
             ).select_related("trip1__user")
 
-        return render(request, "locations/current_trip.html", {
-            "user_trip": user_trip, 
-            "potential_matches": potential_matches,
-            "received_matches": received_matches,
-            "pusher_key": settings.PUSHER_KEY,
-            "pusher_cluster": settings.PUSHER_CLUSTER,
-
-        })
-
+        return render(
+            request,
+            "locations/current_trip.html",
+            {
+                "user_trip": user_trip,
+                "potential_matches": potential_matches,
+                "received_matches": received_matches,
+                "pusher_key": settings.PUSHER_KEY,
+                "pusher_cluster": settings.PUSHER_CLUSTER,
+            },
+        )
 
     except Trip.DoesNotExist:
         return render(
@@ -362,19 +357,10 @@ def handle_match_request(request):
 
 
 def send_system_message(chat_room, message):
-    Message.objects.create(
-        chat_room=chat_room,
-        message=message,
-        message_type='SYSTEM'
-    )
-    
+    Message.objects.create(chat_room=chat_room, message=message, message_type="SYSTEM")
+
     pusher_client.trigger(
-        f'chat-{chat_room.id}',
-        'message_event',
-        {
-            'message': message,
-            'type': 'system'
-        }
+        f"chat-{chat_room.id}", "message_event", {"message": message, "type": "system"}
     )
 
 
@@ -395,8 +381,8 @@ def start_trip(request):
 
             if trip.chatroom:
                 send_system_message(
-                    trip.chatroom, 
-                    f"{request.user.username} is ready to start the trip."
+                    trip.chatroom,
+                    f"{request.user.username} is ready to start the trip.",
                 )
 
         # Get all matched trips in one query, including both directions of matches
@@ -429,8 +415,7 @@ def start_trip(request):
 
             if trip.chatroom:
                 send_system_message(
-                    trip.chatroom, 
-                    "All members are ready. Trip is now in progress!"
+                    trip.chatroom, "All members are ready. Trip is now in progress!"
                 )
 
         return redirect("current_trip")
@@ -443,20 +428,26 @@ def cancel_trip(request):
             trip = Trip.objects.get(
                 user=request.user, status__in=["SEARCHING", "MATCHED", "READY"]
             )
-            
+
             # Update all matched trips' companion counts
-            affected_trips = list(Trip.objects.filter(
-                (Q(matches__trip2=trip, matches__status="ACCEPTED") |
-                Q(matched_with__trip2=trip, matched_with__status="ACCEPTED") |
-                Q(matches__trip1=trip, matches__status="ACCEPTED") |
-                Q(matched_with__trip1=trip, matched_with__status="ACCEPTED")),
-                status__in=["MATCHED", "READY"]  # Add this back
-             ).exclude(id=trip.id).distinct())
-            
+            affected_trips = list(
+                Trip.objects.filter(
+                    (
+                        Q(matches__trip2=trip, matches__status="ACCEPTED")
+                        | Q(matched_with__trip2=trip, matched_with__status="ACCEPTED")
+                        | Q(matches__trip1=trip, matches__status="ACCEPTED")
+                        | Q(matched_with__trip1=trip, matched_with__status="ACCEPTED")
+                    ),
+                    status__in=["MATCHED", "READY"],  # Add this back
+                )
+                .exclude(id=trip.id)
+                .distinct()
+            )
+
             # Cancel all associated matches at once
-            Match.objects.filter(
-                Q(trip1=trip) | Q(trip2=trip)
-            ).update(status="DECLINED")
+            Match.objects.filter(Q(trip1=trip) | Q(trip2=trip)).update(
+                status="DECLINED"
+            )
 
             for affected_trip in affected_trips:
                 affected_trip.accepted_companions_count = affected_trip.matches.filter(
@@ -488,9 +479,7 @@ def cancel_trip(request):
 
             for tripMatch in potential_matches:
                 broadcast_trip_update(
-                    tripMatch.id,
-                    "SEARCHING",
-                    "New potential companion available"
+                    tripMatch.id, "SEARCHING", "New potential companion available"
                 )
 
             return redirect("home")
@@ -550,7 +539,7 @@ def complete_trip(request):
             if trip.chatroom:
                 send_system_message(
                     trip.chatroom,
-                    f"{request.user.username} has voted to complete the trip."
+                    f"{request.user.username} has voted to complete the trip.",
                 )
 
             # Get all connected trips in one query
@@ -572,7 +561,7 @@ def complete_trip(request):
                 if trip.chatroom:
                     send_system_message(
                         trip.chatroom,
-                        "Majority has voted to complete the trip. Trip is now archived."
+                        "Majority has voted to complete the trip. Trip is now archived.",
                     )
                 # Complete all trips in one query
                 matched_trips.update(status="COMPLETED", completion_requested=True)

@@ -5,5 +5,5 @@ from . import views
 
 urlpatterns = [
     path("chatrooms/<pk>/", views.chat_room, name="chat_room"),
-    path("send_message/", views.send_message, name="send_message"),  # Add this line    
+    path("send_message/", views.send_message, name="send_message"),  # Add this line
 ]

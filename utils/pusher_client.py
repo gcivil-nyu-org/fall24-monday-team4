@@ -6,5 +6,5 @@ pusher_client = pusher.Pusher(
     key=settings.PUSHER_KEY,
     secret=settings.PUSHER_SECRET,
     cluster=settings.PUSHER_CLUSTER,
-    ssl=True
+    ssl=True,
 )

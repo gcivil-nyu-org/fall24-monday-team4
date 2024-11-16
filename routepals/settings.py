@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
-import base64
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -219,5 +218,4 @@ PUSHER_KEY = os.environ.get("PUSHER_KEY")
 PUSHER_SECRET = os.environ.get("PUSHER_SECRET")
 PUSHER_CLUSTER = os.environ.get("PUSHER_CLUSTER")
 
-# Generate this once and store securely
 ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY").encode()
