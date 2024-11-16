@@ -177,24 +177,21 @@ def current_trip(request):
                 ) and potential_dest_hex in h3.grid_disk(user_dest_hex, ring_size):
                     filtered_matches.append(potential_trip)
 
-            potential_matches = filtered_matches
-
-            # Broadcast to all potential matches that they should refresh
-            for match in potential_matches:
-                broadcast_trip_update(
-                    match.id, "SEARCHING", "New potential companion available"
-                )
-
             received_matches = Match.objects.filter(
                 trip2=user_trip, status="PENDING"
             ).select_related("trip1__user")
+            
+            for newTripMatch in filtered_matches:
+                broadcast_trip_update(
+                    newTripMatch.id, "SEARCHING", "New potential companion available"
+                )
 
         return render(
             request,
             "locations/current_trip.html",
             {
                 "user_trip": user_trip,
-                "potential_matches": potential_matches,
+                "potential_matches": filtered_matches,
                 "received_matches": received_matches,
                 "pusher_key": settings.PUSHER_KEY,
                 "pusher_cluster": settings.PUSHER_CLUSTER,
