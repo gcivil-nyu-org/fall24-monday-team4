@@ -33,26 +33,34 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "type": "chat_message",
                 "message": message,
                 "username": username,
-                "message_type": "user"
-            }
+                "message_type": "user",
+            },
         )
 
     # This method is called for system announcements
     async def system_message(self, event):
-        await self.send(text_data=json.dumps({
-            "message": event["message"],
-            "username": "System",  # Add this
-            "type": "system"
-        }))
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "message": event["message"],
+                    "username": "System",  # Add this
+                    "type": "system",
+                }
+            )
+        )
 
     # This method handles regular chat messages
     async def chat_message(self, event):
-        await self.send(text_data=json.dumps({
-            "message": event["message"],
-            "username": event["username"],
-            "type": "user"  # This is explicit now
-        }))
-    
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "message": event["message"],
+                    "username": event["username"],
+                    "type": "user",  # This is explicit now
+                }
+            )
+        )
+
     @sync_to_async
     def save_message(self, message, user, chat_room):
         Message.objects.create(message=message, user=user, chat_room=chat_room)

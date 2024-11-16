@@ -21,66 +21,49 @@ def broadcast_trip_update(trip_id, status, message):
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f"trip_{trip_id}",
-        {
-            "type": "trip_status_update",
-            "status": status,
-            "message": message
-        }
+        {"type": "trip_status_update", "status": status, "message": message},
     )
 
 
-@login_required 
+@login_required
 def update_location(request):
     if request.method == "POST":
         try:
             lat = request.POST.get("latitude")
             lng = request.POST.get("longitude")
             UserLocation.objects.update_or_create(
-                user=request.user, 
-                defaults={
-                    "latitude": lat, 
-                    "longitude": lng
-                }
+                user=request.user, defaults={"latitude": lat, "longitude": lng}
             )
             return JsonResponse({"success": True})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
 
+
 @login_required
 def get_trip_locations(request):
     try:
-        trip = Trip.objects.get(
-            user=request.user, 
-            status="IN_PROGRESS"
-        )
-        
+        trip = Trip.objects.get(user=request.user, status="IN_PROGRESS")
+
         # Get matched users' locations in one query
         matched_users = User.objects.filter(
             trip__in=Trip.objects.filter(
-             (Q(matches__trip2=trip, matches__status="ACCEPTED") | 
-                Q(matched_with__trip2=trip, matched_with__status="ACCEPTED") | 
-                Q(matches__trip1=trip, matches__status="ACCEPTED") | 
-                Q(matched_with__trip1=trip, matched_with__status="ACCEPTED"))
-        ).distinct()).exclude(id=request.user.id)
+                (
+                    Q(matches__trip2=trip, matches__status="ACCEPTED")
+                    | Q(matched_with__trip2=trip, matched_with__status="ACCEPTED")
+                    | Q(matches__trip1=trip, matches__status="ACCEPTED")
+                    | Q(matched_with__trip1=trip, matched_with__status="ACCEPTED")
+                )
+            ).distinct()
+        ).exclude(id=request.user.id)
 
-        locations = UserLocation.objects.filter(
-            user__in=matched_users
-        ).values(
-            'user__username', 
-            'latitude', 
-            'longitude', 
-            'last_updated'
+        locations = UserLocation.objects.filter(user__in=matched_users).values(
+            "user__username", "latitude", "longitude", "last_updated"
         )
 
-        return JsonResponse({
-            "success": True, 
-            "locations": list(locations)
-        })
+        return JsonResponse({"success": True, "locations": list(locations)})
     except Trip.DoesNotExist:
-        return JsonResponse({
-            "success": False, 
-            "error": "No active trip found"
-        })
+        return JsonResponse({"success": False, "error": "No active trip found"})
+
 
 @login_required
 def create_trip(request):
@@ -107,97 +90,111 @@ def create_trip(request):
         return redirect("current_trip")
     return redirect("home")
 
+
 @login_required
 def current_trip(request):
-   try:
-       user_trip = Trip.objects.get(
-           user=request.user,
-           status__in=["SEARCHING", "MATCHED", "READY", "IN_PROGRESS"]
-       )
-       
-       potential_matches = []
-       received_matches = []
-       if user_trip.status == "SEARCHING":
-           # Define time window
-           time_min = user_trip.planned_departure - timedelta(minutes=30)
-           time_max = user_trip.planned_departure + timedelta(minutes=30)
+    try:
+        user_trip = Trip.objects.get(
+            user=request.user,
+            status__in=["SEARCHING", "MATCHED", "READY", "IN_PROGRESS"],
+        )
 
-           # Find potential matches in one query without search_radius filter first
-           potential_matches = Trip.objects.filter(
-               status="SEARCHING",
-               planned_departure__range=(time_min, time_max),
-               desired_companions=user_trip.desired_companions,
-               accepted_companions_count__lt=F('desired_companions')
-           ).exclude(
-               Q(user=request.user) |
-               Q(matches__trip2=user_trip, matches__status="DECLINED") |  # They declined us
-               Q(matched_with__trip1=user_trip, matched_with__status="DECLINED")  # We declined them
-           ).exclude(
-               matches__trip2=user_trip,  # No existing match attempts
-           )
+        potential_matches = []
+        received_matches = []
+        if user_trip.status == "SEARCHING":
+            # Define time window
+            time_min = user_trip.planned_departure - timedelta(minutes=30)
+            time_max = user_trip.planned_departure + timedelta(minutes=30)
 
-           # Filter by location using the minimum search radius of each pair
-           filtered_matches = []
-           for potential_trip in potential_matches:
-               # Use the minimum search radius of both trips
-               min_radius = min(user_trip.search_radius, potential_trip.search_radius)
-               
-               # Get resolution and ring size based on minimum radius
-               resolution, ring_size = get_h3_resolution_and_ring_size(min_radius)
-               
-               # Convert locations to hexagons with calculated resolution
-               user_start_hex = h3.latlng_to_cell(
-                   float(user_trip.start_latitude), 
-                   float(user_trip.start_longitude), 
-                   resolution
-               )
-               user_dest_hex = h3.latlng_to_cell(
-                   float(user_trip.dest_latitude), 
-                   float(user_trip.dest_longitude), 
-                   resolution
-               )
-               
-               potential_start_hex = h3.latlng_to_cell(
-                   float(potential_trip.start_latitude), 
-                   float(potential_trip.start_longitude), 
-                   resolution
-               )
-               potential_dest_hex = h3.latlng_to_cell(
-                   float(potential_trip.dest_latitude), 
-                   float(potential_trip.dest_longitude), 
-                   resolution
-               )
-               
-               # Check if locations are within the minimum search radius
-               if (potential_start_hex in h3.grid_disk(user_start_hex, ring_size) and
-                   potential_dest_hex in h3.grid_disk(user_dest_hex, ring_size)):
-                   filtered_matches.append(potential_trip)
+            # Find potential matches in one query without search_radius filter first
+            potential_matches = (
+                Trip.objects.filter(
+                    status="SEARCHING",
+                    planned_departure__range=(time_min, time_max),
+                    desired_companions=user_trip.desired_companions,
+                    accepted_companions_count__lt=F("desired_companions"),
+                )
+                .exclude(
+                    Q(user=request.user)
+                    | Q(
+                        matches__trip2=user_trip, matches__status="DECLINED"
+                    )  # They declined us
+                    | Q(
+                        matched_with__trip1=user_trip, matched_with__status="DECLINED"
+                    )  # We declined them
+                )
+                .exclude(
+                    matches__trip2=user_trip,  # No existing match attempts
+                )
+            )
 
-           potential_matches = filtered_matches
-           
-           # Broadcast to all potential matches that they should refresh
-           for match in potential_matches:
-               broadcast_trip_update(
-                   match.id,
-                   "SEARCHING",
-                   "New potential companion available"
-               )
-           
-           received_matches = Match.objects.filter(
-               trip2=user_trip,
-               status="PENDING"
-           ).select_related('trip1__user')
+            # Filter by location using the minimum search radius of each pair
+            filtered_matches = []
+            for potential_trip in potential_matches:
+                # Use the minimum search radius of both trips
+                min_radius = min(user_trip.search_radius, potential_trip.search_radius)
 
-       return render(request, "locations/current_trip.html", {
-           "user_trip": user_trip, 
-           "potential_matches": potential_matches,
-           "received_matches": received_matches
-       })
+                # Get resolution and ring size based on minimum radius
+                resolution, ring_size = get_h3_resolution_and_ring_size(min_radius)
 
-   except Trip.DoesNotExist:
-       return render(request, "locations/current_trip.html", {
-           "error": "No active trip found. Create a trip first."
-       })
+                # Convert locations to hexagons with calculated resolution
+                user_start_hex = h3.latlng_to_cell(
+                    float(user_trip.start_latitude),
+                    float(user_trip.start_longitude),
+                    resolution,
+                )
+                user_dest_hex = h3.latlng_to_cell(
+                    float(user_trip.dest_latitude),
+                    float(user_trip.dest_longitude),
+                    resolution,
+                )
+
+                potential_start_hex = h3.latlng_to_cell(
+                    float(potential_trip.start_latitude),
+                    float(potential_trip.start_longitude),
+                    resolution,
+                )
+                potential_dest_hex = h3.latlng_to_cell(
+                    float(potential_trip.dest_latitude),
+                    float(potential_trip.dest_longitude),
+                    resolution,
+                )
+
+                # Check if locations are within the minimum search radius
+                if potential_start_hex in h3.grid_disk(
+                    user_start_hex, ring_size
+                ) and potential_dest_hex in h3.grid_disk(user_dest_hex, ring_size):
+                    filtered_matches.append(potential_trip)
+
+            potential_matches = filtered_matches
+
+            # Broadcast to all potential matches that they should refresh
+            for match in potential_matches:
+                broadcast_trip_update(
+                    match.id, "SEARCHING", "New potential companion available"
+                )
+
+            received_matches = Match.objects.filter(
+                trip2=user_trip, status="PENDING"
+            ).select_related("trip1__user")
+
+        return render(
+            request,
+            "locations/current_trip.html",
+            {
+                "user_trip": user_trip,
+                "potential_matches": potential_matches,
+                "received_matches": received_matches,
+            },
+        )
+
+    except Trip.DoesNotExist:
+        return render(
+            request,
+            "locations/current_trip.html",
+            {"error": "No active trip found. Create a trip first."},
+        )
+
 
 def get_h3_resolution_and_ring_size(radius_meters):
     """
@@ -207,25 +204,26 @@ def get_h3_resolution_and_ring_size(radius_meters):
     # H3 resolutions and their approximate edge lengths in meters
     # These are approximate values - adjust based on your needs
     resolution_map = [
-        (8, 461.354684),   # ~460m
-        (9, 174.375668),   # ~174m
-        (10, 65.907807),   # ~66m
-        (11, 24.910561),   # ~25m
-        (12, 9.415526),    # ~9.4m
+        (8, 461.354684),  # ~460m
+        (9, 174.375668),  # ~174m
+        (10, 65.907807),  # ~66m
+        (11, 24.910561),  # ~25m
+        (12, 9.415526),  # ~9.4m
     ]
-    
+
     # Find the appropriate resolution
     chosen_res = 10  # default
     for res, edge_length in resolution_map:
         if edge_length < radius_meters / 2:
             chosen_res = res
             break
-    
+
     # Calculate ring size based on radius and edge length
     chosen_edge_length = [edge for res, edge in resolution_map if res == chosen_res][0]
     ring_size = max(1, int(radius_meters / (chosen_edge_length * 2)))
-    
+
     return chosen_res, ring_size
+
 
 @login_required
 def send_match_request(request):
@@ -237,27 +235,19 @@ def send_match_request(request):
         try:
             if action == "cancel":
                 Match.objects.filter(
-                    trip1=user_trip, 
-                    trip2_id=trip_id, 
-                    status="PENDING"
+                    trip1=user_trip, trip2_id=trip_id, status="PENDING"
                 ).delete()
-                
+
                 broadcast_trip_update(
-                    trip_id,
-                    "UNREQUESTED",
-                    "New match request recinded"
+                    trip_id, "UNREQUESTED", "New match request recinded"
                 )
             else:
                 Match.objects.get_or_create(
-                    trip1=user_trip,
-                    trip2_id=trip_id,
-                    defaults={"status": "PENDING"}
+                    trip1=user_trip, trip2_id=trip_id, defaults={"status": "PENDING"}
                 )
 
                 broadcast_trip_update(
-                    trip_id,
-                    "REQUESTED",
-                    "New match request received"
+                    trip_id, "REQUESTED", "New match request received"
                 )
 
             return JsonResponse({"success": True})
@@ -265,6 +255,7 @@ def send_match_request(request):
             return JsonResponse({"success": False, "error": str(e)})
 
     return JsonResponse({"success": False, "error": "Invalid request method"})
+
 
 @login_required
 def handle_match_request(request):
@@ -276,28 +267,33 @@ def handle_match_request(request):
             match = Match.objects.get(
                 id=match_id,
                 trip2__user=request.user,  # Ensure the user owns the receiving trip
-                status="PENDING"
+                status="PENDING",
             )
 
             if action == "accept":
                 match.status = "ACCEPTED"
                 match.save()
-                
+
                 # Update both trips atomically to MATCHED status only
                 for trip in [match.trip1, match.trip2]:
                     if trip.status != "SEARCHING":
-                        raise ValueError(f"Trip {trip.id} is no longer accepting matches")
-                        
+                        raise ValueError(
+                            f"Trip {trip.id} is no longer accepting matches"
+                        )
+
                     Trip.objects.filter(id=trip.id).update(
-                        accepted_companions_count=F('accepted_companions_count') + 1,
-                        status='MATCHED'  # Both trips should be MATCHED first
+                        accepted_companions_count=F("accepted_companions_count") + 1,
+                        status="MATCHED",  # Both trips should be MATCHED first
                     )
-                    
+
                     # Broadcast update to both users
                     broadcast_trip_update(
-                        trip.id, 
+                        trip.id,
                         "MATCHED",
-                        f"Match accepted between {match.trip1.user.username} and {match.trip2.user.username}"
+                        (
+                            f"Match accepted between {match.trip1.user.username} and "
+                            f"{match.trip2.user.username}"
+                        ),
                     )
 
                     # Check and update status if matched
@@ -310,15 +306,14 @@ def handle_match_request(request):
                 if not match.chatroom:
                     room_name = f"Trip_Group_{uuid.uuid4()}"
                     chat_room = ChatRoom.objects.create(
-                        name=room_name,
-                        description="Trip Group Chat"
+                        name=room_name, description="Trip Group Chat"
                     )
                     # Add users to chatroom
                     chat_room.users.add(match.trip1.user, match.trip2.user)
-                    
+
                     match.chatroom = chat_room
                     match.save()
-                    
+
                     # Link chatroom to both trips
                     match.trip1.chatroom = chat_room
                     match.trip2.chatroom = chat_room
@@ -332,9 +327,9 @@ def handle_match_request(request):
                 broadcast_trip_update(
                     match.trip1.id,
                     "SEARCHING",
-                    f"{request.user.username} declined your request"
+                    f"{request.user.username} declined your request",
                 )
-            
+
             return redirect("current_trip")
 
         except Match.DoesNotExist:
@@ -354,18 +349,15 @@ def send_system_message(chat_room_id, message):
         f"chat_{chat_room_id}",
         {
             "type": "system_message",  # This calls system_message method
-            "message": message
-        }
+            "message": message,
+        },
     )
 
 
 @login_required
 def start_trip(request):
     if request.method == "POST":
-        trip = Trip.objects.get(
-            user=request.user, 
-            status__in=["MATCHED", "READY"]
-        )
+        trip = Trip.objects.get(user=request.user, status__in=["MATCHED", "READY"])
 
         # Set to READY if not already
         if trip.status == "MATCHED":
@@ -373,77 +365,91 @@ def start_trip(request):
             trip.save()
 
             # Broadcast update
-            broadcast_trip_update(trip.id, "READY", f"{request.user.username} is ready to start")
-            
+            broadcast_trip_update(
+                trip.id, "READY", f"{request.user.username} is ready to start"
+            )
+
             if trip.chatroom:
                 send_system_message(
-                    trip.chatroom.id, 
-                    f"{request.user.username} is ready to start the trip."
+                    trip.chatroom.id,
+                    f"{request.user.username} is ready to start the trip.",
                 )
 
-
         # Get all matched trips in one query, including both directions of matches
-        matched_trips = Trip.objects.filter(
-            (Q(matches__trip2=trip, matches__status="ACCEPTED") | 
-                Q(matched_with__trip2=trip, matched_with__status="ACCEPTED") | 
-                Q(matches__trip1=trip, matches__status="ACCEPTED") | 
-                Q(matched_with__trip1=trip, matched_with__status="ACCEPTED"))
-        ).exclude(id=trip.id).distinct()
+        matched_trips = (
+            Trip.objects.filter(
+                (
+                    Q(matches__trip2=trip, matches__status="ACCEPTED")
+                    | Q(matched_with__trip2=trip, matched_with__status="ACCEPTED")
+                    | Q(matches__trip1=trip, matches__status="ACCEPTED")
+                    | Q(matched_with__trip1=trip, matched_with__status="ACCEPTED")
+                )
+            )
+            .exclude(id=trip.id)
+            .distinct()
+        )
 
         # If all trips (including current one) are READY, update all to IN_PROGRESS
         if matched_trips.exists() and all(t.status == "READY" for t in matched_trips):
             # Update all trips to IN_PROGRESS atomically
             matched_trips.update(status="IN_PROGRESS")
             trip.status = "IN_PROGRESS"  # Update the current trip too
-            trip.save() 
-            
+            trip.save()
+
             # Broadcast update to all participants
             broadcast_trip_update(trip.id, "IN_PROGRESS", "Trip is now in progress")
             for matched_trip in matched_trips:
-                broadcast_trip_update(matched_trip.id, "IN_PROGRESS", "Trip is now in progress")
+                broadcast_trip_update(
+                    matched_trip.id, "IN_PROGRESS", "Trip is now in progress"
+                )
 
             if trip.chatroom:
                 send_system_message(
-                    trip.chatroom.id, 
-                    "All members are ready. Trip is now in progress!"
+                    trip.chatroom.id, "All members are ready. Trip is now in progress!"
                 )
 
         return redirect("current_trip")
+
 
 @login_required
 def cancel_trip(request):
     if request.method == "POST":
         try:
             trip = Trip.objects.get(
-                user=request.user, 
-                status__in=["SEARCHING", "MATCHED", "READY"]
+                user=request.user, status__in=["SEARCHING", "MATCHED", "READY"]
             )
 
             # Cancel all associated matches at once
-            Match.objects.filter(
-                Q(trip1=trip) | Q(trip2=trip)
-            ).update(status="DECLINED")
+            Match.objects.filter(Q(trip1=trip) | Q(trip2=trip)).update(
+                status="DECLINED"
+            )
 
             # Update all matched trips' companion counts
-            affected_trips = Trip.objects.filter(
-                    (Q(matches__trip2=trip, matches__status="ACCEPTED") | 
-                    Q(matched_with__trip2=trip, matched_with__status="ACCEPTED") | 
-                    Q(matches__trip1=trip, matches__status="ACCEPTED") | 
-                    Q(matched_with__trip1=trip, matched_with__status="ACCEPTED")),
-                    status__in=["MATCHED", "READY"]
-                ).exclude(id=trip.id).distinct()
-            
-            for affected_trip in affected_trips:
-                affected_trip.accepted_companions_count = (
-                    affected_trip.matches.filter(status="ACCEPTED").count()
+            affected_trips = (
+                Trip.objects.filter(
+                    (
+                        Q(matches__trip2=trip, matches__status="ACCEPTED")
+                        | Q(matched_with__trip2=trip, matched_with__status="ACCEPTED")
+                        | Q(matches__trip1=trip, matches__status="ACCEPTED")
+                        | Q(matched_with__trip1=trip, matched_with__status="ACCEPTED")
+                    ),
+                    status__in=["MATCHED", "READY"],
                 )
+                .exclude(id=trip.id)
+                .distinct()
+            )
+
+            for affected_trip in affected_trips:
+                affected_trip.accepted_companions_count = affected_trip.matches.filter(
+                    status="ACCEPTED"
+                ).count()
                 affected_trip.status = "SEARCHING"
                 affected_trip.save()
-                
+
                 broadcast_trip_update(
                     affected_trip.id,
                     "SEARCHING",
-                    f"{request.user.username} has cancelled their trip"
+                    f"{request.user.username} has cancelled their trip",
                 )
 
             # Update the cancelled trip
@@ -454,22 +460,20 @@ def cancel_trip(request):
             # Also broadcast to potential matches who might now be compatible
             time_min = trip.planned_departure - timedelta(minutes=30)
             time_max = trip.planned_departure + timedelta(minutes=30)
-            
+
             potential_matches = Trip.objects.filter(
                 status="SEARCHING",
                 planned_departure__range=(time_min, time_max),
-                desired_companions=trip.desired_companions
+                desired_companions=trip.desired_companions,
             ).exclude(user=request.user)
 
             for match in potential_matches:
                 broadcast_trip_update(
-                    match.id,
-                    "SEARCHING",
-                    "New potential companion available"
+                    match.id, "SEARCHING", "New potential companion available"
                 )
 
             return redirect("home")
-            
+
         except Trip.DoesNotExist:
             pass
     return redirect("home")
@@ -477,92 +481,84 @@ def cancel_trip(request):
 
 @login_required
 def previous_trips(request):
-    trip_list = Trip.objects.filter(
-        user=request.user,
-        status__in=["COMPLETED", "CANCELLED"]
-    ).prefetch_related(
-        'matches__trip1__user',
-        'matches__trip2__user',
-        'chatroom'
-    ).order_by("-created_at")
+    trip_list = (
+        Trip.objects.filter(user=request.user, status__in=["COMPLETED", "CANCELLED"])
+        .prefetch_related("matches__trip1__user", "matches__trip2__user", "chatroom")
+        .order_by("-created_at")
+    )
 
     paginator = Paginator(trip_list, 3)
     page = request.GET.get("page")
     trips = paginator.get_page(page)
 
-    trips_data = [{
-        "id": trip.id,
-        "start_latitude": float(trip.start_latitude),
-        "start_longitude": float(trip.start_longitude),
-        "dest_latitude": float(trip.dest_latitude),
-        "dest_longitude": float(trip.dest_longitude),
-        "companions": [
-            match.trip2.user.username if match.trip1 == trip else match.trip1.user.username
-            for match in trip.matches.filter(status="ACCEPTED")
-        ]
-    } for trip in trips]
+    trips_data = [
+        {
+            "id": trip.id,
+            "start_latitude": float(trip.start_latitude),
+            "start_longitude": float(trip.start_longitude),
+            "dest_latitude": float(trip.dest_latitude),
+            "dest_longitude": float(trip.dest_longitude),
+            "companions": [
+                (
+                    match.trip2.user.username
+                    if match.trip1 == trip
+                    else match.trip1.user.username
+                )
+                for match in trip.matches.filter(status="ACCEPTED")
+            ],
+        }
+        for trip in trips
+    ]
 
     return render(
         request,
         "locations/previous_trips.html",
-        {
-            "trips": trips,
-            "trips_json": json.dumps(trips_data)
-        }
+        {"trips": trips, "trips_json": json.dumps(trips_data)},
     )
 
 
 @login_required
 def complete_trip(request):
     if request.method == "POST":
-        trip = Trip.objects.get(
-            user=request.user, 
-            status="IN_PROGRESS"
-        )
+        trip = Trip.objects.get(user=request.user, status="IN_PROGRESS")
 
         if not trip.completion_requested:
             trip.completion_requested = True
             trip.save()
-            
+
             if trip.chatroom:
                 send_system_message(
                     trip.chatroom.id,
-                    f"{request.user.username} has voted to complete the trip."
+                    f"{request.user.username} has voted to complete the trip.",
                 )
 
             # Get all connected trips in one query
             matched_trips = Trip.objects.filter(
-                    (Q(matches__trip2=trip, matches__status="ACCEPTED") | 
-                    Q(matched_with__trip2=trip, matched_with__status="ACCEPTED") | 
-                    Q(matches__trip1=trip, matches__status="ACCEPTED") | 
-                    Q(matched_with__trip1=trip, matched_with__status="ACCEPTED"))
-                ).distinct()
-
+                (
+                    Q(matches__trip2=trip, matches__status="ACCEPTED")
+                    | Q(matched_with__trip2=trip, matched_with__status="ACCEPTED")
+                    | Q(matches__trip1=trip, matches__status="ACCEPTED")
+                    | Q(matched_with__trip1=trip, matched_with__status="ACCEPTED")
+                )
+            ).distinct()
 
             # Count completion votes and total members
-            completion_votes = matched_trips.filter(
-                completion_requested=True
-            ).count()
+            completion_votes = matched_trips.filter(completion_requested=True).count()
             total_members = matched_trips.count()
-        
+
             # If majority votes for completion
             if completion_votes >= total_members / 2:
                 if trip.chatroom:
                     send_system_message(
                         trip.chatroom.id,
-                        "Majority has voted to complete the trip. Trip is now archived."
+                        "Majority has voted to complete the trip. Trip is now archived.",
                     )
                 # Complete all trips in one query
-                matched_trips.update(
-                    status="COMPLETED", 
-                    completion_requested=True 
-                    )
+                matched_trips.update(status="COMPLETED", completion_requested=True)
                 # Broadcast completion to all participants
                 for matched_trip in matched_trips:
                     broadcast_trip_update(
-                        matched_trip.id, 
-                        "COMPLETED",
-                        "Trip has been completed"
+                        matched_trip.id, "COMPLETED", "Trip has been completed"
                     )
             return redirect("previous_trips")
     return redirect("current_trip")

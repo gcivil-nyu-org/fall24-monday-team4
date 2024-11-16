@@ -14,6 +14,7 @@ class UserLocation(models.Model):
     def __str__(self):
         return f"{self.user.username}'s location ({self.latitude}, {self.longitude})"
 
+
 class Trip(models.Model):
     STATUS_CHOICES = [
         ("SEARCHING", "Searching for companion"),
@@ -32,11 +33,11 @@ class Trip(models.Model):
     ]
 
     RADIUS_CHOICES = [
-    (200, "200 meters"),
-    (500, "500 meters"),
-    (750, "750 meters"),
-    (1000, "1 kilometer"),
-]
+        (200, "200 meters"),
+        (500, "500 meters"),
+        (750, "750 meters"),
+        (1000, "1 kilometer"),
+    ]
     # Fields
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     start_latitude = models.DecimalField(max_digits=11, decimal_places=6)
@@ -55,12 +56,14 @@ class Trip(models.Model):
         ChatRoom, null=True, on_delete=models.SET_NULL, related_name="trips"
     )
     completion_requested = models.BooleanField(default=False)
-    matched_companions = models.ManyToManyField('self', through='Match', symmetrical=False)
+    matched_companions = models.ManyToManyField(
+        "self", through="Match", symmetrical=False
+    )
     accepted_companions_count = models.IntegerField(default=0)
     search_radius = models.IntegerField(
         choices=RADIUS_CHOICES,
         default=200,  # Changed from 500 to 200
-        help_text="Maximum distance to search for companions"
+        help_text="Maximum distance to search for companions",
     )
 
     class Meta:
@@ -74,7 +77,8 @@ class Trip(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s trip on {self.created_at.date()}"
-    
+
+
 class Match(models.Model):
     STATUS_CHOICES = [
         ("PENDING", "Pending"),
@@ -82,15 +86,18 @@ class Match(models.Model):
         ("DECLINED", "Declined"),
     ]
 
-    trip1 = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='matches')
-    trip2 = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='matched_with')
+    trip1 = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="matches")
+    trip2 = models.ForeignKey(
+        Trip, on_delete=models.CASCADE, related_name="matched_with"
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     created_at = models.DateTimeField(auto_now_add=True)
     chatroom = models.ForeignKey(ChatRoom, null=True, on_delete=models.SET_NULL)
-    
 
     def __str__(self):
-        return f"Match between {self.trip1.user.username} and {self.trip2.user.username}"
-    
+        return (
+            f"Match between {self.trip1.user.username} and {self.trip2.user.username}"
+        )
+
     class Meta:
-        unique_together = ['trip1', 'trip2']  # Prevent duplicate matches
+        unique_together = ["trip1", "trip2"]  # Prevent duplicate matches
