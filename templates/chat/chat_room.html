@@ -89,39 +89,30 @@
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
         const statusDiv = document.getElementById('connectionStatus');
-        let chatSocket = null;
-    
-        function connectWebSocket() {
-            chatSocket = new WebSocket(
-                'ws://' + window.location.host + '/ws/chat/{{ chat_room.id }}/'
-            );
-    
-            chatSocket.onopen = function(e) {
+
+        const pusher = new Pusher('{{ pusher_key }}', {
+            cluster: '{{ pusher_cluster }}'
+        });
+        
+        const channel = pusher.subscribe('chat-{{ chat_room.id }}');
+        
+        channel.bind('new-message', function(data) {
+            if (data.type === 'system') {
+                addSystemMessage(data.message);
+            } else {
+                addUserMessage(data.username, data.message);
+            }
+        });
+
+        pusher.connection.bind('state_change', function(states) {
+            if (states.current === 'connected') {
                 statusDiv.style.display = 'none';
-            };
-    
-            chatSocket.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                if (data.type === 'system') {
-                    addSystemMessage(data.message);
-                } else {
-                    addUserMessage(data.username, data.message);
-                }
-            };
-    
-            chatSocket.onclose = function(e) {
+            } else {
                 statusDiv.style.display = 'block';
                 statusDiv.className = 'alert alert-warning mt-2';
                 statusDiv.textContent = 'Connection lost. Reconnecting...';
-                setTimeout(connectWebSocket, 2000);
-            };
-    
-            chatSocket.onerror = function(e) {
-                statusDiv.style.display = 'block';
-                statusDiv.className = 'alert alert-danger mt-2';
-                statusDiv.textContent = 'Connection error occurred.';
-            };
-        }
+            }
+        });
     
         function addSystemMessage(message) {
             const msgDiv = document.createElement('div');
@@ -161,27 +152,36 @@
         sendButton.onclick = function(e) {
             const message = messageInput.value.trim();
             if (message) {
-                chatSocket.send(JSON.stringify({
-                    'message': message,
-                    'username': "{{ request.user.username }}",
-                    'chat_room': "{{ chat_room.name }}"
-                }));
-                messageInput.value = '';
+                fetch('/chat/send_message/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        'message': message,
+                        'chat_room': '{{ chat_room.id }}'
+                    })
+                }).then(response => {
+                    if (response.ok) {
+                        messageInput.value = '';
+                    } else {
+                        console.error('Failed to send message');
+                    }
+                });
             }
         };
     
-        connectWebSocket();
     
         // Cleanup on page unload
         window.onbeforeunload = function() {
-            if (chatSocket) {
-                chatSocket.close();
-            }
+            pusher.unsubscribe('chat-{{ chat_room.id }}');
         };
+
         // Cleanup on component unmount
         document.addEventListener("visibilitychange", function() {
-            if (document.visibilityState === 'hidden' && chatSocket) {
-                chatSocket.close();
+            if (document.visibilityState === 'hidden') {
+                pusher.unsubscribe('chat-{{ chat_room.id }}');
             }
         });
     }

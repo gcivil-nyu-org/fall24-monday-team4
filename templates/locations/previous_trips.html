@@ -140,19 +140,21 @@
         // Get chatroom ID either from clicked button or stored value
         const chatroomId = e?.relatedTarget?.getAttribute('data-chatroom-id') || 
                         sessionStorage.getItem('currentChatroomId');
-        if (chatroomId) {
-            sessionStorage.setItem('currentChatroomId', chatroomId);
+                        if (chatroomId) {
+                            sessionStorage.setItem('currentChatroomId', chatroomId);
             loadChat(chatroomId);
         }
     });
-
+    
     $('#chatModal').on('hidden.bs.modal', function () {
+        const chatroomId = e?.relatedTarget?.getAttribute('data-chatroom-id') || 
+                        sessionStorage.getItem('currentChatroomId');
+        if (window.pusher) {
+            window.pusher.unsubscribe(`chat-${chatroomId}`);
+            window.pusher = null;
+        }
         sessionStorage.removeItem('chatModalOpen');
         sessionStorage.removeItem('currentChatroomId');
-        if (window.chatSocket) {
-            window.chatSocket.close();
-            window.chatSocket = null;
-        }
         document.getElementById('chatModalBody').innerHTML = '';
     });
     

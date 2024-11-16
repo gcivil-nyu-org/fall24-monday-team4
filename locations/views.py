@@ -15,16 +15,17 @@ from django.db.models import Q, F
 from django.core.paginator import Paginator
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from utils.pusher_client import pusher_client
+from django.conf import settings
 
 
 def broadcast_trip_update(trip_id, status, message):
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f"trip_{trip_id}",
+    pusher_client.trigger(
+        f'trip-{trip_id}',
+        'status-update',
         {
-            "type": "trip_status_update",
-            "status": status,
-            "message": message
+            'status': status,
+            'message': message
         }
     )
 
@@ -42,6 +43,19 @@ def update_location(request):
                     "longitude": lng
                 }
             )
+            
+            # # Add Pusher broadcast for location update
+            # pusher_client.trigger(
+            #     f'location-updates',
+            #     'location-update',
+            #     {
+            #         'username': request.user.username,
+            #         'latitude': lat,
+            #         'longitude': lng,
+            #         'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            #     }
+            # )
+
             return JsonResponse({"success": True})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
@@ -170,8 +184,11 @@ def current_trip(request):
         return render(request, "locations/current_trip.html", {
             "user_trip": user_trip, 
             "potential_matches": potential_matches,
-            "received_matches": received_matches
+            "received_matches": received_matches,
+            "pusher_key": settings.PUSHER_KEY,
+            "pusher_cluster": settings.PUSHER_CLUSTER
         })
+
 
     except Trip.DoesNotExist:
         return render(request, "locations/current_trip.html", {
@@ -300,12 +317,13 @@ def handle_match_request(request):
 
 
 def send_system_message(chat_room_id, message):
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f"chat_{chat_room_id}",
+    pusher_client.trigger(
+        f'chat-{chat_room_id}',
+        'message-event',
         {
-            "type": "system_message",  # This calls system_message method
-            "message": message
+            'message': message,
+            'username': "System",
+            'type': 'system'
         }
     )
 

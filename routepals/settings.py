@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "daphne",
     "django.contrib.staticfiles",
     "accounts",
     "locations",
@@ -47,29 +46,7 @@ INSTALLED_APPS = [
     "user_profile",
     "fontawesomefree",
     "chat",
-    "channels",
 ]
-
-
-if "RDS_HOSTNAME" in os.environ:
-    CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {
-                "hosts": [("routepals.rlytsp.ng.0001.usw2.cache.amazonaws.com", 6379)],
-            },
-        }
-    }
-else:
-    CHANNEL_LAYERS = {
-        "default": {
-            # 'BACKEND': 'channels.layers.InMemoryChannelLayer'
-            "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {
-                "hosts": [("127.0.0.1", 6379)],
-            },
-        }
-    }
 
 
 WSGI_APPLICATION = "routepals.wsgi.application"
@@ -115,11 +92,11 @@ if "RDS_HOSTNAME" in os.environ:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.environ["RDS_DB_NAME"],
-            "USER": os.environ["RDS_USERNAME"],
-            "PASSWORD": os.environ["RDS_PASSWORD"],
-            "HOST": os.environ["RDS_HOSTNAME"],
-            "PORT": os.environ["RDS_PORT"],
+            "NAME": os.environ.get("RDS_DB_NAME"),
+            "USER": os.environ.get("RDS_USERNAME"),
+            "PASSWORD": os.environ.get("RDS_PASSWORD"),
+            "HOST": os.environ.get("RDS_HOSTNAME"),
+            "PORT": os.environ.get("RDS_PORT"),
         },
     }
 else:
@@ -226,19 +203,17 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get("EMAIL", "")
-EMAIL_HOST_PASSWORD = os.environ.get("APP_PASSWORD", "")
+EMAIL_HOST_USER = os.environ.get("EMAIL")
+EMAIL_HOST_PASSWORD = os.environ.get("APP_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
 
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
-AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
+AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME")
 
-
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-    }
-}
+PUSHER_APP_ID =  os.environ.get("PUSHER_APP_ID")
+PUSHER_KEY = os.environ.get("PUSHER_KEY")
+PUSHER_SECRET =  os.environ.get("PUSHER_SECRET")
+PUSHER_CLUSTER =  os.environ.get("PUSHER_CLUSTER")

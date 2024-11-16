@@ -226,8 +226,8 @@
         
         modalTitle.textContent = isArchive ? 'Archived Chat History' : 'Group Chat';
         
-        if (window.chatSocket) {
-            window.chatSocket.close();
+        if (window.pusher) {
+            window.pusher.unsubscribe(`chat-${chatroomId}`);
         }
 
         fetch(`/chat/chatrooms/${chatroomId}/?modal=true&archive=${isArchive}`)
@@ -248,16 +248,14 @@
         const sendButton = document.getElementById('sendButton');
         const statusDiv = document.getElementById('connectionStatus');
 
-        window.chatSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/chat/' + chatroomId + '/'
-        );
 
-        window.chatSocket.onopen = function(e) {
-            if (statusDiv) statusDiv.style.display = 'none';
-        };
+        window.pusher = new Pusher('{{ pusher_key }}', {
+            cluster: '{{ pusher_cluster }}'
+        });
 
-        window.chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
+        const channel = window.pusher.subscribe(`chat-${chatroomId}`);
+
+        channel.bind('message-event', function(data) {
             if (data.type === 'system') {
                 addSystemMessage(data.message);
             } else {
@@ -266,14 +264,20 @@
             if (messageContainer) {
                 messageContainer.scrollTop = messageContainer.scrollHeight;
             }
-        };
+        });
 
-        window.chatSocket.onclose = function(e) {
+
+        window.pusher.connection.bind('state_change', function(states) {
             if (statusDiv) {
-                statusDiv.style.display = 'block';
-                statusDiv.textContent = 'Connection lost. Reconnecting...';
+                if (states.current === 'connected') {
+                    statusDiv.style.display = 'none';
+                } else {
+                    statusDiv.style.display = 'block';
+                    statusDiv.className = 'alert alert-warning mt-2';
+                    statusDiv.textContent = 'Connection lost. Reconnecting...';
+                }
             }
-        };
+        });
         
         function addUserMessage(username, message) {
             const msgDiv = document.createElement('div');
@@ -343,18 +347,29 @@
                 }
             };
         }
+
+        // Clean up on unmount
+        return function cleanup() {
+            window.pusher.unsubscribe(`chat-${chatroomId}`);
+        };
     }
 
     function sendMessage() {
         const messageInput = document.getElementById('messageInput');
         const message = messageInput.value.trim();
         
-        if (message && window.chatSocket && window.chatSocket.readyState === WebSocket.OPEN) {
-            window.chatSocket.send(JSON.stringify({
-                'message': message,
-                'username': '{{ request.user.username }}',
-                'chat_room': window.currentChatroomId
-            }));
+        if (message) {
+            fetch('/chat/send_message/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    'message': message,
+                    'chat_room': window.currentChatroomId
+                })
+            });
             messageInput.value = '';
         }
     }
@@ -373,9 +388,9 @@
     $('#chatModal').on('hidden.bs.modal', function () {
         sessionStorage.removeItem('chatModalOpen');
         sessionStorage.removeItem('currentChatroomId');
-        if (window.chatSocket) {
-            window.chatSocket.close();
-            window.chatSocket = null;
+        if (window.pusher) {
+            window.window.pusher.unsubscribe(`chat-${chatroomId}`);
+            window.pusher = null;
         }
         document.getElementById('chatModalBody').innerHTML = '';
     });
@@ -393,36 +408,22 @@
 </script>
 
 <script>
-    // Add this near your other trip-related JavaScript
-    let tripSocket = null;
+    window.pusher = new Pusher('{{ pusher_key }}', {
+        cluster: '{{ pusher_cluster }}'
+    });
 
-    function connectTripWebSocket() {
-        tripSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/trip/{{ user_trip.id }}/'
-        );
+    const tripChannel = window.pusher.subscribe('trip-{{ user_trip.id }}');
 
-        tripSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            if (data.type === 'status_update') {
-                // Any status change triggers a reload
-                location.reload();
-            }
-        };
-        tripSocket.onclose = function(e) {
-            console.log('Trip socket closed unexpectedly');
-            setTimeout(connectTripWebSocket, 1000);  // Try to reconnect
-        };
-    }
+    tripChannel.bind('status-update', function(data) {
+        location.reload();
+    });
 
-    // Connect when page loads if there's an active trip
-    if ("{{ user_trip.id }}") {
-        connectTripWebSocket();
-    }
-
-    // Cleanup on page unload
+    // Update cleanup
     window.onbeforeunload = function() {
-        if (tripSocket) {
-            tripSocket.close();
+        window.pusher.unsubscribe('trip-{{ user_trip.id }}');
+        // Keep your existing cleanup code for location tracking
+        if (locationUpdateInterval) {
+            clearInterval(locationUpdateInterval);
         }
     };
 </script>
@@ -567,6 +568,28 @@
     });
 
     let showingLocations = sessionStorage.getItem('showLocations') !== 'false';   
+
+
+    // const locationChannel = window.pusher.subscribe('location-updates');
+
+    // locationChannel.bind('location-update', function(data) {
+    //     if (data.username !== "{{ request.user.username }}") {
+    //         let marker = companionMarkers[data.username];
+    //         const position = [data.latitude, data.longitude];
+            
+    //         if (marker) {
+    //             marker.setLatLng(position);
+    //         } else {
+    //             marker = L.marker(position, {icon: companionIcon})
+    //                 .bindPopup(data.username);
+    //             companionMarkers[data.username] = marker;
+    //         }
+
+    //         if (showingLocations) {
+    //             marker.addTo(window.map);
+    //         }
+    //     }
+    // });
 
     const button = document.getElementById('toggleLocations');
     if (button) {  // Make sure button exists
@@ -713,6 +736,13 @@
 
     // Cleanup on page unload
     window.onunload = function() {
+        if (locationUpdateInterval) {
+            clearInterval(locationUpdateInterval);
+        }
+    };
+
+    window.onbeforeunload = function() {
+        window.pusher.unsubscribe('location-updates');
         if (locationUpdateInterval) {
             clearInterval(locationUpdateInterval);
         }

@@ -1,11 +1,12 @@
+import json
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from .models import ChatRoom, Message
 from locations.models import Match
-
-# from .forms import ChatRoomForm, MessageForm
+from utils.pusher_client import pusher_client
 from django.db.models import Q
+from django.conf import settings
 
 @login_required
 def chat_room(request, pk):
@@ -37,7 +38,10 @@ def chat_room(request, pk):
             "chat_room": chat_room,
             "messages": messages,
             "is_archive": is_archive,
+            "pusher_key": settings.PUSHER_KEY,
+            "pusher_cluster": settings.PUSHER_CLUSTER
         })
+    
     except ChatRoom.DoesNotExist:
         return JsonResponse({"error": "Chat room not found"}, status=404)
     except ValueError:
