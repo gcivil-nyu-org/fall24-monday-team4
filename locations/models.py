@@ -32,13 +32,11 @@ class Trip(models.Model):
     ]
 
     RADIUS_CHOICES = [
-        (200, "200 meters"),
-        (500, "500 meters"),
-        (1000, "1 kilometer"),
-        (2000, "2 kilometers"),
-        (5000, "5 kilometers"),
-    ]
-
+    (200, "200 meters"),
+    (500, "500 meters"),
+    (750, "750 meters"),
+    (1000, "1 kilometer"),
+]
     # Fields
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     start_latitude = models.DecimalField(max_digits=11, decimal_places=6)
@@ -61,7 +59,7 @@ class Trip(models.Model):
     accepted_companions_count = models.IntegerField(default=0)
     search_radius = models.IntegerField(
         choices=RADIUS_CHOICES,
-        default=500,
+        default=200,  # Changed from 500 to 200
         help_text="Maximum distance to search for companions"
     )
 
