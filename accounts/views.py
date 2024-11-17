@@ -92,20 +92,6 @@ class ResetPassword(SuccessMessageMixin, PasswordResetView):
     success_url = reverse_lazy("password_reset_done")
 
 
-# Post admin account creation form
-def AdminCreation(request):
-    if request.method == "POST":
-        form = AdminCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            WelcomeEmail(user)
-            return redirect("home")
-    else:
-        form = AdminCreationForm()
-    return render(request, "registration/admin_creation.html", {"form": form})
-
-
 def uploaded_documents_view(request):
     documents = UserDocument.objects.filter(user=request.user, deleted_at__isnull=True)
     for document in documents:

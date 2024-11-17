@@ -3,14 +3,15 @@
 {% block title%}Home{% endblock %}
 
 {% block content %}
-
 {% if user.is_authenticated %}
+  {% if documents_verified %}
+
     {% if has_active_trip %}
         <div class="container mt-4">
             <div class="alert alert-info">
                 <h4>You have an active trip!</h4>
                 <p>You can only have one active trip at a time.</p>
-                <a href="{% url 'find_matches' %}" class="btn btn-primary">View Your Active Trip</a>
+                <a href="{% url 'current_trip' %}" class="btn btn-primary">View Your Active Trip</a>
             </div>
         </div>
     {% else %}
@@ -22,13 +23,39 @@
                 {% csrf_token %}
                 <div class="mb-3">
                     <label class="form-label">Departure Date And Time</label>
-                    <input type="datetime-local"
-                        name="planned_departure"
-                        class="form-control"
-                        required
-                        step="60"
-                        min="{% now 'Y-m-d\TH:i' %}"
-                        onmouseleave="if(this.value=='')this.value='{% now 'Y-m-d\TH:i' %}'">
+                    <div class="col-md-3"> <!-- or col-md-4 for smaller, col-md-8 for larger -->
+                        <div class="input-group">
+                            <input type="datetime-local"
+                                name="planned_departure"
+                                class="form-control"
+                                required
+                                step="60"
+                                min="{% now 'Y-m-d\TH:i' %}"
+                                onmouseleave="if(this.value=='')this.value='{% now 'Y-m-d\TH:i' %}'">
+                            <button type="button" class="btn btn-secondary" onclick="setCurrentTime()">Now</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Number of Companions 
+                        <i class="fa-solid fa-circle-info" data-bs-toggle="tooltip" data-bs-placement="right" 
+                           title="Group size (excluding yourself)"></i>
+                    </label>
+                    <select name="desired_companions" class="form-control" required>
+                        <option value="1">1 Companion</option>
+                        <option value="2">2 Companions</option>
+                        <option value="3">3 Companions</option>
+                        <option value="4">4 Companions</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="search_radius" class="form-label">Search Radius</label>
+                    <select name="search_radius" id="search_radius" class="form-select" required>
+                        <option value="200" selected>200 meters</option>
+                        <option value="500">500 meters</option>
+                        <option value="750">750 meters</option>
+                        <option value="1000">1 kilometer</option>
+                    </select>
                 </div>
                 
                 <!-- Hidden fields for coordinates -->
@@ -55,7 +82,7 @@
                 <script>
                     document.getElementById('panic').addEventListener('click', function() {
                         if (confirm('Are you sure you want to activate Panic mode?')) {
-                            fetch("{% url 'trigger_panic' %}", {
+                            fetch("{% url 'home' %}", { // trigger_panic changed to home temporarily
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
@@ -80,6 +107,19 @@
                 
             </form>
         </div>
+        
+        <script>
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+
+            function setCurrentTime() {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                document.querySelector('input[name="planned_departure"]').value = now.toISOString().slice(0,16);
+            }
+        </script>
         
         <script>
             let map;
@@ -209,10 +249,12 @@
             });
         </script>
     {% endif %}
+  {% else %}
+    <p>Access to Route Pals features is restricted to verified users. Please upload your verification documents <a href="{% url 'upload_document' %}">here</a>. If you have already uploaded documents, view them <a href="{% url 'user_document_list' %}">here</a>.You will be notified via email once they are approved.</p>
+  {% endif %}
 {% else %}
-    <p>Welcome to Route Pals.</p>
+    <p>Welcome to Route Pals. You are not currently logged in.</p>
     <a class="btn btn-secondary btn-lg" href="{% url 'signup' %}" role="button">Sign Up</a>
     <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Log In</a>
 {% endif %}
-
 {% endblock %}

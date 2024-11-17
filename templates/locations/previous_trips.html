@@ -1,7 +1,8 @@
-{% extends "base.html" %}
+{% extends "verification.html" %}
+{% load trip_filters %}
 {% block title %}Previous Trips{% endblock %}
 
-{% block content %}
+{% block verified_content %}
 <div class="container mt-4">
     <h4>Your Previous Trips</h4>
     {% if trips %}
@@ -12,14 +13,43 @@
                     <div class="row">
                         <div class="col-md-4">
                             <p><strong>Status:</strong> 
-                                <span class="badge {% if trip.status == 'MATCHED' %}bg-success
-                                               {% elif trip.status == 'COMPLETED' %}bg-info
-                                               {% else %}bg-secondary{% endif %}">
+                                <span class="badge {% if trip.status == 'COMPLETED' %}bg-success
+                                            {% elif trip.status == 'CANCELLED' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
                                     {{ trip.status }}
                                 </span>
                             </p>
                             <p><strong>Planned Departure:</strong> {{ trip.planned_departure }}</p>
+                            <p><strong>Final Group Size:</strong> {{ trip.accepted_companions_count|add:1 }}</p>
                             <p><strong>Created:</strong> {{ trip.created_at }}</p>
+                            {% if trip.matches.exists or trip.matched_with.exists %}
+                                <p><strong>Companions:</strong></p>
+                                <ul>
+                                    {% for match in trip|all_matches %}
+                                    <li>
+                                        {% if match.trip1.user == user %}
+                                            {{ match.trip2.user.username }}
+                                        {% else %}
+                                            {{ match.trip1.user.username }}
+                                        {% endif %}
+                                        :
+                                        <span class="badge {% if match.status == 'ACCEPTED' %}bg-success
+                                                    {% elif match.status == 'DECLINED' %}bg-danger
+                                                    {% else %}bg-warning{% endif %}">
+                                            {{ match.status }}
+                                        </span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                            {% if trip.status in "CANCELLED,COMPLETED," and trip.chatroom %}
+                                <button type="button" class="btn btn-secondary" 
+                                        onclick="loadChat('{{ trip.chatroom.id }}', true)" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#chatModal">
+                                    <i class="fa-solid fa-history"></i> View Chat Archive
+                                </button>
+                            {% endif %}
                         </div>
                         <div class="col-md-8">
                             <div id="map-{{ trip.id }}" style="height: 300px;" class="mb-3 position-relative rounded overflow-hidden"></div>
@@ -77,12 +107,46 @@
             </ul>
         </nav>
         {% endif %}
+
+        <div class="modal fade" id="chatModal" tabindex="-1" aria-labelledby="chatModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="chatModalLabel">Archived Chat History</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-0" id="chatModalBody">
+                        <!-- Chat content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
     {% else %}
         <div class="alert alert-info">
             You don't have any previous trips.
         </div>
     {% endif %}
 </div>
+
+
+<script>
+    function loadChat(chatroomId, isArchive) {
+        const modalBody = document.getElementById('chatModalBody');
+        
+        fetch(`/chat/chatrooms/${chatroomId}/?archive=${isArchive}`)
+            .then(response => response.text())
+            .then(html => {
+                modalBody.innerHTML = html;
+                modalBody.querySelectorAll('script').forEach(script => eval(script.innerHTML));
+            });
+
+    }
+    
+    $('#chatModal').on('hidden.bs.modal', function () {
+        document.getElementById('chatModalBody').innerHTML = '';
+    });
+    
+</script>
 
 <script>
     const startIcon = L.icon({

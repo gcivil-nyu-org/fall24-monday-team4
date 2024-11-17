@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
 from django.db.models import Q, Count, Case, When, IntegerField
 from accounts.models import UserReports, UserDocument, Status
@@ -15,7 +16,7 @@ import json
 logger = logging.getLogger(__name__)
 
 
-@login_required
+@staff_member_required
 def admin_view(request):
     users = User.objects.select_related("userprofile").all()
     active_users = (

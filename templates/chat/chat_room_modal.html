@@ -1,0 +1,255 @@
+{% block verified_content %}
+
+<style>
+    .system-message {
+        display: flex;
+        justify-content: center;  /* Center horizontally */
+        width: 100%;
+    }
+    /* Update the system message CSS */
+    .system-message .message-content {
+        background-color: #fdeddb !important;  /* Light blue background */
+        border-radius: 8px;
+        color: #e49131;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        display: inline-flex;  /* Changed to inline-flex */
+        width: auto;
+    }
+
+    .system-message .message-content:before {
+        content: "\f05a";  /* Font Awesome info icon */
+        font-family: "Font Awesome 6 Free";
+        font-size: 25px;
+        font-weight: 400;  /* Changed to 400 for outlined version */
+        color: #c46b04;  /* Blue color for icon */
+    }   
+
+    .system-message small {
+        color: #000000 !important;  /* Subtle gray for timestamp */
+    }
+    
+    .chat-messages {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;                          /* Slightly more spacing */
+    }
+    
+    .message-timestamp {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    
+    /* User messages */
+    .message-content.bg-primary {
+        background-color: #1386f7 !important; /* Sender messages */
+        color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .message-content.bg-light {
+        background-color: #e5e5ea !important; /* Receiver messages */
+        color: #000000;
+        border-radius: 12px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+</style>
+
+
+<div class="d-flex flex-column" style="height: 80vh;">  <!-- Parent container -->
+    <div class="chat-messages p-3 flex-grow-1 overflow-auto" id="messageContainer">
+        {% for message in messages %}
+            <div class="message {% if message.message_type == 'SYSTEM' %}system-message{% endif %}">
+                {% if message.message_type == 'SYSTEM' %}
+                    <div class="message-content p-2 rounded">
+                        <strong>{{ message.decrypt_message }}</strong>
+                        <small class="message-timestamp d-block mt-1">{{ message.created_at|date:'g:i A' }}</small>
+                    </div>
+                {% else %}
+                    <div class="d-flex flex-column {% if message.user == request.user %}align-items-end{% else %}align-items-start{% endif %}">
+                        <small class="text-muted mb-0">{{ message.user.username }}</small>
+                        <div class="message-content p-2 rounded mb-0 {% if message.user == request.user %}bg-primary text-white{% else %}bg-light{% endif %}">
+                            <p class="mb-0">{{ message.decrypt_message }}</p>
+                        </div>
+                        <small class="message-timestamp text-muted">{{ message.created_at|date:'g:i A' }}</small>
+                    </div>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="h-100 d-flex align-items-center justify-content-center">
+                <div class="text-muted" id="placeholderText">No messages yet</div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if not is_archive %}
+        <div class="p-3 border-top">  <!-- Fixed bottom container -->
+            <div class="input-group">
+                <input type="text" id="messageInput" class="form-control" maxlength="1000" placeholder="Type your message (max 1000 characters)...">
+                <button class="btn btn-primary" id="sendButton" type="button">Send</button>
+            </div>
+            <div id="connectionStatus" class="alert alert-warning mt-2" style="display: none;">
+                Connecting...
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        const messageContainer = document.getElementById('messageContainer');
+        
+        {% if not is_archive %}
+            
+            {% if messages %}
+                document.getElementById('placeholderText')?.remove();
+            {% endif %}
+            
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const statusDiv = document.getElementById('connectionStatus');
+
+            messageInput.addEventListener('input', function() {
+                const maxLength = 1000;
+                if (this.value.length > maxLength) {
+                    alert(`Message cannot exceed ${maxLength} characters`);
+                    this.value = this.value.slice(0, maxLength);
+                }
+            });
+            
+            const chatChannel = window.pusher.subscribe('chat-{{ chat_room.id }}');
+            
+            chatChannel.bind('message_event', function(data) {
+                document.getElementById('placeholderText')?.remove();
+                
+                if (data.type === 'system') {
+                    addSystemMessage(data.message);
+                } else {
+                    addUserMessage(data.username, data.message);
+                }
+            });
+
+            window.pusher.connection.bind('state_change', function(states) {
+                if (states.current === 'connected') {
+                    statusDiv.style.display = 'none';
+                } else {
+                    statusDiv.style.display = 'block';
+                    statusDiv.className = 'alert alert-warning mt-2';
+                    statusDiv.textContent = 'Connection lost. Reconnecting...';
+                }
+            });
+
+           function addUserMessage(username, message) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message';
+
+                const flexDiv = document.createElement('div');
+                flexDiv.className = `d-flex flex-column ${username === "{{ request.user.username }}" ? 'align-items-end' : 'align-items-start'}`;
+
+                // Username above bubble
+                const usernameSpan = document.createElement('small');
+                usernameSpan.className = 'text-muted mb-0';
+                usernameSpan.textContent = username;
+
+                // Message bubble
+                const msgContent = document.createElement('div');
+                msgContent.className = `message-content p-2 rounded mb-0 ${username === "{{ request.user.username }}" ? 'bg-primary text-white' : 'bg-light'}`;
+
+                // Message text
+                const messageText = document.createElement('p');
+                messageText.className = 'mb-0';
+                messageText.textContent = message;
+
+                // Timestamp below bubble
+                const timestampSpan = document.createElement('small');
+                timestampSpan.className = 'message-timestamp text-muted';
+                timestampSpan.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+                // Assemble the message
+                msgContent.appendChild(messageText);
+                flexDiv.appendChild(usernameSpan);
+                flexDiv.appendChild(msgContent);
+                flexDiv.appendChild(timestampSpan);
+                msgDiv.appendChild(flexDiv);
+
+                messageContainer.appendChild(msgDiv);
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
+
+            function addSystemMessage(message) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message mb-3 system-message';
+                
+                const msgContent = document.createElement('div');
+                msgContent.className = 'message-content p-2 rounded';
+                
+                // Message text
+                const strong = document.createElement('strong');
+                const messageText = document.createElement('p');
+
+                messageText.className = 'mb-0';
+                messageText.textContent = message;
+                
+                // Timestamp
+                const timestampSpan = document.createElement('small');
+                timestampSpan.className = 'message-timestamp d-block mt-1';
+                timestampSpan.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                
+                strong.appendChild(messageText)
+                msgContent.appendChild(strong);
+                msgContent.appendChild(timestampSpan);
+                msgDiv.appendChild(msgContent);
+                messageContainer.appendChild(msgDiv);
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
+
+            messageInput.onkeyup = function(e) {
+                if (e.keyCode === 13 && !e.shiftKey) {
+                    sendButton.click();
+                }
+            };
+            
+            sendButton.onclick = function(e) {
+                const message = messageInput.value.trim();
+                if (message && message.length <= 1000) {
+                    fetch('/chat/send_message/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            'message': message,
+                            'chat_room': '{{ chat_room.id }}'
+                        })
+                    }).then(response => {
+                        if (response.ok) {
+                            messageInput.value = '';
+                        } else {
+                            console.error('Failed to send message');
+                        }
+                    });
+                }
+            };
+
+
+            // Cleanup on page unload
+            window.onbeforeunload = function() {
+                window.pusher.unsubscribe('chat-{{ chat_room.id }}');
+            };
+
+            // Cleanup on component unmount
+            document.addEventListener("visibilitychange", function() {
+                if (document.visibilityState === 'hidden') {
+                    window.pusher.unsubscribe('chat-{{ chat_room.id }}');
+                }
+            });
+        {% endif %}
+    
+    // Always scroll to bottom on load
+    messageContainer.scrollTop = messageContainer.scrollHeight;
+</script>
+{% endblock %}
+

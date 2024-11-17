@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title%}Home{% endblock %}
+
+{% block content %}
+    {% if user.is_authenticated %}
+        {% if documents_verified %}
+            {% block verified_content %}
+            {% endblock %}
+         {% else %}
+            <p>Please upload your verification documents <a href="{% url 'user_document_list' %}">here</a>. If you have already uploaded documents, view them <a href="{% url 'user_document_list' %}">here</a>. You will be notified via email once they are approved.</p>
+        {% endif %}
+    {% else %}
+        <p>Welcome to Route Pals. You are not currently logged in.</p>
+        <a class="btn btn-secondary btn-lg" href="{% url 'signup' %}" role="button">Sign Up</a>
+        <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Log In</a>
+    {% endif %}
+{% endblock %}
+
