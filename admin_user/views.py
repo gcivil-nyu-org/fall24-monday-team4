@@ -82,9 +82,47 @@ def reported_users_list(request):
 
     return JsonResponse({"success": True, "reports": list(reported_active_users)})
 
+def get_admin_document_list(request):
+    try:
+        active_users = User.objects.filter(
+            Q(documents__deleted_at__isnull=True) & Q(documents__s3_key__isnull=False)
+        ).distinct()
+
+        user_documents = []
+
+        for user in active_users:
+            documents = user.documents.filter(deleted_at__isnull=True)
+
+            pending_count = user.documents.filter(status__id=1, deleted_at__isnull=True).count()
+            print("pending: ", pending_count)
+            document_data = [
+                {
+                    'id': document.id,
+                    'filename': document.filename,
+                    'file_type': document.file_type,
+                    'created_at': document.created_at,
+                    'status': document.status,
+                    'description': document.description,
+                    'document_url': generate_presigned_url(document.s3_key),
+                }
+                for document in documents
+            ]
+
+            if document_data:
+                user_documents.append({
+                    'user': user,
+                    'documents': document_data,
+                    'pending_count': pending_count,
+                })
+
+        return JsonResponse({"success": True, "documents": user_documents }, status=200)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 def get_user_documents(request, user_id):
     documents = UserDocument.objects.filter(user_id=user_id, deleted_at__isnull=True)
     user = get_object_or_404(User, id=user_id)
+    pending_count = user.documents.filter(status__id=1, deleted_at__isnull=True).count()
     document_data = [
         {
             'id': document.id,
@@ -98,8 +136,8 @@ def get_user_documents(request, user_id):
         }
         for document in documents
     ]
-    print("documentD: ", document_data)
-    return JsonResponse({"success": True, "documents": document_data, "username": user.username })
+
+    return JsonResponse({"success": True, "documents": document_data, "username": user.username, "pending_count": pending_count }, status=200)
 
 @login_required
 def accept_document(request, user_id, document_id):
@@ -107,7 +145,19 @@ def accept_document(request, user_id, document_id):
     accepted_status = Status.objects.get(id=2)
     document.status = accepted_status
     document.save()
-    return JsonResponse({"success": True})
+
+    document_data = {
+        'id': document.id,
+        'filename': document.filename,
+        'file_type': document.file_type,
+        'created_at': document.created_at,
+        'status_name': document.status.name,
+        'status_id': document.status.id,
+        'description': document.description,
+        'document_url': generate_presigned_url(document.s3_key),
+    }
+
+    return JsonResponse({"success": True, "document": document_data })
 
 @login_required
 def reject_document(request, user_id, document_id):
@@ -115,7 +165,19 @@ def reject_document(request, user_id, document_id):
     rejected_status = Status.objects.get(id=3)
     document.status = rejected_status
     document.save()
-    return JsonResponse({"success": True})
+
+    document_data = {
+        'id': document.id,
+        'filename': document.filename,
+        'file_type': document.file_type,
+        'created_at': document.created_at,
+        'status_name': document.status.name,
+        'status_id': document.status.id,
+        'description': document.description,
+        'document_url': generate_presigned_url(document.s3_key),
+    }
+
+    return JsonResponse({"success": True, "document": document_data })
 
 @require_http_methods(["GET"])
 def get_user_reports(request):

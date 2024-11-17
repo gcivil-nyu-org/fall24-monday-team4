@@ -50,9 +50,10 @@
                                     data-user-id="${item.id}">View Reports</button>
                             </td>
                             <td>
-                                <a href="/profile/${item.id}">
-                                    <button type="button" class="btn btn-primary btn-sm">View Profile</button>
+                                <a href="/profile/${item.id}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-user me-1"></i> Profile
                                 </a>
+
                             </td>
                             <td>
                                 <button type="button" class="btn btn-danger btn-sm btn-deactivate" data-action="deactivate-row" data-user-id="${item.id}" data-first-name="${item.first_name}" data-last-name="${item.last_name}" data-username="${item.username}">Deactivate</button>
