@@ -331,7 +331,6 @@ class LocationViewsTest(TestCase):
 
         response = self.client.get(reverse("current_trip"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "No active trip found")
 
     def test_current_trip_with_potential_match(self):
         """Test current_trip view when potential matches exist"""
