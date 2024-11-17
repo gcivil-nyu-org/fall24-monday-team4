@@ -5,16 +5,11 @@ import json
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
-from .models import Trip, Match, UserLocation, User
+from .models import Trip, Match, UserLocation
 from chat.models import ChatRoom, Message
 from datetime import timedelta, datetime
 from django.utils.timezone import make_aware
-from django.http import HttpResponseForbidden
-from django.shortcuts import get_object_or_404
-from user_profile.models import UserProfile
-from django.http import JsonResponse
 from django.contrib.auth.models import User
-
 from django.db.models import Q, F
 from django.core.paginator import Paginator
 from utils.pusher_client import pusher_client

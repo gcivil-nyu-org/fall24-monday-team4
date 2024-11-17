@@ -1,6 +1,5 @@
 from django.views.generic import TemplateView
 from locations.models import Trip
-from user_profile.models import UserProfile
 
 
 class HomeView(TemplateView):
