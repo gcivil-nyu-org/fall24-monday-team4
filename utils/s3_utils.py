@@ -8,12 +8,12 @@ s3_client = boto3.client(
 )
 
 
-def generate_presigned_url(key, expiration=3600):
+def generate_presigned_url(key, expiration=86400):
     """
     Generates a pre-signed URL to access a file in S3 with an expiration time.
 
     :param key: The key (filename) of the file in S3.
-    :param expiration: Time in seconds for the link to remain valid (default is 1 hour).
+    :param expiration: Time in seconds for the link to remain valid (default is 1 day).
     :return: The pre-signed URL as a string.
     """
     try:
@@ -43,7 +43,24 @@ def upload_file_to_s3(file, key):
             key,
             ExtraArgs={'ContentType': file.content_type}
         )
-        return generate_presigned_url(key, 3600)
+        return generate_presigned_url(key)
     except Exception as e:
         print(f'Failed to upload file to S3: {e}')
         return None
+
+def delete_file_from_s3(key):
+    """
+    Deletes a file from the specified S3 bucket using the provided key.
+
+    :param key: The key (filename) of the file in S3 to delete.
+    :return: True if the file was deleted successfully, False otherwise.
+    """
+    try:
+        s3_client.delete_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=key
+        )
+        return True
+    except Exception as e:
+        print(f'Failed to delete file from S3: {e}')
+        return False
