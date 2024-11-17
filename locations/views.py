@@ -180,7 +180,7 @@ def current_trip(request):
             received_matches = Match.objects.filter(
                 trip2=user_trip, status="PENDING"
             ).select_related("trip1__user")
-            
+
             for newTripMatch in filtered_matches:
                 broadcast_trip_update(
                     newTripMatch.id, "SEARCHING", "New potential companion available"
