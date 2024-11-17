@@ -12,7 +12,7 @@
 <ul class="nav nav-pills nav-fill mb-2" id="adminTabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
-            Authenticate Users
+            Manage Users
         </button>
     </li>
     <li class="nav-item" role="presentation">
@@ -22,28 +22,27 @@
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab" aria-controls="reports" aria-selected="false">
-            Reports
+            Reported Users
         </button>
     </li>
 </ul>
 <div class="card shadow">
     <div class="tab-content" id="adminTabsContent">
         <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
-            <div class="p-3">
+            <div class="p-3" style="overflow-x: auto">
                 {% include 'admin/authenticate_users_list.html' %}
             </div>
         </div>
 
         <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
-            <div class="p-3">
-                <h4>Settings</h4>
-                <p>Manage your application settings here.</p>
+            <div class="p-3" style="overflow-x: auto">
+                {% include 'admin/documents_list.html' %}
             </div>
         </div>
 
         <div class="tab-pane fade" id="reports" role="tabpanel" aria-labelledby="reports-tab">
-            <div class="p-3">
-                {% include 'admin/reports_tabs.html' %}
+            <div class="p-3" style="overflow-x: auto">
+                {% include 'admin/reports_table.html' %}
             </div>
         </div>
     </div>
