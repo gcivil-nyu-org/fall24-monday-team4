@@ -13,10 +13,10 @@ def validate_email_domain(value):
         validator(value)
 
         # Extract the domain part of the email address
-        domain = value.split('@')[1]
+        domain = value.split("@")[1]
 
         if domain != "nyu.edu":
-            raise ValidationError(_('Invalid email domain.'))
+            raise ValidationError(_("Invalid email domain."))
 
     except ValidationError:
-        raise ValidationError(_('Invalid email address.'))
+        raise ValidationError(_("Invalid email address."))

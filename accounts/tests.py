@@ -1,7 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.core.exceptions import ValidationError
-from django.contrib.auth.models import User
 from accounts.validators import validate_email_domain
 from accounts.forms import SignUpForm
 
