@@ -180,7 +180,7 @@ class ChatViewTests(TestCase):
     def test_pending_request_cleanup_on_match(self):
         # Delete existing match from setUp
         Match.objects.all().delete()
-        
+
         # Reset trips to SEARCHING state
         self.trip1.status = "SEARCHING"
         self.trip2.status = "SEARCHING"
@@ -201,14 +201,10 @@ class ChatViewTests(TestCase):
 
         # Create pending matches from trip1 to both other trips
         pending_match1 = Match.objects.create(
-            trip1=self.trip1,
-            trip2=self.trip2,
-            status="PENDING"
+            trip1=self.trip1, trip2=self.trip2, status="PENDING"
         )
         pending_match2 = Match.objects.create(
-            trip1=self.trip1,
-            trip2=third_trip,
-            status="PENDING"
+            trip1=self.trip1, trip2=third_trip, status="PENDING"
         )
         # Login as second user to accept the match
         self.client.logout()
@@ -217,7 +213,7 @@ class ChatViewTests(TestCase):
         # Accept the first match
         response = self.client.post(
             reverse("handle_match_request"),
-            {"match_id": pending_match1.id, "action": "accept"}
+            {"match_id": pending_match1.id, "action": "accept"},
         )
 
         # Verify the response
