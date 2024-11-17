@@ -58,9 +58,11 @@
                     <a class="nav-link link-light" href="{% url 'home' %}">Home</a>
                 </li>
                 {% if documents_verified %}
-                <li class="nav-item">
-                  <a class="nav-link link-light" href="{% url 'current_trip' %}">Current Trip</a>
-                </li>
+                  {% if has_active_trip %}
+                  <li class="nav-item">
+                    <a class="nav-link link-light" href="{% url 'current_trip' %}">Current Trip</a>
+                  </li>
+                  {% endif %}
                 <li class="nav-item">
                     <a class="nav-link link-light" href="{% url 'previous_trips' %}">Previous Trips</a>
                 </li>
