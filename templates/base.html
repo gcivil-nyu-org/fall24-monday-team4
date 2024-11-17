@@ -57,6 +57,7 @@
                 <li class="nav-item">
                     <a class="nav-link link-light" href="{% url 'home' %}">Home</a>
                 </li>
+                {% if documents_verified %}
                 <li class="nav-item">
                   <a class="nav-link link-light" href="{% url 'current_trip' %}">Current Trip</a>
                 </li>
@@ -66,9 +67,12 @@
                   <li class="nav-item">
                     <a class="nav-link link-light" href="{% url 'profile' %}">Profile</a>
                 </li>
-                <li class="nav-item">
-                  <a class="nav-link link-light" href="{% url 'admin_view' %}">Admin</a>
-                </li>
+                  {% if user.is_staff %}
+                  <li class="nav-item">
+                    <a class="nav-link link-light" href="{% url 'admin_view' %}">Admin</a>
+                  </li>
+                  {% endif %}
+                {% endif %}
                 <li class="nav-item">
                   <a class="nav-link link-light" href="{% url 'user_document_list' %}">Documents</a>
                 </li>
@@ -84,8 +88,18 @@
       </div>
     </nav>
     <main class="container mb-3">
-      {% block content %}
-      {% endblock %}
+      {% if user.is_authenticated %}
+        {% if documents_verified %}
+          {% block content %}
+          {% endblock %}
+        {% else %}
+          <p>Please upload your verification documents <a href="{% url 'upload_document' %}">here</a>. If you have already uploaded documents, view them <a href="{% url 'user_documents_list' %}">here</a>.You will be notified via email once they are approved.</p>
+        {% endif %}
+      {% else %}
+        <p>Welcome to Route Pals. You are not currently logged in.</p>
+        <a class="btn btn-secondary btn-lg" href="{% url 'signup' %}" role="button">Sign Up</a>
+        <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Log In</a>
+      {% endif %}
     </main>
     
     <footer class="footer p-3 mt-3 bg-dark bg-gradient text-white">

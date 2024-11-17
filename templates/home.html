@@ -4,7 +4,6 @@
 
 {% block content %}
 
-{% if user.is_authenticated %}
     {% if has_active_trip %}
         <div class="container mt-4">
             <div class="alert alert-info">
@@ -248,10 +247,5 @@
             });
         </script>
     {% endif %}
-{% else %}
-    <p>Welcome to Route Pals.</p>
-    <a class="btn btn-secondary btn-lg" href="{% url 'signup' %}" role="button">Sign Up</a>
-    <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Log In</a>
-{% endif %}
 
 {% endblock %}
