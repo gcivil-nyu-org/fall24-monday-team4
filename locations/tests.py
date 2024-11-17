@@ -5,12 +5,9 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from .models import Trip, Match, UserLocation, ChatRoom
+from .models import Trip, Match, UserLocation
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
-from channels.testing import WebsocketCommunicator
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 
 class LocationViewsTest(TestCase):
     def setUp(self):
