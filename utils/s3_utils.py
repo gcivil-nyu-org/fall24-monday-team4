@@ -48,6 +48,7 @@ def upload_file_to_s3(file, key):
         print(f'Failed to upload file to S3: {e}')
         return None
 
+
 def delete_file_from_s3(key):
     """
     Deletes a file from the specified S3 bucket using the provided key.

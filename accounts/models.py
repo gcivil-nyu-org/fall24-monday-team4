@@ -32,9 +32,14 @@ class UserDocument(models.Model):
     class Meta:
         db_table = "user_documents"
 
+
 class UserReports(models.Model):
-    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_made', null=False)
-    reported_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_received', null=False)
+    reporter = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="reports_made", null=False
+    )
+    reported_user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="reports_received", null=False
+    )
     subject = models.CharField(max_length=255, null=False)
     description = models.TextField(null=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -45,4 +50,3 @@ class UserReports(models.Model):
 
     class Meta:
         db_table = "user_reports"
-

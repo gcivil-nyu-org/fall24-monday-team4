@@ -30,5 +30,5 @@ urlpatterns = [
         name="upload_document_modal_url",
     ),
     path("upload_document/", views.upload_document, name="upload_document"),
-    path("delete_document/", views.delete_document, name="delete_document")
+    path("delete_document/", views.delete_document, name="delete_document"),
 ]

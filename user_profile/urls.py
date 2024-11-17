@@ -11,5 +11,9 @@ urlpatterns = [
         name="upload_user_profile_picture",
     ),
     path("report_user/", views.report_user, name="report_user"),
-    path("remove_profile_picture/", views.remove_profile_picture, name="remove_profile_picture")
+    path(
+        "remove_profile_picture/",
+        views.remove_profile_picture,
+        name="remove_profile_picture",
+    ),
 ]

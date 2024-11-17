@@ -9,13 +9,18 @@ from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
 from django.contrib.messages.views import SuccessMessageMixin
 from .models import UserDocument
-from utils.s3_utils import upload_file_to_s3, generate_presigned_url, delete_file_from_s3
+from utils.s3_utils import (
+    upload_file_to_s3,
+    generate_presigned_url,
+    delete_file_from_s3,
+)
 import uuid
 from django.http import JsonResponse
-from django.db.models import Q, Count
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 import json
+
 
 def WelcomeEmail(user):
     subject = "Welcome to RoutePals!"
@@ -137,13 +142,12 @@ def upload_document(request):
                 file_type=document.content_type,
             )
 
-            return JsonResponse(
-                {"success": True, "url": s3_url}
-            )
+            return JsonResponse({"success": True, "url": s3_url})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
 
     return JsonResponse({"success": False, "error": "Invalid request"})
+
 
 def documents_list(request):
     active_users = User.objects.filter(
@@ -155,45 +159,55 @@ def documents_list(request):
     for user in active_users:
         documents = user.documents.filter(deleted_at__isnull=True)
 
-        pending_count = user.documents.filter(status__id=1, deleted_at__isnull=True).count()
+        pending_count = user.documents.filter(
+            status__id=1, deleted_at__isnull=True
+        ).count()
 
         document_data = [
             {
-                'filename': document.filename,
-                'file_type': document.file_type,
-                'created_at': document.created_at,
-                'status': document.status,
-                'description': document.description,
-                'document_url': generate_presigned_url(document.s3_key),
+                "filename": document.filename,
+                "file_type": document.file_type,
+                "created_at": document.created_at,
+                "status": document.status,
+                "description": document.description,
+                "document_url": generate_presigned_url(document.s3_key),
             }
             for document in documents
         ]
 
         if document_data:
-            user_documents.append({
-                'user': user,
-                'documents': document_data,
-                'pending_count': pending_count,
-            })
+            user_documents.append(
+                {
+                    "user": user,
+                    "documents": document_data,
+                    "pending_count": pending_count,
+                }
+            )
 
-    return render(request, 'documents/documents_list.html', {
-        'user_documents': user_documents
-    })
+    return render(
+        request, "documents/documents_list.html", {"user_documents": user_documents}
+    )
+
 
 def delete_document(request):
     try:
         data = json.loads(request.body)
-        document_id = data.get('document_id')
+        document_id = data.get("document_id")
 
         if document_id is None:
-            return JsonResponse({'success': False, 'error': 'No document with this id found.'}, status=400)
+            return JsonResponse(
+                {"success": False, "error": "No document with this id found."},
+                status=400,
+            )
 
         document = get_object_or_404(UserDocument, id=document_id)
         delete_file_from_s3(document.s3_key)
         document.deleted_at = now()
         document.save()
 
-        return JsonResponse({'success': True, 'message': 'Document has been successfully deleted.'})
+        return JsonResponse(
+            {"success": True, "message": "Document has been successfully deleted."}
+        )
 
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
