@@ -51,9 +51,7 @@ class LocationViewsTest(TestCase):
         )
 
         # Create a match between trips
-        Match.objects.create(
-            trip1=self.trip, trip2=matched_trip, status="ACCEPTED"
-        )
+        Match.objects.create(trip1=self.trip, trip2=matched_trip, status="ACCEPTED")
 
         # Create location for matched user
         UserLocation.objects.create(
@@ -71,7 +69,7 @@ class LocationViewsTest(TestCase):
 
         response = self.client.post(reverse("start_trip"))
         self.assertEqual(response.status_code, 302)
-        
+
         self.trip.refresh_from_db()
         self.assertEqual(self.trip.status, "READY")
 
