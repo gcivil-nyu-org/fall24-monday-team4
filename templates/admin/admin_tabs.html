@@ -11,35 +11,37 @@
 
 <ul class="nav nav-pills nav-fill mb-2" id="adminTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
+        <button class="nav-link" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview"
+                type="button" role="tab" aria-controls="overview" aria-selected="true">
             Manage Users
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">
+        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings"
+                type="button" role="tab" aria-controls="settings" aria-selected="false">
             User Documents
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab" aria-controls="reports" aria-selected="false">
+        <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports"
+                type="button" role="tab" aria-controls="reports" aria-selected="false">
             Reported Users
         </button>
     </li>
 </ul>
+
 <div class="card shadow">
     <div class="tab-content" id="adminTabsContent">
-        <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+        <div class="tab-pane fade" id="overview" role="tabpanel" aria-labelledby="overview-tab">
             <div class="p-3" style="overflow-x: auto">
                 {% include 'admin/authenticate_users_list.html' %}
             </div>
         </div>
-
         <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
             <div class="p-3" style="overflow-x: auto">
                 {% include 'admin/documents_list.html' %}
             </div>
         </div>
-
         <div class="tab-pane fade" id="reports" role="tabpanel" aria-labelledby="reports-tab">
             <div class="p-3" style="overflow-x: auto">
                 {% include 'admin/reports_table.html' %}
@@ -47,4 +49,67 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabMap = {
+            'overview': 'overview-tab',
+            'settings': 'settings-tab',
+            'reports': 'reports-tab'
+        };
+
+        function activateTab(tabId) {
+            document.querySelectorAll('.nav-link').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+            });
+
+            const tabElement = document.getElementById(tabMap[tabId]);
+            const paneElement = document.getElementById(tabId);
+
+            if (tabElement && paneElement) {
+                tabElement.classList.add('active');
+                paneElement.classList.add('show', 'active');
+
+                localStorage.setItem('activeAdminTab', tabId);
+
+                const scrollPosition = window.scrollY;
+                window.location.hash = tabId;
+                window.scrollTo(0, scrollPosition);
+            }
+        }
+
+        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+            tab.addEventListener('shown.bs.tab', function(event) {
+                const tabId = event.target.getAttribute('data-bs-target').replace('#', '');
+                activateTab(tabId);
+            });
+        });
+
+        let activeTab = 'overview';
+
+        if (window.location.hash) {
+            const hashTab = window.location.hash.replace('#', '');
+            if (tabMap[hashTab]) {
+                activeTab = hashTab;
+            }
+        } else {
+            const storedTab = localStorage.getItem('activeAdminTab');
+            if (storedTab && tabMap[storedTab]) {
+                activeTab = storedTab;
+            }
+        }
+
+        activateTab(activeTab);
+
+        window.addEventListener('hashchange', function() {
+            const hashTab = window.location.hash.replace('#', '') || 'overview';
+            if (tabMap[hashTab]) {
+                activateTab(hashTab);
+            }
+        });
+    });
+</script>
 {% endblock %}
