@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 @login_required
 def admin_view(request):
     users = User.objects.select_related('userprofile').all()
-    active_users = User.objects.filter(
+    active_users = User.objects.select_related('userprofile').filter(
         Q(documents__deleted_at__isnull=True) & Q(documents__s3_key__isnull=False)
     ).distinct()
 

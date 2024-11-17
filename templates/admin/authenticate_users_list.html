@@ -26,11 +26,13 @@
                             <span class="badge rounded-pill text-bg-secondary">User</span>
                         {% endif %}
                     </td>
-                    <td>{% if item.userprofile.is_verified %}
+                    <td>
+                        {% if item.userprofile.is_verified %}
                         <span class="badge rounded-pill text-bg-success">Yes</span>
                         {% else %}
                         <span class="badge rounded-pill text-bg-danger">No</span>
-                        {% endif %}</td>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if item.is_active %}
                         <span class="badge rounded-pill text-bg-success">Active</span>

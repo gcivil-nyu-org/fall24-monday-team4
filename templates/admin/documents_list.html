@@ -7,7 +7,7 @@
                     <th scope="col">Username</th>
                     <th scope="col">Email</th>
                     <th scope="col">Role</th>
-                    <th scope="col">Status</th>
+                    <th scope="col">Is Authenticated?</th>
                     <th scope="col" class="text-center">Pending Documents</th>
                     <th scope="col" class="text-center">Total Documents</th>
                     <th scope="col" class="text-center">Actions</th>
@@ -27,7 +27,13 @@
                         <span class="badge bg-secondary">User</span>
                         {% endif %}
                     </td>
-                    <td id="status-{{ user_document.user.id }}">Active</td>
+                    <td id="status-{{ user_document.user.id }}">
+                        {% if user_document.user.userprofile.is_verified %}
+                        <span class="badge rounded-pill text-bg-success">Yes</span>
+                        {% else %}
+                        <span class="badge rounded-pill text-bg-danger">No</span>
+                        {% endif %}
+                    </td>
                     <td class="text-center" id="pending-count-{{ user_document.user.id }}">
                         {{ user_document.pending_count }}
                     </td>

@@ -14,6 +14,7 @@ import uuid
 from django.http import JsonResponse
 from django.db.models import Q, Count
 from django.contrib.auth.models import User
+from django.utils.timezone import now
 import json
 
 def WelcomeEmail(user):
@@ -189,7 +190,8 @@ def delete_document(request):
 
         document = get_object_or_404(UserDocument, id=document_id)
         delete_file_from_s3(document.s3_key)
-        document.delete()
+        document.deleted_at = now()
+        document.save()
 
         return JsonResponse({'success': True, 'message': 'Document has been successfully deleted.'})
 
