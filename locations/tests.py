@@ -515,11 +515,12 @@ class LocationViewsTest(TestCase):
         self.assertFalse(response.json()["success"])
 
     def test_complete_trip_redirect_to_previous_trips(self):
-        """Test complete_trip redirects correctly when trip is completed"""
-        # Setup trip with a match and completion votes
+        """Test complete_trip redirects correctly when enough votes are received"""
+        # Setup trip with IN_PROGRESS status
         self.trip.status = "IN_PROGRESS"
         self.trip.save()
 
+        # Create matched trip with completion already requested
         matched_trip = Trip.objects.create(
             user=self.user2,
             start_latitude="40.7129",
@@ -531,10 +532,25 @@ class LocationViewsTest(TestCase):
             completion_requested=True,  # Other user already voted
         )
 
+        # Create accepted match between trips
         Match.objects.create(trip1=self.trip, trip2=matched_trip, status="ACCEPTED")
 
+        # Test the redirect when requesting completion
         response = self.client.post(reverse("complete_trip"))
         self.assertRedirects(response, reverse("previous_trips"))
+
+        # Verify both trips are completed
+        self.trip.refresh_from_db()
+        matched_trip.refresh_from_db()
+        self.assertEqual(self.trip.status, "COMPLETED")
+        self.assertEqual(matched_trip.status, "COMPLETED")
+
+    def test_complete_trip_redirect_to_current_trip(self):
+        """Test complete_trip redirects to current_trip when not enough votes"""
+        # Setup trip with IN_PROGRESS status
+
+        response = self.client.get(reverse("complete_trip"))
+        self.assertRedirects(response, reverse("current_trip"))
 
     def test_complete_trip_lifecycle(self):
         """Test full trip lifecycle: matching, ready, in_progress, and completion"""

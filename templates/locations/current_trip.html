@@ -25,9 +25,9 @@
                             {% elif user_trip.status == 'IN_PROGRESS' %}bg-primary
                             {% else %}bg-secondary{% endif %}">
                                 {{ user_trip.status }}
-                                {% if user_trip.status == 'SEARCHING' %}
+                                <!-- {% if user_trip.status == 'SEARCHING' %}
                                     ({{ user_trip.accepted_companions_count }}/{{ user_trip.desired_companions }})
-                                {% endif %}
+                                {% endif %} -->
                         </span>
                         {% if user_trip.status == 'IN_PROGRESS' %}
                             <small class="text-muted">

@@ -19,11 +19,14 @@
                                     {{ trip.status }}
                                 </span>
                             </p>
-                            <p><strong>Planned Departure:</strong> {{ trip.planned_departure }}</p>
-                            <p><strong>Final Group Size:</strong> {{ trip.accepted_companions_count|add:1 }}</p>
                             <p><strong>Created:</strong> {{ trip.created_at }}</p>
+                            <p><strong>Planned Departure:</strong> {{ trip.planned_departure }}</p>
+                            {% if trip.status == "COMPLETED" and trip.completed_at %}
+                                <p><strong>Time of Arrival:</strong> {{ trip.completed_at }}</p>
+                            {% endif %}
+                            <p><strong>Final Group Size:</strong> {{ trip.accepted_companions_count|add:1 }}</p>
                             {% if trip.matches.exists or trip.matched_with.exists %}
-                                <p><strong>Companions:</strong></p>
+                                <p class="mb-0"><strong>Companions:</strong></p>
                                 <ul>
                                     {% for match in trip|all_matches %}
                                     <li>
@@ -43,11 +46,11 @@
                                 </ul>
                             {% endif %}
                             {% if trip.status in "CANCELLED,COMPLETED," and trip.chatroom %}
-                                <button type="button" class="btn btn-secondary" 
+                                <button type="button" class="btn btn-warning" 
                                         onclick="loadChat('{{ trip.chatroom.id }}', true)" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#chatModal">
-                                    <i class="fa-solid fa-history"></i> View Chat Archive
+                                    <i class="fa-solid fa-history"></i> Chat Archive
                                 </button>
                             {% endif %}
                         </div>

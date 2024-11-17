@@ -65,6 +65,7 @@ class Trip(models.Model):
         default=200,  # Changed from 500 to 200
         help_text="Maximum distance to search for companions",
     )
+    completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [
