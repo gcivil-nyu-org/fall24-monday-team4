@@ -176,3 +176,66 @@ class ChatViewTests(TestCase):
     def test_send_message_invalid_api_request(self):
         response = self.client.get(reverse("send_message"))
         self.assertEqual(response.status_code, 405)  # Bad Request is correct response
+
+    def test_pending_request_cleanup_on_match(self):
+        # Delete existing match from setUp
+        Match.objects.all().delete()
+        
+        # Reset trips to SEARCHING state
+        self.trip1.status = "SEARCHING"
+        self.trip2.status = "SEARCHING"
+        self.trip1.save()
+        self.trip2.save()
+
+        # Create a third user and their trip
+        third_user = User.objects.create_user(username="thirduser", password="testpass")
+        third_trip = Trip.objects.create(
+            user=third_user,
+            start_latitude=40.7128,
+            start_longitude=-74.0060,
+            dest_latitude=40.7580,
+            dest_longitude=-73.9855,
+            status="SEARCHING",
+            planned_departure=timezone.now() + timedelta(hours=1),
+        )
+
+        # Create pending matches from trip1 to both other trips
+        pending_match1 = Match.objects.create(
+            trip1=self.trip1,
+            trip2=self.trip2,
+            status="PENDING"
+        )
+        pending_match2 = Match.objects.create(
+            trip1=self.trip1,
+            trip2=third_trip,
+            status="PENDING"
+        )
+        # Login as second user to accept the match
+        self.client.logout()
+        self.client.login(username="otheruser", password="testpass")
+
+        # Accept the first match
+        response = self.client.post(
+            reverse("handle_match_request"),
+            {"match_id": pending_match1.id, "action": "accept"}
+        )
+
+        # Verify the response
+        self.assertEqual(response.status_code, 302)
+
+        # Verify first match is accepted
+        pending_match1.refresh_from_db()
+        self.assertEqual(pending_match1.status, "ACCEPTED")
+
+        # Verify the second pending match was deleted
+        self.assertFalse(Match.objects.filter(id=pending_match2.id).exists())
+
+        # Verify trips updated correctly
+        self.trip1.refresh_from_db()
+        self.trip2.refresh_from_db()
+        self.assertEqual(self.trip1.status, "MATCHED")
+        self.assertEqual(self.trip2.status, "MATCHED")
+
+        # Verify third trip wasn't affected except for notification
+        third_trip.refresh_from_db()
+        self.assertEqual(third_trip.status, "SEARCHING")
