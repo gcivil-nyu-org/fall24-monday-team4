@@ -3,6 +3,8 @@
 {% block title%}Home{% endblock %}
 
 {% block content %}
+{% if user.is_authenticated %}
+  {% if documents_verified %}
 
     {% if has_active_trip %}
         <div class="container mt-4">
@@ -80,7 +82,7 @@
                 <script>
                     document.getElementById('panic').addEventListener('click', function() {
                         if (confirm('Are you sure you want to activate Panic mode?')) {
-                            fetch("{% url 'trigger_panic' %}", {
+                            fetch("{% url 'home' %}", { // trigger_panic changed to home temporarily
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
@@ -247,5 +249,12 @@
             });
         </script>
     {% endif %}
-
+  {% else %}
+    <p>Access to Route Pals features is restricted to verified users. Please upload your verification documents <a href="{% url 'upload_document' %}">here</a>. If you have already uploaded documents, view them <a href="{% url 'user_document_list' %}">here</a>.You will be notified via email once they are approved.</p>
+  {% endif %}
+{% else %}
+    <p>Welcome to Route Pals. You are not currently logged in.</p>
+    <a class="btn btn-secondary btn-lg" href="{% url 'signup' %}" role="button">Sign Up</a>
+    <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Log In</a>
+{% endif %}
 {% endblock %}
