@@ -12,9 +12,16 @@
             <th scope="col">Deactivate Account</th>
         </tr>
         </thead>
-        <tbody id="userTableBody">
+        <tbody id="userTableBody" style="display: table-row-group;">
+
+        </tbody>
+        <tbody id="reports-loading-spinner" style="display: none">
         <tr>
-            <td colspan="8" class="text-center">Loading data...</td>
+            <td colspan="8" class="text-center text-muted">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </td>
         </tr>
         </tbody>
     </table>
@@ -199,6 +206,12 @@
                 return;
             }
 
+            const tableBody = document.getElementById('userTableBody');
+            const spinner = document.getElementById('reports-loading-spinner');
+
+            tableBody.style.display = 'none';
+            spinner.style.display = 'table-row-group';
+
             try {
                 const response = await fetch("{% url 'deactivate_account' %}", {
                     method: "POST",
@@ -212,20 +225,22 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    alert("Account deactivated successfully.");
                     if (context === "deactivate-modal") {
                         const modal = document.getElementById(`viewReportsModal${userId}`);
                         const modalInstance = bootstrap.Modal.getInstance(modal);
                         document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
                         modalInstance.hide();
                     }
-                    await loadTableData();
-                    location.reload();
+                    window.location.reload();
                 } else {
                     alert(`Error: ${result.error}`);
+                    tableBody.style.display = 'table-row-group';
+                    spinner.style.display = 'none';
                 }
             } catch (error) {
                 alert("An error occurred while deactivating the account.");
+                spinner.style.display = 'none';
+                tableBody.style.display = 'table-row-group';
             }
         }
 

@@ -114,14 +114,14 @@
             const result = await response.json();
 
             if (response.ok && result.success) {
-                alert("Account deactivated successfully.");
-                location.reload();
+                window.location.reload();
             } else {
                 alert(`Error: ${result.error}`);
+                tableBody.style.display = 'table-row-group';
+                spinner.style.display = 'none';
             }
         } catch (error) {
             alert("An error occurred while deactivating the account.");
-        } finally {
             tableBody.style.display = 'table-row-group';
             spinner.style.display = 'none';
         }
@@ -151,14 +151,14 @@
             const result = await response.json();
 
             if (response.ok && result.success) {
-                alert("Account activated successfully.");
-                location.reload();
+                window.location.reload();
             } else {
                 alert(`Error: ${result.error}`);
+                tableBody.style.display = 'table-row-group';
+                spinner.style.display = 'none';
             }
         } catch (error) {
             alert("An error occurred while activating the account.");
-        } finally {
             tableBody.style.display = 'table-row-group';
             spinner.style.display = 'none';
         }
@@ -188,14 +188,14 @@
             const result = await response.json();
 
             if (response.ok && result.success) {
-                alert("Account successfully authenticated.");
-                location.reload();
+                window.location.reload();
             } else {
                 alert(`Error: ${result.error}`);
+                tableBody.style.display = 'table-row-group';
+                spinner.style.display = 'none';
             }
         } catch (error) {
             alert("An error occurred while authenticating the account.");
-        } finally {
             tableBody.style.display = 'table-row-group';
             spinner.style.display = 'none';
         }
@@ -225,14 +225,14 @@
             const result = await response.json();
 
             if (response.ok && result.success) {
-                alert("Account successfully unauthenticated.");
-                location.reload();
+                window.location.reload();
             } else {
                 alert(`Error: ${result.error}`);
+                tableBody.style.display = 'table-row-group';
+                spinner.style.display = 'none';
             }
         } catch (error) {
             alert("An error occurred while unauthenticating the account.");
-        } finally {
             tableBody.style.display = 'table-row-group';
             spinner.style.display = 'none';
         }
