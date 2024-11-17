@@ -1,9 +1,7 @@
 <div>
-    {% if users %}
         <table class="table table-striped table-hover">
             <thead>
             <tr>
-                <th scope="col">ID</th>
                 <th scope="col">Name</th>
                 <th scope="col">Email</th>
                 <th scope="col">Role</th>
@@ -11,13 +9,15 @@
                 <th scope="col">Status</th>
                 <th scope="col">Date Joined</th>
                 <th scope="col">Profile</th>
+                <th scope="col">Manage Authentication</th>
+                <th scope="col">Manage Account</th>
             </tr>
             </thead>
-            <tbody>
+            <tbody id="user-authenticate-list" style="display: table-row-group;">
+            {% if users %}
             {% for item in users %}
                 <tr>
-                    <th scope="row">{{ item.id }}</th>
-                    <td>{{ item.first_name }} {{ item.last_name }}</td>
+                    <th scope="row">{{ item.first_name }} {{ item.last_name }}</th>
                     <td>{{ item.email }}</td>
                     <td>
                         {% if item.is_staff %}
@@ -26,7 +26,11 @@
                             <span class="badge rounded-pill text-bg-secondary">User</span>
                         {% endif %}
                     </td>
-                    <td>Pending...</td>
+                    <td>{% if item.userprofile.is_verified %}
+                        <span class="badge rounded-pill text-bg-success">Yes</span>
+                        {% else %}
+                        <span class="badge rounded-pill text-bg-danger">No</span>
+                        {% endif %}</td>
                     <td>
                         {% if item.is_active %}
                         <span class="badge rounded-pill text-bg-success">Active</span>
@@ -41,13 +45,194 @@
                             <i class="fas fa-user me-1"></i> Profile
                         </a>
                     </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-info btn-sm" {% if item.userprofile.is_verified %}disabled{%endif%} onclick="verifyAccount('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
+                                Authenticate
+                            </button>
+                            <button type="button" class="btn btn-warning btn-sm" {% if not item.userprofile.is_verified %}disabled{%endif%} onclick="unverifyAccount('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
+                                Unauthenticate
+                            </button>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-success btn-sm" {% if item.is_active %}disabled{%endif%} onclick="activateAccount('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
+                                Activate
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" {% if not item.is_active %}disabled{%endif%} onclick="deactivateAccount('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
+                                Deactivate
+                            </button>
+                        </div>
+                    </td>
                 </tr>
             {% endfor %}
+            {% else %}
+            <tr>
+                <td>
+                    <p>No users found.</p>
+                </td>
+            </tr>
+            {% endif %}
+            </tbody>
+            <tbody id="table-loading-spinner" style="display: none">
+                <tr>
+                    <td colspan="9" class="text-center text-muted">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </td>
+                </tr>
             </tbody>
         </table>
-    {% else %}
-    <p>No users found.</p>
-    {% endif %}
-
-
 </div>
+<script>
+
+    async function deactivateAccount(accountId, name) {
+        if (!confirm(`Are you sure you want to deactivate this account - "${name}"?`)) {
+            return;
+        }
+
+        const tableBody = document.getElementById('user-authenticate-list');
+        const spinner = document.getElementById('table-loading-spinner');
+
+        tableBody.style.display = 'none';
+        spinner.style.display = 'table-row-group';
+
+        try {
+            const response = await fetch("{% url 'deactivate_account' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ user_id: accountId })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                alert("Account deactivated successfully.");
+                location.reload();
+            } else {
+                alert(`Error: ${result.error}`);
+            }
+        } catch (error) {
+            alert("An error occurred while deactivating the account.");
+        } finally {
+            tableBody.style.display = 'table-row-group';
+            spinner.style.display = 'none';
+        }
+    }
+
+    async function activateAccount(accountId, name) {
+        if (!confirm(`Are you sure you want to activate this account - "${name}"?`)) {
+            return;
+        }
+
+        const tableBody = document.getElementById('user-authenticate-list');
+        const spinner = document.getElementById('table-loading-spinner');
+
+        tableBody.style.display = 'none';
+        spinner.style.display = 'table-row-group';
+
+        try {
+            const response = await fetch("{% url 'activate_account' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ user_id: accountId })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                alert("Account activated successfully.");
+                location.reload();
+            } else {
+                alert(`Error: ${result.error}`);
+            }
+        } catch (error) {
+            alert("An error occurred while activating the account.");
+        } finally {
+            tableBody.style.display = 'table-row-group';
+            spinner.style.display = 'none';
+        }
+    }
+
+    async function verifyAccount(accountId, name) {
+        if (!confirm(`Are you sure you want to authenticate this account - "${name}"?`)) {
+            return;
+        }
+
+        const tableBody = document.getElementById('user-authenticate-list');
+        const spinner = document.getElementById('table-loading-spinner');
+
+        tableBody.style.display = 'none';
+        spinner.style.display = 'table-row-group';
+
+        try {
+            const response = await fetch("{% url 'verify_account' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ user_id: accountId })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                alert("Account successfully authenticated.");
+                location.reload();
+            } else {
+                alert(`Error: ${result.error}`);
+            }
+        } catch (error) {
+            alert("An error occurred while authenticating the account.");
+        } finally {
+            tableBody.style.display = 'table-row-group';
+            spinner.style.display = 'none';
+        }
+    }
+
+    async function unverifyAccount(accountId, name) {
+        if (!confirm(`Are you sure you want to unauthenticate this account - "${name}"?`)) {
+            return;
+        }
+
+        const tableBody = document.getElementById('user-authenticate-list');
+        const spinner = document.getElementById('table-loading-spinner');
+
+        tableBody.style.display = 'none';
+        spinner.style.display = 'table-row-group';
+
+        try {
+            const response = await fetch("{% url 'unverify_account' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ user_id: accountId })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                alert("Account successfully unauthenticated.");
+                location.reload();
+            } else {
+                alert(`Error: ${result.error}`);
+            }
+        } catch (error) {
+            alert("An error occurred while unauthenticating the account.");
+        } finally {
+            tableBody.style.display = 'table-row-group';
+            spinner.style.display = 'none';
+        }
+    }
+</script>

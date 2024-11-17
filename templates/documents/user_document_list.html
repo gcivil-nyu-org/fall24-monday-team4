@@ -37,10 +37,10 @@
             <td>{{ item.created_at|date:"Y-m-d H:i:s" }}</td>
             <td>
                 {% if item.status.id == 1 %}
-                <span class="badge rounded-pill text-bg-primary">Pending</span>
+                <span class="badge rounded-pill text-bg-warning">Pending</span>
                 {% endif %}
                 {% if item.status.id == 2 %}
-                <span class="badge rounded-pill text-bg-warning">Accepted</span>
+                <span class="badge rounded-pill text-bg-success">Accepted</span>
                 {% endif %}
                 {% if item.status.id == 3 %}
                 <span class="badge rounded-pill text-bg-danger">Rejected</span>
@@ -93,7 +93,6 @@
                 iframe.src = documentUrl;
             }
         } else {
-            // If the file type is not acceptable, show the warning
             warningMessage.style.display = "block";
         }
 
@@ -101,7 +100,6 @@
     }
 
     async function deleteDocument(documentId, filename) {
-        console.log("deid: ", documentId)
         if (!confirm(`Are you sure you want to delete this file - "${filename}"?`)) {
             return;
         }

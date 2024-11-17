@@ -10,6 +10,8 @@ urlpatterns = [
     path('get-user-reports/', views.get_user_reports, name='get_user_reports'),
     path('acknowledge-report/', views.acknowledge_report, name='acknowledge_report'),
     path('deactivate-account/', views.deactivate_account, name='deactivate_account'),
+    path('activate-account/', views.activate_account, name='activate_account'),
+    path('verify-account/', views.verify_account, name='verify_account'),
+    path('unverify-account/', views.unverify_account, name='unverify_account'),
     path('get_admin_documents/', views.get_admin_document_list, name='get_admin_documents')
-    # path("userlist/", views.authenticate_user_page, name="authenticate_user_tab_list"),
 ]

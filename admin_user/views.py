@@ -5,6 +5,7 @@ from django.db.models import Q, Count, BooleanField, Case, When, IntegerField
 from accounts.models import UserReports, UserDocument, Status
 from utils.s3_utils import generate_presigned_url
 from django.http import JsonResponse
+from user_profile.models import UserProfile
 from django.views.decorators.http import require_http_methods
 from django.core.mail import send_mail
 from django.conf import settings
@@ -15,21 +16,7 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def admin_view(request):
-    users = User.objects.all()
-
-    reported_active_users = User.objects.filter(
-        is_active=True,
-        reports_received__isnull=False
-    ).annotate(
-        total_report_count=Count('reports_received'),  # Total number of reports
-        pending_report_count=Count(
-            Case(
-                When(reports_received__is_acknowledged=False, then=1),
-                output_field=IntegerField()
-            )
-        )  # Count of unacknowledged reports
-    )
-
+    users = User.objects.select_related('userprofile').all()
     active_users = User.objects.filter(
         Q(documents__deleted_at__isnull=True) & Q(documents__s3_key__isnull=False)
     ).distinct()
@@ -60,11 +47,7 @@ def admin_view(request):
                 'pending_count': pending_count,
             })
 
-    return render(request, "admin/admin_tabs.html", {"users": users, "reports": reported_active_users,  'user_documents': user_documents})
-
-#
-# def authenticate_user_page(request):
-#     return render(request, "admin/authenticate_users_list.html")
+    return render(request, "admin/admin_tabs.html", {"users": users, 'user_documents': user_documents})
 
 def reported_users_list(request):
     reported_active_users = User.objects.filter(
@@ -94,7 +77,6 @@ def get_admin_document_list(request):
             documents = user.documents.filter(deleted_at__isnull=True)
 
             pending_count = user.documents.filter(status__id=1, deleted_at__isnull=True).count()
-            print("pending: ", pending_count)
             document_data = [
                 {
                     'id': document.id,
@@ -247,5 +229,109 @@ def deactivate_account(request):
         deactivate_account_email(user)
         return JsonResponse({'success': True, 'message': 'User account deactivated successfully.'})
     except Exception as e:
-        print("e: ", e)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+def activate_account_email(user):
+    subject = "Your Account Has Been Activated"
+
+    send_mail(
+        subject=subject,
+        message=(
+            f"Dear {user.first_name},\n\n"
+            "We are pleased to inform you that your account has been successfully activated. "
+            "You can now log in and access your account.\n\n"
+            "If you have any questions or need assistance, feel free to reach out to our team.\n\n"
+            "Thank you,\nRoutePals"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+def activate_account(request):
+    try:
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+
+        if user_id is None:
+            return JsonResponse({'success': False, 'error': 'User ID is required.'}, status=400)
+
+        user = get_object_or_404(User, id=user_id)
+        user.is_active = True
+        user.save()
+        activate_account_email(user)
+        return JsonResponse({'success': True, 'message': 'User account activated successfully.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+def verify_account_email(user):
+    subject = "Your Account Has Been Successfully Verified"
+
+    send_mail(
+        subject=subject,
+        message=(
+            f"Dear {user.first_name},\n\n"
+            "Congratulations! Our team has reviewed your submitted documents, and we are delighted to inform you that your account has been successfully verified. "
+            "You can now log in and enjoy the full range of services that RoutePals provides.\n\n"
+            "If you have any questions or need assistance, please don’t hesitate to reach out to our support team.\n\n"
+            "Thank you,\nRoutePals"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+def verify_account(request):
+    try:
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+
+        if user_id is None:
+            return JsonResponse({'success': False, 'error': 'User ID is required.'}, status=400)
+
+        user = get_object_or_404(User, id=user_id)
+        user_profile = get_object_or_404(UserProfile, user=user)
+
+        user_profile.is_verified = True
+        user_profile.save()
+
+        verify_account_email(user)
+        return JsonResponse({'success': True, 'message': 'User account has been successfully verified.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+def unverify_account_email(user):
+    subject = "Your Account Has Been Unauthenticated"
+
+    send_mail(
+        subject=subject,
+        message=(
+            f"Dear {user.first_name},\n\n"
+            "We regret to inform you that your account has been unauthenticated. As a result, you will lose access to the services we provide. "
+            "However, you can still log in to your account, but you will need to wait for re-authentication to regain access to all of our services.\n\n"
+            "If you have any questions or need further assistance, please feel free to contact our support team.\n\n"
+            "Thank you,\nRoutePals"
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+def unverify_account(request):
+    try:
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+
+        if user_id is None:
+            return JsonResponse({'success': False, 'error': 'User ID is required.'}, status=400)
+
+        user = get_object_or_404(User, id=user_id)
+        user_profile = get_object_or_404(UserProfile, user=user)
+
+        user_profile.is_verified = False
+        user_profile.save()
+
+        unverify_account_email(user)
+        return JsonResponse({'success': True, 'message': 'User account has been successfully unauthenticated.'})
+    except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
