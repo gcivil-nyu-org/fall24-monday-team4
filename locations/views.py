@@ -1,5 +1,4 @@
-from pyexpat.errors import messages
-from venv import logger
+from django.contrib import messages
 import h3
 import uuid
 import json
@@ -112,6 +111,8 @@ def current_trip(request):
 
         potential_matches = []
         received_matches = []
+        filtered_matches = []
+
         if user_trip.status == "SEARCHING":
             # Define time window
             time_min = user_trip.planned_departure - timedelta(minutes=30)
@@ -140,7 +141,6 @@ def current_trip(request):
             )
 
             # Filter by location using the minimum search radius of each pair
-            filtered_matches = []
             for potential_trip in potential_matches:
                 # Use the minimum search radius of both trips
                 min_radius = min(user_trip.search_radius, potential_trip.search_radius)
@@ -240,9 +240,10 @@ def send_match_request(request):
     if request.method == "POST":
         trip_id = request.POST.get("trip_id")
         action = request.POST.get("action")
-        user_trip = Trip.objects.get(user=request.user, status="SEARCHING")
 
         try:
+            user_trip = Trip.objects.get(user=request.user, status="SEARCHING")
+
             if action == "cancel":
                 Match.objects.filter(
                     trip1=user_trip, trip2_id=trip_id, status="PENDING"
@@ -341,14 +342,12 @@ def handle_match_request(request):
                 )
 
             return redirect("current_trip")
-
         except Match.DoesNotExist:
             messages.error(request, "Match request not found or already handled")
         except ValueError as e:
             messages.error(request, str(e))
-        except Exception as e:
+        except Exception:
             messages.error(request, "An error occurred while processing the match")
-            logger.error(f"Match handling error: {str(e)}")
 
     return redirect("current_trip")
 

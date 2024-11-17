@@ -31,7 +31,7 @@ def completion_votes_count(trip):
     ).count()
 
     # Add current trip's vote if it has requested completion
-    return connected_votes + (1 if trip.completion_requested else 0)
+    return connected_votes
 
 
 @register.filter

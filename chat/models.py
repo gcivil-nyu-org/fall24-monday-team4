@@ -42,3 +42,7 @@ class Message(models.Model):
         if self.message_type != "SYSTEM" and not self.pk:
             self.message = self.encrypt_message(self.message)
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        username = self.user.username if self.user else "System"
+        return f"{username}'s message on {self.chat_room.name}"
