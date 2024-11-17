@@ -41,11 +41,18 @@
 <body>
 <div class="container-fluid">
 
-    <nav class="navbar navbar-expand-lg navbar-light p-3 mb-2 bg-dark bg-gradient text-white">
-      <a class="navbar-brand text-light" href="/">RoutePals</a>
-      {% if user.is_authenticated %}
-      <div class="collapse navbar-collapse">
-        <ul class="navbar-nav mr-auto">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark bg-gradient">
+        <div class="container-fluid">
+            <a class="navbar-brand text-light" href="/">RoutePals</a>
+            {% if user.is_authenticated %}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav" aria-controls="navbarNav"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
             <li class="nav-item">
                 <a class="nav-link link-light" href="{% url 'home' %}">Home</a>
             </li>
@@ -79,16 +86,16 @@
               <a class="nav-link link-light" href="{% url 'emergency_support' %}">Emergency Support</a>
             </li>
             {% endif %}
-          </ul>
-        </div>
-        <span class="navbar-text">
-        <form class="form-inline" action="{% url 'logout' %}" method="post">
-          {% csrf_token %}
-          <button class="btn btn-outline-light" type="submit">Log Out</button>
-        </form>
-      </span>
+        </ul>
+          <span class="navbar-text">
+          <form class="form-inline" action="{% url 'logout' %}" method="post">
+            {% csrf_token %}
+            <button class="btn btn-outline-light" type="submit">Log Out</button>
+          </form>
+        </span>
+      </div>
         {% endif %}
-
+    </div>
     </nav>
     <div class="container mt-3">
         {% block content %}
