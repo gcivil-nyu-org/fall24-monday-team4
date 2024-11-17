@@ -164,12 +164,12 @@
                                 pendingCount.textContent = parseInt(pendingCount.textContent) - 1;
                             }
                         } catch (error) {
-                            console.error('Error acknowledging report:', error);
+                            alert(`Error acknowledging report: ${error}`);
                         }
                     });
                 });
             } catch (error) {
-                console.error('Error loading reports modal:', error);
+                alert(`Error loading reports modal:: ${error}`);
             }
         }
 
@@ -220,6 +220,7 @@
                         modalInstance.hide();
                     }
                     await loadTableData();
+                    location.reload();
                 } else {
                     alert(`Error: ${result.error}`);
                 }
