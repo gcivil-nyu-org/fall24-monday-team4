@@ -268,9 +268,6 @@ def acknowledge_report(request):
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
-@login_required
-@verification_required
-@staff_member_required
 def deactivate_account_email(user):
     subject = "Your Account Has Been Deactivated"
 
@@ -312,9 +309,6 @@ def deactivate_account(request):
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
-@login_required
-@verification_required
-@staff_member_required
 def activate_account_email(user):
     subject = "Your Account Has Been Activated"
 
@@ -357,9 +351,6 @@ def activate_account(request):
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
-@login_required
-@verification_required
-@staff_member_required
 def verify_account_email(user):
     subject = "Your Account Has Been Successfully Verified"
 
@@ -407,9 +398,6 @@ def verify_account(request):
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
-@login_required
-@verification_required
-@staff_member_required
 def unverify_account_email(user):
     subject = "Your Account Has Been Unauthenticated"
 
@@ -443,7 +431,6 @@ def unverify_account(request):
             return JsonResponse(
                 {"success": False, "error": "User ID is required."}, status=400
             )
-
         user = get_object_or_404(User, id=user_id)
         user_profile = get_object_or_404(UserProfile, user=user)
 

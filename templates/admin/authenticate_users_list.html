@@ -6,9 +6,9 @@
                 <th scope="col">Email</th>
                 <th scope="col">Role</th>
                 <th scope="col">Authentication</th>
+                <th scope="col">Emergency Support</th>
                 <th scope="col">Status</th>
                 <th scope="col">Date Joined</th>
-                <th scope="col">Profile</th>
                 <th scope="col">Manage Authentication</th>
                 <th scope="col">Manage Account</th>
             </tr>
@@ -48,12 +48,6 @@
                         {% endif %}
                     </td>
                     <td>{{ item.date_joined|date:"Y-m-d H:i:s" }}</td>
-                    <td>
-                        <a href="{% url 'user_profile' item.id %}"
-                           class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-user me-1"></i> Profile
-                        </a>
-                    </td>
                     <td>
                         <div class="btn-group" role="group">
                             <button type="button" class="btn btn-info btn-sm" {% if item.userprofile.is_verified %}disabled{%endif%} onclick="verifyAccount('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">

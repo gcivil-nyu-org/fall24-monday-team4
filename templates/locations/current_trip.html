@@ -81,6 +81,15 @@
                     </div>
                     {% if user_trip.status in "MATCHED,READY,IN_PROGRESS" %}
                         <div class="d-flex gap-2">
+                            {% if user_trip.chatroom %}
+                                <button type="button" 
+                                        class="btn btn-warning" 
+                                        onclick="loadChat('{{ user_trip.chatroom.id }}', false)" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#chatModal">
+                                    <i class="fa-solid fa-comments"></i> Group Chat
+                                </button>
+                            {% endif %}
                             {% if user_trip.status == "IN_PROGRESS" %}
                                 <button type="button" 
                                         class="btn btn-primary" 
@@ -94,15 +103,6 @@
                                         data-bs-toggle="modal" 
                                         data-bs-target="#panicModal">
                                     Panic Button
-                                </button>
-                            {% endif %}
-                            {% if user_trip.chatroom %}
-                                <button type="button" 
-                                        class="btn btn-warning" 
-                                        onclick="loadChat('{{ user_trip.chatroom.id }}', false)" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#chatModal">
-                                    <i class="fa-solid fa-comments"></i> Group Chat
                                 </button>
                             {% endif %}
                         </div>
@@ -124,9 +124,11 @@
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <div class="d-flex align-items-center mb-3">
-                                                {% if match_trip.user.profile.photo_key %}
-                                                    <img src="{{ match_trip.user.profile.get_photo_url }}" alt="Profile Picture"
-                                                        class="rounded-circle me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                                {% if match_trip.user.userprofile.photo_key %}
+                                                    {% with profile_picture_url=match_trip.user.userprofile.get_photo_url %}
+                                                        <img src="{{ profile_picture_url }}" alt="Profile Picture"
+                                                            class="rounded-circle me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                                    {% endwith %}
                                                 {% else %}
                                                     <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
                                                         style="width: 50px; height: 50px; background-color: black; color: white;">
