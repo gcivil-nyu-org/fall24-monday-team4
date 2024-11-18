@@ -59,7 +59,7 @@ def upload_profile_picture(request):
         user_photo_key = request.POST.get("user_photo_key")
 
         try:
-            if user_photo_key:
+            if user_photo_key is not None and user_photo_key != "None":
                 result = delete_file_from_s3(user_photo_key)
                 if not result:
                     print(
