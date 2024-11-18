@@ -149,7 +149,7 @@
                 });
 
                 document.querySelectorAll('.unacknowledged').forEach(row => {
-                    row.addEventListener('mouseenter', async function() {
+                    row.addEventListener('click', async function() {
                         const reportId = this.dataset.reportId;
                         try {
                             const response = await fetch("{% url 'acknowledge_report' %}", {

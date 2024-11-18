@@ -80,9 +80,11 @@
                   </li>
                   {% endif %}
                 {% endif %}
+                {% if not user.is_staff %}
                 <li class="nav-item">
                   <a class="nav-link link-light" href="{% url 'user_document_list' %}">Documents</a>
                 </li>
+                {% endif %}
               </ul>
               <span class="navbar-text">
                 <form class="form-inline" action="{% url 'logout' %}" method="post">
