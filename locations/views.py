@@ -237,7 +237,7 @@ def emergency_support_view(request):
                 "longitude": float(location.longitude),
                 "username": location.user.username,
                 "panic": location.panic,
-                "panic_message": location.panic_message
+                "panic_message": location.panic_message,
             }
             for location in user_locations
         ]
