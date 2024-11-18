@@ -168,7 +168,7 @@
 
                                 const userRow = document.querySelector(`[data-user-id="${userId}"]`).closest('tr');
                                 const pendingCount = userRow.querySelector('.pending-count');
-                                pendingCount.textContent = parseInt(pendingCount.textContent) - 1;
+                                pendingCount.textContent = Math.max(0, parseInt(pendingCount.textContent) - 1);
                             }
                         } catch (error) {
                             alert(`Error acknowledging report: ${error}`);
