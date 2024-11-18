@@ -10,6 +10,7 @@ class UserLocation(models.Model):
     longitude = models.DecimalField(max_digits=11, decimal_places=6)
     last_updated = models.DateTimeField(auto_now=True)
     panic = models.BooleanField(default=False)
+    panic_message = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username}'s location ({self.latitude}, {self.longitude})"

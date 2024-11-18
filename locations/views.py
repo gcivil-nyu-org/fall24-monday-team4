@@ -190,10 +190,13 @@ def previous_trips(request):
 
 @login_required
 def trigger_panic(request):
+    print("request:", request)
+    print("request.POST:", request.POST)
     if request.method == "POST":
         try:
             user_location = UserLocation.objects.get(user=request.user)
             user_location.panic = True
+            user_location.panic_message = request.POST.get("initial_message")
             user_location.save()
             return JsonResponse({"success": True, "message": "Panic mode activated."})
         except UserLocation.DoesNotExist:
@@ -234,6 +237,7 @@ def emergency_support_view(request):
                 "longitude": float(location.longitude),
                 "username": location.user.username,
                 "panic": location.panic,
+                "panic_message": location.panic_message
             }
             for location in user_locations
         ]
