@@ -44,10 +44,10 @@ def upload_file_to_s3(file, key):
 
 def delete_file_from_s3(key):
     try:
-        # response = s3_client.head_object(
-        #     Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key
-        # )
-        # print("response: ", response)
+        response = s3_client.head_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key
+        )
+        print("response: ", response)
 
         s3_client.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
         return True
