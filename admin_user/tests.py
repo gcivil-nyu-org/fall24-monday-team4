@@ -6,18 +6,27 @@ from accounts.models import UserDocument, UserReports
 
 
 class AdminUserViewsTestCase(TestCase):
-    def setUp(self):
+    @patch("utils.s3_utils.generate_presigned_url")
+    def setUp(self, mock_url):
+        mock_url.return_value = "https://test-url.com"
+        # Create staff user with verification
         self.staff_user = User.objects.create_user(
             username="staffuser", password="testpass", is_staff=True
         )
+        # Set staff user as verified immediately after creation
+        self.staff_user.userprofile.is_verified = True
+        self.staff_user.userprofile.save()
 
+        # Create regular user
         self.regular_user = User.objects.create_user(
             username="regularuser", password="testpass"
         )
 
         self.user_profile = self.regular_user.userprofile
         self.user_profile.is_verified = False
+        self.user_profile.save()
 
+        # Create test document
         self.user_document = UserDocument.objects.create(
             user=self.regular_user,
             filename="test_doc.pdf",
@@ -25,6 +34,7 @@ class AdminUserViewsTestCase(TestCase):
             s3_key="test-s3-key",
         )
 
+        # Create test report
         self.user_report = UserReports.objects.create(
             reporter=self.staff_user,
             reported_user=self.regular_user,
@@ -46,7 +56,11 @@ class AdminUserViewsTestCase(TestCase):
         print("res: ", response)
         self.assertEqual(response.status_code, 302)
 
-    def test_get_user_documents(self):
+    @patch("utils.s3_utils.generate_presigned_url")
+    def test_get_user_documents(self, mock_url):
+        # Mock the S3 URL generation to return a test URL
+        mock_url.return_value = "https://test-url.com"
+
         self.client.login(username="staffuser", password="testpass")
         response = self.client.get(
             reverse("get_user_documents", args=[self.regular_user.id])
@@ -54,6 +68,12 @@ class AdminUserViewsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertIn("documents", data)
+
+    @patch("utils.s3_utils.generate_presigned_url")
+    def test_get_admin_documents(self, mock_url):
+        mock_url.return_value = "https://test-url.com"
+        self.client.login(username="staffuser", password="testpass")
+        # Add any additional test code here
 
     def test_accept_document(self):
         self.client.login(username="staffuser", password="testpass")
@@ -147,16 +167,19 @@ class AdminUserViewsTestCase(TestCase):
         mock_send_mail.assert_called_once()
 
     def test_reported_users_list(self):
+        self.client.login(username="staffuser", password="testpass")
         response = self.client.get(reverse("reported_users"))
         self.assertEqual(response.status_code, 200)
         self.assertIn("reports", response.json())
         self.assertEqual(response.json()["reports"][0]["total_report_count"], 1)
 
     def test_get_user_reports_invalid_user_id(self):
+        self.client.login(username="staffuser", password="testpass")
         response = self.client.get(reverse("get_user_reports") + "?user_id=99999")
         self.assertEqual(response.status_code, 404)
 
     def test_acknowledge_report_invalid_json(self):
+        self.client.login(username="staffuser", password="testpass")
         response = self.client.post(
             reverse("acknowledge_report"),
             data="Invalid JSON",
