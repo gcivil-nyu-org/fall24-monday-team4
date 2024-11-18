@@ -4,8 +4,6 @@ from django.contrib.auth.models import User
 from accounts.models import UserReports
 from .models import UserProfile
 from django.core.files.uploadedfile import SimpleUploadedFile
-from unittest.mock import patch
-
 
 class UserProfileTests(TestCase):
     def setUp(self):

@@ -45,7 +45,6 @@ class AdminUserViewsTestCase(TestCase):
 
         self.client = Client()
 
-
     def test_admin_view_unauthorized(self):
         self.client.login(username="regularuser", password="testpass")
         response = self.client.get(reverse("admin_view"))
