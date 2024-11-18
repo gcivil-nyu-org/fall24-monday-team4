@@ -3,7 +3,6 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from accounts.models import UserReports
 from .models import UserProfile
-from django.core.files.uploadedfile import SimpleUploadedFile
 
 
 class UserProfileTests(TestCase):
