@@ -101,7 +101,6 @@
                                     <i class="fa-solid fa-comments"></i> Group Chat
                                 </button>
                             {% endif %}
-                            <button type="button" class="btn btn-danger" id="panic">Panic Button</button>
                         </div>
                     {% endif %}
                 </div>
@@ -584,32 +583,6 @@
                 clearInterval(locationUpdateInterval);
             }
         };
-    </script>
-
-    <script>
-        document.getElementById('panic').addEventListener('click', function() {
-            if (confirm('Are you sure you want to activate Panic mode?')) {
-                fetch("{% url 'emergency_support' %}", { //  changed to home temporarily
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": "{{ csrf_token }}",
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                    } else {
-                        alert(data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while triggering Panic mode.');
-                });
-            }
-        });
     </script>
 
     <script>
