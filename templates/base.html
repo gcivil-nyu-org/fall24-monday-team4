@@ -54,6 +54,7 @@
         {% if user.is_authenticated %}
           <div class="collapse navbar-collapse">
             <ul class="navbar-nav mr-auto">
+              {% if user.is_staff or user.userprofile.is_verified %}
                 <li class="nav-item">
                     <a class="nav-link link-light" href="{% url 'home' %}">Home</a>
                 </li>
@@ -63,16 +64,19 @@
                 <li class="nav-item">
                     <a class="nav-link link-light" href="{% url 'previous_trips' %}">Previous Trips</a>
                 </li>
-                  <li class="nav-item">
+                <li class="nav-item">
                     <a class="nav-link link-light" href="{% url 'profile' %}">Profile</a>
                 </li>
+                {% if user.is_staff %}
                 <li class="nav-item">
                   <a class="nav-link link-light" href="{% url 'admin_view' %}">Admin</a>
                 </li>
-                <li class="nav-item">
-                  <a class="nav-link link-light" href="{% url 'user_document_list' %}">Documents</a>
-                </li>
-              </ul>
+                {% endif %}
+              {% endif %}
+              <li class="nav-item">
+                <a class="nav-link link-light" href="{% url 'user_document_list' %}">Documents</a>
+              </li>
+            </ul>
           </div>
           <span class="navbar-text">
             <form class="form-inline" action="{% url 'logout' %}" method="post">

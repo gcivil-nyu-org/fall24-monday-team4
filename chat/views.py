@@ -7,9 +7,11 @@ from locations.models import Match
 from utils.pusher_client import pusher_client
 from django.db.models import Q
 from django.conf import settings
+from utils.decorators import verification_required
 
 
 @login_required
+@verification_required
 def chat_room(request, pk):
     try:
         chat_room = ChatRoom.objects.get(pk=pk)
@@ -54,6 +56,7 @@ def chat_room(request, pk):
 
 
 @login_required
+@verification_required
 def send_message(request):
     if request.method == "POST":
         try:

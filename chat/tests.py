@@ -11,6 +11,9 @@ import json
 class ChatModelTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="testuser", password="testpass")
+        self.user.userprofile.is_verified = True
+        self.user.userprofile.save()
+
         self.chat_room = ChatRoom.objects.create(
             name="Test Room", description="Test Description"
         )
@@ -55,6 +58,9 @@ class ChatViewTests(TestCase):
         self.client = Client()
         # Create two users
         self.user = User.objects.create_user(username="testuser", password="testpass")
+        self.user.userprofile.is_verified = True
+        self.user.userprofile.save()
+
         self.other_user = User.objects.create_user(
             username="otheruser", password="testpass"
         )
@@ -120,7 +126,9 @@ class ChatViewTests(TestCase):
 
     def test_unauthorized_chat_access(self):
         # Create another user not in the chat room
-        User.objects.create_user(username="other", password="testpass")
+        usertest = User.objects.create_user(username="other", password="testpass")
+        usertest.userprofile.is_verified = True
+        usertest.userprofile.save()
         self.client.login(username="other", password="testpass")
 
         response = self.client.get(

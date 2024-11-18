@@ -1,12 +1,22 @@
+from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
-from django.utils.deconstruct import deconstructible
+from django.utils.translation import gettext_lazy as _
 
 
 # Function to validate only nyu.edu email addresses for sign up
-@deconstructible
-class NyuEmailValidator(EmailValidator):
-    def validate_domain_part(self, domain_part):
-        return False
+def validate_email_domain(value):
+    """
+    Validate if the email domain is valid.
+    """
+    try:
+        validator = EmailValidator()
+        validator(value)
 
-    def __eq__(self, other):
-        return isinstance(other, NyuEmailValidator) and super().__eq__(other)
+        # Extract the domain part of the email address
+        domain = value.split("@")[1]
+
+        if domain != "nyu.edu":
+            raise ValidationError(_("Invalid email domain."))
+
+    except ValidationError:
+        raise ValidationError(_("Invalid email address."))

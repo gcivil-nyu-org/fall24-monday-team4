@@ -15,34 +15,64 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="Status",
+            name="UserReports",
             fields=[
-                ("id", models.AutoField(primary_key=True, serialize=False)),
-                ("name", models.CharField(max_length=50, unique=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("subject", models.CharField(max_length=255)),
+                ("description", models.TextField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("is_acknowledged", models.BooleanField(default=False)),
+                (
+                    "reported_user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="reports_received",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "reporter",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="reports_made",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
-            options={
-                "db_table": "status",
-            },
         ),
         migrations.CreateModel(
             name="UserDocument",
             fields=[
-                ("id", models.BigAutoField(primary_key=True, serialize=False)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("s3_key", models.CharField(max_length=255, unique=True)),
                 ("filename", models.CharField(max_length=255)),
                 ("file_type", models.CharField(max_length=50)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("deleted_at", models.DateTimeField(blank=True, null=True)),
-                ("description", models.TextField(blank=True, null=True)),
                 (
                     "status",
-                    models.ForeignKey(
+                    models.IntegerField(
+                        choices=[(1, "Pending"), (2, "Accepted"), (3, "Rejected")],
                         default=1,
-                        on_delete=django.db.models.deletion.PROTECT,
-                        related_name="documents",
-                        to="accounts.status",
                     ),
                 ),
+                ("description", models.TextField(blank=True, null=True)),
                 (
                     "user",
                     models.ForeignKey(
@@ -52,8 +82,5 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={
-                "db_table": "user_documents",
-            },
         ),
     ]

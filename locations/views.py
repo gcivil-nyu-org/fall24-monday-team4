@@ -5,16 +5,17 @@ import json
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
-from .models import Trip, Match, UserLocation, User
+from .models import Trip, Match, UserLocation
 from chat.models import ChatRoom, Message
 from datetime import timedelta, datetime
 from django.utils.timezone import make_aware
-
+from django.contrib.auth.models import User
 from django.db.models import Q, F
 from django.core.paginator import Paginator
 from utils.pusher_client import pusher_client
 from django.conf import settings
 from django.utils import timezone
+from utils.decorators import verification_required
 
 
 def broadcast_trip_update(trip_id, status, message):
@@ -24,6 +25,7 @@ def broadcast_trip_update(trip_id, status, message):
 
 
 @login_required
+@verification_required
 def update_location(request):
     if request.method == "POST":
         try:
@@ -51,6 +53,7 @@ def update_location(request):
 
 
 @login_required
+@verification_required
 def get_trip_locations(request):
     try:
         trip = Trip.objects.get(user=request.user, status="IN_PROGRESS")
@@ -77,6 +80,7 @@ def get_trip_locations(request):
 
 
 @login_required
+@verification_required
 def create_trip(request):
 
     if request.method == "POST":
@@ -103,6 +107,7 @@ def create_trip(request):
 
 
 @login_required
+@verification_required
 def current_trip(request):
     try:
         user_trip = Trip.objects.get(
@@ -237,6 +242,7 @@ def get_h3_resolution_and_ring_size(radius_meters):
 
 
 @login_required
+@verification_required
 def send_match_request(request):
     if request.method == "POST":
         trip_id = request.POST.get("trip_id")
@@ -270,6 +276,7 @@ def send_match_request(request):
 
 
 @login_required
+@verification_required
 def handle_match_request(request):
     if request.method == "POST":
         match_id = request.POST.get("match_id")
@@ -378,6 +385,7 @@ def send_system_message(chat_room, message):
 
 
 @login_required
+@verification_required
 def start_trip(request):
     if request.method == "POST":
         trip = Trip.objects.get(user=request.user, status__in=["MATCHED", "READY"])
@@ -435,6 +443,7 @@ def start_trip(request):
 
 
 @login_required
+@verification_required
 def cancel_trip(request):
     if request.method == "POST":
         try:
@@ -503,6 +512,7 @@ def cancel_trip(request):
 
 
 @login_required
+@verification_required
 def previous_trips(request):
     trip_list = (
         Trip.objects.filter(user=request.user, status__in=["COMPLETED", "CANCELLED"])
@@ -541,6 +551,7 @@ def previous_trips(request):
 
 
 @login_required
+@verification_required
 def complete_trip(request):
     if request.method == "POST":
         trip = Trip.objects.get(user=request.user, status="IN_PROGRESS")

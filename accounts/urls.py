@@ -22,7 +22,6 @@ urlpatterns = [
         auth_views.PasswordResetCompleteView.as_view(),
         name="password_reset_complete",
     ),
-    path("admin-creation", AdminCreation, name="admin_creation"),
     path("documents-list/", views.uploaded_documents_view, name="user_document_list"),
     path(
         "upload_document_modal/",
@@ -30,4 +29,5 @@ urlpatterns = [
         name="upload_document_modal_url",
     ),
     path("upload_document/", views.upload_document, name="upload_document"),
+    path("delete_document/", views.delete_document, name="delete_document"),
 ]

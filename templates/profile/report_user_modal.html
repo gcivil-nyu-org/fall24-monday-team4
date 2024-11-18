@@ -1,0 +1,76 @@
+<div class="modal fade" id="reportUserModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="reportUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportUserModalLabel">Report User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reportUserForm" method="post" style="text-align: left;" action="{% url 'report_user' %}">
+                    {% csrf_token %}
+                    {% if user_to_view %}
+                    <input type="hidden" name="reported_user_id" value="{{ user_to_view.id }}">
+                    {% endif %}
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="subject" name="subject" placeholder="Enter a Subject" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="5" placeholder="Describe the issue in detail." required></textarea>
+                    </div>
+                    <div id="error-message-report-user" style="display: none; color: red; text-align: center; margin-top: 15px; margin-bottom: 15px;">
+                    </div>
+                    <div class="modal-footer" style="display: flex; flex-direction: row; justify-content: space-between">
+                        <button type="submit" class="btn btn-danger">Submit Report</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const reportForm = document.getElementById('reportUserForm');
+        const reportModal = document.getElementById('reportUserModal');
+        const errorMessage = document.getElementById('error-message-report-user');
+
+        const subjectField = document.getElementById('subject');
+        const descriptionField = document.getElementById('description');
+
+        reportForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            fetch("{% url 'report_user' %}", {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const modalInstance = bootstrap.Modal.getInstance(reportModal);
+                        modalInstance.hide();
+
+                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
+                        reportForm.reset();
+                        errorMessage.style.display = "none";
+                    } else {
+                        errorMessage.innerText = data.error_message || "There was an error saving your report.";
+                        errorMessage.style.display = "block";
+                    }
+                })
+                .catch(error => {
+                    errorMessage.innerText = "Unexpected error: " + error;
+                    errorMessage.style.display = "block";
+                });
+        });
+
+        reportModal.addEventListener('hidden.bs.modal', function () {
+            reportForm.reset();
+            errorMessage.style.display = "none";
+        });
+    });
+</script>
