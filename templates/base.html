@@ -54,7 +54,7 @@
         {% if user.is_authenticated %}
           <div class="collapse navbar-collapse">
             <ul class="navbar-nav mr-auto">
-              {% if (user.is_staff or user.userprofile.is_verified) and not user.userprofile.is_emergency_support %}
+              {% if user.is_staffuser.userprofile.is_verified and not user.userprofile.is_emergency_support or user.is_staff %}
                 <li class="nav-item">
                     <a class="nav-link link-light" href="{% url 'home' %}">Home</a>
                 </li>
