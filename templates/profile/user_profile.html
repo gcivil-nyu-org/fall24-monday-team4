@@ -84,22 +84,25 @@
         </div>
     </div>
 </div>
-<script>
-    const editButton = document.getElementById('edit-button');
-    const textarea = document.getElementById('user-bio');
-    const editControls = document.getElementById('edit-controls');
-    let originalValue = textarea.value;
 
-    editButton.addEventListener('click', () => {
-        textarea.removeAttribute('readonly');
-        editControls.style.display = 'block';
-    });
+{% if is_user %}
+    <script>
+        const editButton = document.getElementById('edit-button');
+        const textarea = document.getElementById('user-bio');
+        const editControls = document.getElementById('edit-controls');
+        let originalValue = textarea.value;
 
-    document.getElementById('cancel-button').addEventListener('click', () => {
-        textarea.setAttribute('readonly', true);
-        editControls.style.display = 'none';
-        textarea.value = originalValue;
-    });
+        editButton.addEventListener('click', () => {
+            textarea.removeAttribute('readonly');
+            editControls.style.display = 'block';
+        });
 
-</script>
+        document.getElementById('cancel-button').addEventListener('click', () => {
+            textarea.setAttribute('readonly', true);
+            editControls.style.display = 'none';
+            textarea.value = originalValue;
+        });
+    </script>
+{%endif%}
+
 {% endblock %}

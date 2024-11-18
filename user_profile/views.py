@@ -11,11 +11,13 @@ from utils.s3_utils import (
 import logging
 import uuid
 from django.http import JsonResponse
+from utils.decorators import verification_required
 
 logger = logging.getLogger(__name__)
 
 
 @login_required(login_url="home")
+@verification_required
 def profile_view(request, user_id=None):
     user_to_view = None
 

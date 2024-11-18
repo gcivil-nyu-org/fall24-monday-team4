@@ -36,14 +36,12 @@
             </td>
             <td>{{ item.created_at|date:"Y-m-d H:i:s" }}</td>
             <td>
-                {% if item.status.id == 1 %}
-                <span class="badge rounded-pill text-bg-warning">Pending</span>
-                {% endif %}
-                {% if item.status.id == 2 %}
-                <span class="badge rounded-pill text-bg-success">Accepted</span>
-                {% endif %}
-                {% if item.status.id == 3 %}
-                <span class="badge rounded-pill text-bg-danger">Rejected</span>
+                {% if item.status == 1 %}
+                    <span class="badge rounded-pill text-bg-warning">Pending</span>
+                {% elif item.status == 2 %}
+                    <span class="badge rounded-pill text-bg-success">Accepted</span>
+                {% else %}
+                    <span class="badge rounded-pill text-bg-danger">Rejected</span>
                 {% endif %}
             </td>
             <td>

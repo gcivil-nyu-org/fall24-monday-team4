@@ -7,7 +7,7 @@
                     <th scope="col">Username</th>
                     <th scope="col">Email</th>
                     <th scope="col">Role</th>
-                    <th scope="col">Is Authenticated?</th>
+                    <th scope="col">Authentication</th>
                     <th scope="col" class="text-center">Pending Documents</th>
                     <th scope="col" class="text-center">Total Documents</th>
                     <th scope="col" class="text-center">Actions</th>
@@ -15,44 +15,44 @@
                 </thead>
                 <tbody id="userDocumentsTableBody">
                 {% if user_documents %}
-                {% for user_document in user_documents %}
-                <tr>
-                    <td>{{ user_document.user.first_name }} {{ user_document.user.last_name }}</td>
-                    <td>{{ user_document.user.username }}</td>
-                    <td>{{ user_document.user.email }}</td>
-                    <td>
-                        {% if user_document.user.is_staff %}
-                        <span class="badge bg-primary">Admin</span>
-                        {% else %}
-                        <span class="badge bg-secondary">User</span>
-                        {% endif %}
-                    </td>
-                    <td id="status-{{ user_document.user.id }}">
-                        {% if user_document.user.userprofile.is_verified %}
-                        <span class="badge rounded-pill text-bg-success">Yes</span>
-                        {% else %}
-                        <span class="badge rounded-pill text-bg-danger">No</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-center" id="pending-count-{{ user_document.user.id }}">
-                        {{ user_document.pending_count }}
-                    </td>
-                    <td class="text-center">{{ user_document.documents|length }}</td>
-                    <td class="text-center">
-                        <div class="btn-group" role="group">
-                            <a href="{% url 'user_profile' user_document.user.id %}"
-                               class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-user me-1"></i> Profile
-                            </a>
-                            <button type="button"
-                                    class="btn btn-outline-info btn-sm"
-                                    onclick="openDocumentsModal({{ user_document.user.id }})">
-                                <i class="fas fa-file me-1"></i> Documents
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
+                    {% for user_document in user_documents %}
+                    <tr>
+                        <td>{{ user_document.user.first_name }} {{ user_document.user.last_name }}</td>
+                        <td>{{ user_document.user.username }}</td>
+                        <td>{{ user_document.user.email }}</td>
+                        <td>
+                            {% if user_document.user.is_staff %}
+                            <span class="badge bg-primary">Admin</span>
+                            {% else %}
+                            <span class="badge bg-secondary">User</span>
+                            {% endif %}
+                        </td>
+                        <td id="status-{{ user_document.user.id }}">
+                            {% if user_document.user.userprofile.is_verified %}
+                            <span class="badge rounded-pill text-bg-success">Yes</span>
+                            {% else %}
+                            <span class="badge rounded-pill text-bg-danger">No</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center" id="pending-count-{{ user_document.user.id }}">
+                            {{ user_document.pending_count }}
+                        </td>
+                        <td class="text-center">{{ user_document.documents|length }}</td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'user_profile' user_document.user.id %}"
+                                class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-user me-1"></i> Profile
+                                </a>
+                                <button type="button"
+                                        class="btn btn-outline-info btn-sm"
+                                        onclick="openDocumentsModal({{ user_document.user.id }})">
+                                    <i class="fas fa-file me-1"></i> Documents
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
                 {% else %}
                 <tr>
                     <td colspan="8" class="text-center text-muted">

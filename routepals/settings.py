@@ -76,8 +76,6 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
-                "utils.context_processors.verified_context",
-                "utils.context_processors.trip_context",
             ],
         },
     },

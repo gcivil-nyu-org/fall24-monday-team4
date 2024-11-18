@@ -9,7 +9,6 @@ from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
 from django.contrib.messages.views import SuccessMessageMixin
 from .models import UserDocument
-from utils.decorators import restrict_admin
 from utils.s3_utils import (
     upload_file_to_s3,
     generate_presigned_url,
@@ -92,7 +91,7 @@ class ResetPassword(SuccessMessageMixin, PasswordResetView):
     )
     success_url = reverse_lazy("password_reset_done")
 
-@restrict_admin
+
 def uploaded_documents_view(request):
     documents = UserDocument.objects.filter(user=request.user, deleted_at__isnull=True)
     for document in documents:

@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
 from django.db.models import Q, Count, Case, When, IntegerField
-from accounts.models import UserReports, UserDocument, Status
+from accounts.models import UserReports, UserDocument
 from utils.s3_utils import generate_presigned_url
 from django.http import JsonResponse
 from user_profile.models import UserProfile
@@ -12,6 +12,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 import logging
 import json
+from utils.decorators import verification_required
 
 logger = logging.getLogger(__name__)
 
@@ -32,16 +33,14 @@ def admin_view(request):
     for user in active_users:
         documents = user.documents.filter(deleted_at__isnull=True)
 
-        pending_count = user.documents.filter(
-            status__id=1, deleted_at__isnull=True
-        ).count()
+        pending_count = user.documents.filter(status=1, deleted_at__isnull=True).count()
 
         document_data = [
             {
                 "filename": document.filename,
                 "file_type": document.file_type,
                 "created_at": document.created_at,
-                "status": document.status,
+                "status": dict(UserDocument.STATUS_CHOICES)[document.status],
                 "description": document.description,
                 "document_url": generate_presigned_url(document.s3_key),
             }
@@ -102,7 +101,7 @@ def get_admin_document_list(request):
             documents = user.documents.filter(deleted_at__isnull=True)
 
             pending_count = user.documents.filter(
-                status__id=1, deleted_at__isnull=True
+                status=1, deleted_at__isnull=True
             ).count()
             document_data = [
                 {
@@ -110,7 +109,7 @@ def get_admin_document_list(request):
                     "filename": document.filename,
                     "file_type": document.file_type,
                     "created_at": document.created_at,
-                    "status": document.status,
+                    "status": dict(UserDocument.STATUS_CHOICES)[document.status],
                     "description": document.description,
                     "document_url": generate_presigned_url(document.s3_key),
                 }
@@ -134,15 +133,15 @@ def get_admin_document_list(request):
 def get_user_documents(request, user_id):
     documents = UserDocument.objects.filter(user_id=user_id, deleted_at__isnull=True)
     user = get_object_or_404(User, id=user_id)
-    pending_count = user.documents.filter(status__id=1, deleted_at__isnull=True).count()
+    pending_count = user.documents.filter(status=1, deleted_at__isnull=True).count()
     document_data = [
         {
             "id": document.id,
             "filename": document.filename,
             "file_type": document.file_type,
             "created_at": document.created_at,
-            "status_name": document.status.name,
-            "status_id": document.status.id,
+            "status_name": document.get_status_display(),
+            "status_id": document.status,
             "description": document.description,
             "document_url": generate_presigned_url(document.s3_key),
         }
@@ -161,10 +160,10 @@ def get_user_documents(request, user_id):
 
 
 @login_required
+@verification_required
 def accept_document(request, user_id, document_id):
     document = get_object_or_404(UserDocument, id=document_id, user_id=user_id)
-    accepted_status = Status.objects.get(id=2)
-    document.status = accepted_status
+    document.status = 2
     document.save()
 
     document_data = {
@@ -172,8 +171,8 @@ def accept_document(request, user_id, document_id):
         "filename": document.filename,
         "file_type": document.file_type,
         "created_at": document.created_at,
-        "status_name": document.status.name,
-        "status_id": document.status.id,
+        "status_name": document.get_status_display(),
+        "status_id": document.status,
         "description": document.description,
         "document_url": generate_presigned_url(document.s3_key),
     }
@@ -182,10 +181,10 @@ def accept_document(request, user_id, document_id):
 
 
 @login_required
+@verification_required
 def reject_document(request, user_id, document_id):
     document = get_object_or_404(UserDocument, id=document_id, user_id=user_id)
-    rejected_status = Status.objects.get(id=3)
-    document.status = rejected_status
+    document.status = 3
     document.save()
 
     document_data = {
@@ -193,8 +192,8 @@ def reject_document(request, user_id, document_id):
         "filename": document.filename,
         "file_type": document.file_type,
         "created_at": document.created_at,
-        "status_name": document.status.name,
-        "status_id": document.status.id,
+        "status_name": document.get_status_display(),
+        "status_id": document.status,
         "description": document.description,
         "document_url": generate_presigned_url(document.s3_key),
     }

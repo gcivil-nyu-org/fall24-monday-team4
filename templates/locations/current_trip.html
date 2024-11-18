@@ -1,8 +1,8 @@
-{% extends "verification.html" %}
+{% extends "base.html" %}
 {% load trip_filters %}
 {% block title %}Find Companions{% endblock %}
 
-{% block verified_content %}
+{% block content %}
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <div class="container mt-4">
@@ -82,8 +82,8 @@
                             </form>
                         {% endif %}
                     </div>
-                    <div class="d-flex gap-2">
-                        {% if user_trip.status in "MATCHED,READY,IN_PROGRESS" %}
+                    {% if user_trip.status in "MATCHED,READY,IN_PROGRESS" %}
+                        <div class="d-flex gap-2">
                             {% if user_trip.status == "IN_PROGRESS" %}
                                 <button type="button" 
                                         class="btn btn-primary" 
@@ -101,8 +101,9 @@
                                     <i class="fa-solid fa-comments"></i> Group Chat
                                 </button>
                             {% endif %}
-                        {% endif %}
-                    </div>
+                            <button type="button" class="btn btn-danger" id="panic">Panic Button</button>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -583,6 +584,32 @@
                 clearInterval(locationUpdateInterval);
             }
         };
+    </script>
+
+    <script>
+        document.getElementById('panic').addEventListener('click', function() {
+            if (confirm('Are you sure you want to activate Panic mode?')) {
+                fetch("{% url 'emergency_support' %}", { //  changed to home temporarily
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}",
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while triggering Panic mode.');
+                });
+            }
+        });
     </script>
 
     <script>

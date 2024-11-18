@@ -1,11 +1,19 @@
-from django.http import HttpResponseForbidden
+from django.shortcuts import redirect
+from django.contrib import messages
 from functools import wraps
 
-def restrict_admin(view_func):
+
+def verification_required(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        if request.user.is_authenticated and request.user.is_staff:
-            return HttpResponseForbidden("Admins are not allowed to access this page.")
-        return view_func(request, *args, **kwargs)
+        if request.user.is_staff or request.user.userprofile.is_verified:
+            return view_func(request, *args, **kwargs)
+        else:
+            messages.warning(
+                request,
+                "Access to Route Pals features is restricted to verified users.\
+                      Please upload your verification documents.",
+            )
+            return redirect("user_document_list")
 
     return _wrapped_view
