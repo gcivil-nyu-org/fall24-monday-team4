@@ -16,6 +16,7 @@ from utils.decorators import verification_required
 
 logger = logging.getLogger(__name__)
 
+
 @login_required
 @verification_required
 @staff_member_required
@@ -63,6 +64,7 @@ def admin_view(request):
         {"users": users, "user_documents": user_documents},
     )
 
+
 @login_required
 @verification_required
 @staff_member_required
@@ -90,6 +92,7 @@ def reported_users_list(request):
     )
 
     return JsonResponse({"success": True, "reports": list(reported_active_users)})
+
 
 @login_required
 @verification_required
@@ -133,6 +136,7 @@ def get_admin_document_list(request):
         return JsonResponse({"success": True, "documents": user_documents}, status=200)
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
+
 
 @login_required
 @verification_required
@@ -241,6 +245,7 @@ def get_user_reports(request):
         }
     )
 
+
 @login_required
 @verification_required
 @staff_member_required
@@ -262,6 +267,7 @@ def acknowledge_report(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
+
 @login_required
 @verification_required
 @staff_member_required
@@ -280,6 +286,7 @@ def deactivate_account_email(user):
         recipient_list=[user.email],
         fail_silently=False,
     )
+
 
 @login_required
 @verification_required
@@ -304,6 +311,7 @@ def deactivate_account(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
+
 @login_required
 @verification_required
 @staff_member_required
@@ -323,6 +331,7 @@ def activate_account_email(user):
         recipient_list=[user.email],
         fail_silently=False,
     )
+
 
 @login_required
 @verification_required
@@ -347,6 +356,7 @@ def activate_account(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
+
 @login_required
 @verification_required
 @staff_member_required
@@ -368,6 +378,7 @@ def verify_account_email(user):
         recipient_list=[user.email],
         fail_silently=False,
     )
+
 
 @login_required
 @verification_required
@@ -395,6 +406,7 @@ def verify_account(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
+
 @login_required
 @verification_required
 @staff_member_required
@@ -417,6 +429,7 @@ def unverify_account_email(user):
         recipient_list=[user.email],
         fail_silently=False,
     )
+
 
 @login_required
 @verification_required

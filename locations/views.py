@@ -7,7 +7,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 
 from user_profile.models import UserProfile
-from .models import Trip, Match, UserLocation, User
+from .models import Trip, Match, UserLocation
 from chat.models import ChatRoom, Message
 from datetime import timedelta, datetime
 from django.utils.timezone import make_aware
@@ -635,6 +635,7 @@ def emergency_support_view(request):
             "user_locations_json": json.dumps(user_locations_data),
         },
     )
+
 
 @login_required
 @verification_required
