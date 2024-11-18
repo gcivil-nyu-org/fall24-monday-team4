@@ -6,16 +6,13 @@ from .views import (
     current_trip,
     cancel_trip,
     previous_trips,
-<<<<<<< HEAD
     emergency_support_view,
     trigger_panic,
     cancel_panic,
-=======
     start_trip,
     update_location,
     get_trip_locations,
     complete_trip,
->>>>>>> origin/pusher-impl
 )
 
 urlpatterns = [
@@ -25,15 +22,11 @@ urlpatterns = [
     path("handle_request/", handle_match_request, name="handle_match_request"),
     path("cancel_trip/", cancel_trip, name="cancel_trip"),
     path("previous_trips/", previous_trips, name="previous_trips"),
-<<<<<<< HEAD
-    path("received_requests/", received_requests, name="received_requests"),
     path("emergency_support/", emergency_support_view, name="emergency_support"),
     path("trigger_panic/", trigger_panic, name="trigger_panic"),
     path("cancel_panic/<str:panic_username>/", cancel_panic, name="cancel_panic"),
-=======
     path("start_trip/", start_trip, name="start_trip"),
     path("update_location/", update_location, name="update_location"),
     path("get_trip_locations/", get_trip_locations, name="get_trip_locations"),
     path("complete_trip/", complete_trip, name="complete_trip"),
->>>>>>> origin/pusher-impl
 ]

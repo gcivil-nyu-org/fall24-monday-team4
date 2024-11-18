@@ -626,6 +626,7 @@ def emergency_support_view(request):
         },
     )
 
+
 def complete_trip(request):
     if request.method == "POST":
         trip = Trip.objects.get(user=request.user, status="IN_PROGRESS")
@@ -675,4 +676,3 @@ def complete_trip(request):
                     )
             return redirect("previous_trips")
     return redirect("current_trip")
-

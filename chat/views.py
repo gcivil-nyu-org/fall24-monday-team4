@@ -56,18 +56,6 @@ def chat_room(request, pk):
 @login_required
 def send_message(request):
     if request.method == "POST":
-<<<<<<< HEAD
-        form = ChatRoomForm(request.POST)
-        if form.is_valid():
-            chat_room = form.save()  # Save the ChatRoom instance to the database
-            chat_room.users.add(
-                request.user
-            )  # Add the requesting user to the chat room
-            return redirect("chat")
-    else:
-        form = ChatRoomForm(initial={"users": [request.user.id]})
-    return render(request, "chat/create_chat_room.html", {"form": form})
-=======
         try:
             data = json.loads(request.body)
             chat_room = ChatRoom.objects.get(id=data["chat_room"])
@@ -94,4 +82,3 @@ def send_message(request):
             return JsonResponse({"error": str(e)}, status=400)
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
->>>>>>> origin/pusher-impl
