@@ -10,8 +10,8 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("chat", "0001_initial"),
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
@@ -66,6 +66,10 @@ class Migration(migrations.Migration):
                 ("longitude", models.DecimalField(decimal_places=6, max_digits=11)),
                 ("last_updated", models.DateTimeField(auto_now=True)),
                 ("panic", models.BooleanField(default=False)),
+<<<<<<< HEAD
+=======
+                ("panic_message", models.TextField(blank=True, null=True)),
+>>>>>>> idan/emergency_support_update
                 (
                     "user",
                     models.OneToOneField(

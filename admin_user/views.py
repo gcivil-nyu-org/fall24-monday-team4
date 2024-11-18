@@ -16,7 +16,8 @@ from utils.decorators import verification_required
 
 logger = logging.getLogger(__name__)
 
-
+@login_required
+@verification_required
 @staff_member_required
 def admin_view(request):
     users = User.objects.select_related("userprofile").all()
@@ -62,7 +63,9 @@ def admin_view(request):
         {"users": users, "user_documents": user_documents},
     )
 
-
+@login_required
+@verification_required
+@staff_member_required
 def reported_users_list(request):
     reported_active_users = (
         User.objects.filter(is_active=True, reports_received__isnull=False)
@@ -88,7 +91,9 @@ def reported_users_list(request):
 
     return JsonResponse({"success": True, "reports": list(reported_active_users)})
 
-
+@login_required
+@verification_required
+@staff_member_required
 def get_admin_document_list(request):
     try:
         active_users = User.objects.filter(
@@ -129,7 +134,9 @@ def get_admin_document_list(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
-
+@login_required
+@verification_required
+@staff_member_required
 def get_user_documents(request, user_id):
     documents = UserDocument.objects.filter(user_id=user_id, deleted_at__isnull=True)
     user = get_object_or_404(User, id=user_id)
@@ -161,6 +168,7 @@ def get_user_documents(request, user_id):
 
 @login_required
 @verification_required
+@staff_member_required
 def accept_document(request, user_id, document_id):
     document = get_object_or_404(UserDocument, id=document_id, user_id=user_id)
     document.status = 2
@@ -182,6 +190,7 @@ def accept_document(request, user_id, document_id):
 
 @login_required
 @verification_required
+@staff_member_required
 def reject_document(request, user_id, document_id):
     document = get_object_or_404(UserDocument, id=document_id, user_id=user_id)
     document.status = 3
@@ -201,6 +210,9 @@ def reject_document(request, user_id, document_id):
     return JsonResponse({"success": True, "document": document_data})
 
 
+@login_required
+@verification_required
+@staff_member_required
 @require_http_methods(["GET"])
 def get_user_reports(request):
     user_id = request.GET.get("user_id")
@@ -229,7 +241,9 @@ def get_user_reports(request):
         }
     )
 
-
+@login_required
+@verification_required
+@staff_member_required
 @require_http_methods(["POST"])
 def acknowledge_report(request):
     try:
@@ -248,7 +262,9 @@ def acknowledge_report(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
-
+@login_required
+@verification_required
+@staff_member_required
 def deactivate_account_email(user):
     subject = "Your Account Has Been Deactivated"
 
@@ -265,7 +281,9 @@ def deactivate_account_email(user):
         fail_silently=False,
     )
 
-
+@login_required
+@verification_required
+@staff_member_required
 def deactivate_account(request):
     try:
         data = json.loads(request.body)
@@ -286,7 +304,9 @@ def deactivate_account(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
-
+@login_required
+@verification_required
+@staff_member_required
 def activate_account_email(user):
     subject = "Your Account Has Been Activated"
 
@@ -304,7 +324,9 @@ def activate_account_email(user):
         fail_silently=False,
     )
 
-
+@login_required
+@verification_required
+@staff_member_required
 def activate_account(request):
     try:
         data = json.loads(request.body)
@@ -325,7 +347,9 @@ def activate_account(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
-
+@login_required
+@verification_required
+@staff_member_required
 def verify_account_email(user):
     subject = "Your Account Has Been Successfully Verified"
 
@@ -345,7 +369,9 @@ def verify_account_email(user):
         fail_silently=False,
     )
 
-
+@login_required
+@verification_required
+@staff_member_required
 def verify_account(request):
     try:
         data = json.loads(request.body)
@@ -369,7 +395,9 @@ def verify_account(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
-
+@login_required
+@verification_required
+@staff_member_required
 def unverify_account_email(user):
     subject = "Your Account Has Been Unauthenticated"
 
@@ -390,7 +418,9 @@ def unverify_account_email(user):
         fail_silently=False,
     )
 
-
+@login_required
+@verification_required
+@staff_member_required
 def unverify_account(request):
     try:
         data = json.loads(request.body)

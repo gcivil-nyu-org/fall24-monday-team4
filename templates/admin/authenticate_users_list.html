@@ -34,6 +34,13 @@
                         {% endif %}
                     </td>
                     <td>
+                        {% if item.userprofile.is_emergency_support %}
+                        <span class="badge rounded-pill text-bg-success">Yes</span>
+                        {% else %}
+                        <span class="badge rounded-pill text-bg-danger">No</span>
+                        {% endif %}
+                    </td>
+                    <td>
                         {% if item.is_active %}
                         <span class="badge rounded-pill text-bg-success">Active</span>
                         {% else %}

@@ -91,7 +91,7 @@
                     activePanic = location; // Set active panic
                     document.getElementById('panic-alert').style.display = 'block';
                     document.getElementById('panic-coordinates').textContent = 
-                        `User: ${location.username}, Latitude: ${location.latitude}, Longitude: ${location.longitude}`;
+                        `User: ${location.username}, Latitude: ${location.latitude}, Longitude: ${location.longitude}, Panic Message: ${location.panic_message}`;
                 }
             });
 

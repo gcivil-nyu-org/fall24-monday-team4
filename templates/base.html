@@ -54,7 +54,7 @@
         {% if user.is_authenticated %}
           <div class="collapse navbar-collapse">
             <ul class="navbar-nav mr-auto">
-              {% if user.is_staff or user.userprofile.is_verified %}
+              {% if (user.is_staff or user.userprofile.is_verified) and not user.userprofile.is_emergency_support %}
                 <li class="nav-item">
                     <a class="nav-link link-light" href="{% url 'home' %}">Home</a>
                 </li>
@@ -68,10 +68,14 @@
                     <a class="nav-link link-light" href="{% url 'profile' %}">Profile</a>
                 </li>
                 {% if user.is_staff %}
-                <li class="nav-item">
-                  <a class="nav-link link-light" href="{% url 'admin_view' %}">Admin</a>
-                </li>
+                  <li class="nav-item">
+                    <a class="nav-link link-light" href="{% url 'admin_view' %}">Admin</a>
+                  </li>
                 {% endif %}
+              {% elif user.userprofile.is_emergency_support and user.userprofile.is_verified %}
+                  <li class="nav-item">
+                    <a class="nav-link link-light" href="{% url 'emergency_support' %}">Emergency Support</a>
+                  </li>
               {% endif %}
               <li class="nav-item">
                 <a class="nav-link link-light" href="{% url 'user_document_list' %}">Documents</a>
