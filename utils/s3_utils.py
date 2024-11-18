@@ -10,7 +10,8 @@ s3_client = boto3.client(
 
 def generate_presigned_url(key, expiration=86400):
     try:
-        s3_client.head_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
+        response = s3_client.head_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
+        print("response: ", response)
         url = s3_client.generate_presigned_url(
             "get_object",
             Params={"Bucket": settings.AWS_STORAGE_BUCKET_NAME, "Key": key},
@@ -43,10 +44,10 @@ def upload_file_to_s3(file, key):
 
 def delete_file_from_s3(key):
     try:
-        response = s3_client.head_object(
-            Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key
-        )
-        print("response: ", response)
+        # response = s3_client.head_object(
+        #     Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key
+        # )
+        # print("response: ", response)
 
         s3_client.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
         return True
