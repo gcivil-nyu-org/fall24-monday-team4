@@ -33,7 +33,7 @@ class LocationViewsTest(TestCase):
         )
         self.user2.userprofile.is_verified = True
         self.user2.userprofile.save()
-        
+
         self.client.login(username="testuser", password="testpass")
 
         # Create a base trip for testing
@@ -721,7 +721,7 @@ class TripFiltersTest(TestCase):
         self.user1 = User.objects.create_user(username="user1", password="pass1")
         self.user1.userprofile.is_verified = True
         self.user1.userprofile.save()
-        
+
         self.user2 = User.objects.create_user(username="user2", password="pass2")
         self.user2.userprofile.is_verified = True
         self.user2.userprofile.save()
@@ -779,7 +779,7 @@ class TripFiltersTest(TestCase):
         user3 = User.objects.create_user(username="user3", password="pass3")
         user3.userprofile.is_verified = True
         user3.userprofile.save()
-        
+
         trip3 = Trip.objects.create(
             user=user3,
             start_latitude=40.7130,
