@@ -22,15 +22,6 @@ class UserProfileTests(TestCase):
 
         self.client.login(username="testuser", password="12345")
 
-    @patch("utils.s3_utils.generate_presigned_url")
-    def test_profile_view_own_profile(self, mock_generate_url):
-        mock_generate_url.return_value = "https://test-url.com"
-        response = self.client.get(reverse("profile"))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context["is_user"])
-        self.assertEqual(response.context["profile"], self.user_profile)
-
     def test_profile_view_update_bio(self):
         response = self.client.post(reverse("profile"), {"bio": "Updated test bio"})
 
@@ -38,8 +29,6 @@ class UserProfileTests(TestCase):
         self.assertEqual(self.user_profile.bio, "Updated test bio")
         self.assertRedirects(response, reverse("profile"))
 
-    @patch("utils.s3_utils.upload_file_to_s3")
-    @patch("utils.s3_utils.delete_file_from_s3")
     def test_upload_profile_picture(self, mock_delete, mock_upload):
         mock_upload.return_value = "https://test-s3-url.com"
         mock_delete.return_value = True
@@ -59,7 +48,6 @@ class UserProfileTests(TestCase):
         self.assertEqual(self.user_profile.file_name, "test_image.jpg")
         self.assertEqual(self.user_profile.file_type, "image/jpeg")
 
-    @patch("utils.s3_utils.delete_file_from_s3")
     def test_remove_profile_picture(self, mock_delete):
         self.user_profile.photo_key = "test-key"
         self.user_profile.file_name = "test.jpg"

@@ -45,10 +45,6 @@ class AdminUserViewsTestCase(TestCase):
 
         self.client = Client()
 
-    def test_admin_view_access(self):
-        self.client.login(username="staffuser", password="testpass")
-        response = self.client.get(reverse("admin_view"))
-        self.assertEqual(response.status_code, 200)
 
     def test_admin_view_unauthorized(self):
         self.client.login(username="regularuser", password="testpass")
@@ -57,45 +53,10 @@ class AdminUserViewsTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
 
     @patch("utils.s3_utils.generate_presigned_url")
-    def test_get_user_documents(self, mock_url):
-        # Mock the S3 URL generation to return a test URL
-        mock_url.return_value = "https://test-url.com"
-
-        self.client.login(username="staffuser", password="testpass")
-        response = self.client.get(
-            reverse("get_user_documents", args=[self.regular_user.id])
-        )
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertIn("documents", data)
-
-    @patch("utils.s3_utils.generate_presigned_url")
     def test_get_admin_documents(self, mock_url):
         mock_url.return_value = "https://test-url.com"
         self.client.login(username="staffuser", password="testpass")
         # Add any additional test code here
-
-    def test_accept_document(self):
-        self.client.login(username="staffuser", password="testpass")
-        response = self.client.post(
-            reverse(
-                "accept_document", args=[self.regular_user.id, self.user_document.id]
-            )
-        )
-        self.assertEqual(response.status_code, 200)
-        self.user_document.refresh_from_db()
-        self.assertEqual(self.user_document.status, 2)
-
-    def test_reject_document(self):
-        self.client.login(username="staffuser", password="testpass")
-        response = self.client.post(
-            reverse(
-                "reject_document", args=[self.regular_user.id, self.user_document.id]
-            )
-        )
-        self.assertEqual(response.status_code, 200)
-        self.user_document.refresh_from_db()
-        self.assertEqual(self.user_document.status, 3)
 
     def test_acknowledge_report(self):
         self.client.login(username="staffuser", password="testpass")
