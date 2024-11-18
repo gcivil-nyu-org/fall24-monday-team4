@@ -75,7 +75,7 @@
         constructor() {
             this.initializeElements();
             this.bindEvents();
-            this.maxFileSize = 5 * 1024 * 1024; //size forr  5mb
+            this.maxFileSize = 5 * 1024 * 1024;
             this.acceptedTypes = ['image/jpeg', 'image/png'];
         }
 
@@ -134,7 +134,7 @@
             }
 
             if (file.size > this.maxFileSize) {
-                this.showMessage('error', 'File size exceeds 5MB limit.');
+                this.showMessage('error', 'File size exceeds 5MB limit. Please upload a smaller file.');
                 return false;
             }
 

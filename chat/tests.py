@@ -64,6 +64,8 @@ class ChatViewTests(TestCase):
         self.other_user = User.objects.create_user(
             username="otheruser", password="testpass"
         )
+        self.other_user.userprofile.is_verified = True
+        self.other_user.userprofile.save()
 
         # Create chat room
         self.chat_room = ChatRoom.objects.create(name="Test Room")
@@ -197,6 +199,9 @@ class ChatViewTests(TestCase):
 
         # Create a third user and their trip
         third_user = User.objects.create_user(username="thirduser", password="testpass")
+        third_user.userprofile.is_verified = True
+        third_user.userprofile.save()
+
         third_trip = Trip.objects.create(
             user=third_user,
             start_latitude=40.7128,

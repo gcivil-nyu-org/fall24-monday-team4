@@ -17,8 +17,11 @@
                                         <div class="mb-3">
                                             <label for="document" class="form-label">Select File</label>
                                             <input class="form-control" type="file" name="document" id="document"
-                                                   accept=".pdf,.doc,.docx,.jpeg,.jpg,.png,.txt" required>
-                                            <small class="text-muted">Supported formats: PDF, DOC, DOCX, JPEG, PNG, TXT</small>
+                                                   accept=".pdf,.doc,.docx,.jpeg,.jpg,.png,.txt" required>       
+                                            <div class="upload-requirements text-muted mt-2 small">
+                                                Supported formats: PDF, DOC, DOCX, JPEG, PNG, TXT<br>
+                                                Maximum file size: 10MB
+                                            </div>
                                         </div>
                                         <div class="mb-3">
                                             <label for="fileDescription" class="form-label">Document Description</label>
@@ -189,6 +192,8 @@
             updateColumnClasses(true);
         }
 
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 5MB
+
         elements.fileInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
             clearError();
@@ -197,14 +202,21 @@
                 closePreviewAndResetInput();
                 return;
             }
-
+            
             if (!ACCEPTABLE_TYPES[file.type]) {
                 showError('Invalid file type. Please upload a supported file format.');
                 this.value = '';
                 closePreviewAndResetInput();
                 return;
             }
-
+            
+            if (file.size > MAX_FILE_SIZE) {
+                showError('File size exceeds the 5MB limit. Please upload a smaller file.');
+                this.value = '';
+                closePreviewAndResetInput();
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = e => createPreview(file, e.target.result);
             reader.onerror = () => showError('Error reading file. Please try again.');
