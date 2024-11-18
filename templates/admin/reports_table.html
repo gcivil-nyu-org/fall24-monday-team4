@@ -166,9 +166,14 @@
                                 this.querySelector('i').className = 'fa-regular fa-circle-check';
                                 this.classList.remove('unacknowledged');
 
+                                // Fetch the updated list of unacknowledged reports for the user
+                                const reportsResponse = await fetch(`{% url 'get_user_reports' %}?user_id=${userId}`);
+                                const reportsData = await reportsResponse.json();
+
+                                // Update the pending count display
                                 const userRow = document.querySelector(`[data-user-id="${userId}"]`).closest('tr');
                                 const pendingCount = userRow.querySelector('.pending-count');
-                                pendingCount.textContent = Math.max(0, parseInt(pendingCount.textContent) - 1);
+                                pendingCount.textContent = reportsData.reports.filter(report => !report.is_acknowledged).length;
                             }
                         } catch (error) {
                             alert(`Error acknowledging report: ${error}`);
