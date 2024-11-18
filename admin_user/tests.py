@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from unittest.mock import patch
 from accounts.models import UserDocument, UserReports
 
+
 class AdminUserViewsTestCase(TestCase):
     def setUp(self):
         self.staff_user = User.objects.create_user(
