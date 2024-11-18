@@ -49,52 +49,6 @@
   </head>
   <body>
     <nav class="navbar navbar-expand-lg navbar-light p-3 mb-2 bg-dark bg-gradient text-white">
-      <a class="navbar-brand text-light" href="/">RoutePals</a>
-      {% if user.is_authenticated %}
-      <div class="collapse navbar-collapse">
-        <ul class="navbar-nav mr-auto">
-            <li class="nav-item">
-                <a class="nav-link link-light" href="{% url 'home' %}">Home</a>
-            </li>
-            <li class="nav-item dropdown">
-                <a class="nav-link link-light dropdown-toggle" href="#" id="matchesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    Companions
-                </a>
-                <ul class="dropdown-menu" aria-labelledby="matchesDropdown">
-                    <li><a class="dropdown-item" href="{% url 'find_matches' %}">Find Companions</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{% url 'sent_requests' %}">Sent Requests</a></li>
-                    <li><a class="dropdown-item" href="{% url 'received_requests' %}">Received Requests</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{% url 'previous_trips' %}">Previous Trips</a></li>
-                </ul>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link link-light" href="{% url 'profile' %}">Profile</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link link-light" href="{% url 'chat' %}">Chatrooms</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link link-light" href="/adminview">Admin</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link link-light" href="{% url 'user_document_list' %}">Documents</a>
-            </li>
-            {% if user.userprofile.is_emergency_support %}
-            <li class="nav-item">
-              <a class="nav-link link-light" href="{% url 'emergency_support' %}">Emergency Support</a>
-            </li>
-            {% endif %}
-          </ul>
-        </div>
-        <span class="navbar-text">
-        <form class="form-inline" action="{% url 'logout' %}" method="post">
-          {% csrf_token %}
-          <button class="btn btn-outline-light" type="submit">Log Out</button>
-        </form>
-      </span>
-
       <div class="container-fluid">
         <a class="navbar-brand text-light" href="/">RoutePals</a>
         {% if user.is_authenticated %}
@@ -118,6 +72,11 @@
                 <li class="nav-item">
                   <a class="nav-link link-light" href="{% url 'user_document_list' %}">Documents</a>
                 </li>
+                {% if user.userprofile.is_emergency_support %}
+                <li class="nav-item">
+                  <a class="nav-link link-light" href="{% url 'emergency_support' %}">Emergency Support</a>
+                </li>
+                {% endif %}
               </ul>
           </div>
           <span class="navbar-text">
@@ -126,7 +85,6 @@
               <button class="btn btn-outline-light" type="submit">Log Out</button>
             </form>
           </span>
-
         {% endif %}
       </div>
     </nav>
