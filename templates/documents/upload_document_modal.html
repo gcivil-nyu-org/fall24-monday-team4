@@ -1,182 +1,266 @@
 <div class="modal fade" id="uploadDocumentModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl" id="modalDocument" style="width: 600px">
+    <div class="modal-dialog" id="modalDocument">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="uploadModalLabel">Upload a Document</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <form method="POST" enctype="multipart/form-data" id="uploadDocumentForm" >
-                <div class="modal-body" style="text-align: left">
+            <form method="POST" enctype="multipart/form-data" id="uploadDocumentForm">
+                <div class="modal-body">
                     {% csrf_token %}
-                    <div class="row w-100" style="display: flex;" id="uploadRow">
-                        <div class="col-6" style="flex: 1; display: flex; flex-direction: column;">
-                            <div class="card shadow" style="height: 100%;">
-                                <div class="card-body" style="flex-grow: 1;">
-                                    <div class="mb-3">
-                                        <input class="form-control" type="file" name="document" id="document" accept=".pdf, .doc, .docx, .jpeg, .jpg, .png, .txt" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="fileName" class="form-label">Name</label>
-                                        <input class="form-control" type="text" name="fileName" id="fileName" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="fileDescription" class="form-label">Description of File</label>
-                                        <textarea class="form-control" id="fileDescription" rows="3" name="fileDescription"></textarea>
-                                    </div>
-
-                                    <div id="errorMessageDocuments" style="display: none; color: red; text-align: center; margin-top: 15px;">
-                                        There was an error uploading your document. Please try again.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col" style="flex: 1; display: none; flex-direction: column;" id="filePreviewSection">
-                            <div class="card shadow" style="height: 100%;">
-                                <div class="card-body" style="flex-grow: 1;">
-                                    <div id="uploadFileName" style="text-align: center; display: none"></div>
-                                    <div id="documentPreview" style="height: 100%; display: none; margin-top: 15px; margin-bottom: 15px; max-height: 600px">
-
+                    <div class="row" id="uploadRow">
+                        <div class="col-12 mb-3">
+                            <div class="card shadow h-100">
+                                <div class="card-body">
+                                    <div class="upload-section">
+                                        <div class="mb-3">
+                                            <label for="document" class="form-label">Select File</label>
+                                            <input class="form-control" type="file" name="document" id="document"
+                                                   accept=".pdf,.doc,.docx,.jpeg,.jpg,.png,.txt" required>       
+                                            <div class="upload-requirements text-muted mt-2 small">
+                                                Supported formats: PDF, DOC, DOCX, JPEG, PNG, TXT<br>
+                                                Maximum file size: 10MB
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="fileDescription" class="form-label">Document Description</label>
+                                            <textarea class="form-control" id="fileDescription" rows="5" name="fileDescription"
+                                                      required></textarea>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                </div>
-                    <div id="loadingSpinnerDocuments" style="display: none; text-align: center; margin-top: 15px;">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
+
+                        <div class="col-12 col-lg-6 mb-3" id="filePreviewSection" style="display: none;">
+                            <div class="card shadow h-100">
+                                <div class="card-header">
+                                    <h6 class="m-0" id="uploadFileName"></h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="documentPreview" class="preview-container"></div>
+                                </div>
+                            </div>
                         </div>
-                        <p>Saving...</p>
+                    </div>
+
+                    <div id="statusMessages" class="text-center mt-3">
+                        <div id="errorMessageDocuments" class="alert alert-danger" style="display: none;"></div>
+                        <div id="loadingSpinnerDocuments" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Uploading document...</p>
+                        </div>
                     </div>
                 </div>
+
                 <div class="modal-footer" style="display: flex; flex-direction: row; justify-content: space-between">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelUploadButton">Cancel</button>
                     <button type="submit" class="btn btn-primary" id="uploadDocumentsButton">Upload</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close" id="cancelUploadButton">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<style>
+    .preview-container {
+        min-height: 400px;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .preview-container img {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+    }
+
+    .preview-container iframe {
+        width: 100%;
+        height: 500px;
+        border: none;
+    }
+
+    .modal-dialog {
+        transition: max-width 0.3s ease-in-out;
+        margin: 1rem auto;
+    }
+
+    .modal-dialog {
+        max-width: 500px;
+    }
+
+    .modal-dialog.modal-preview {
+        max-width: 1200px;
+    }
+
+    @media (max-width: 992px) {
+        .modal-dialog.modal-preview {
+            max-width: 95%;
+        }
+    }
+</style>
+
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const acceptableTypes = [
-            "image/png",
-            "text/plain",
-            "application/pdf",
-            "image/jpeg",
-        ];
+        const ACCEPTABLE_TYPES = {
+            'image/png': true,
+            'image/jpeg': true,
+            'text/plain': true,
+            'application/pdf': true,
+            'application/msword': true,
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': true
+        };
 
-        const fileInput = document.getElementById("document");
-        const previewDiv = document.getElementById("documentPreview");
-        const filePreviewSection = document.getElementById("filePreviewSection");
-        const modalDocument = document.getElementById("modalDocument");
-        const uploadFileNameDiv = document.getElementById("uploadFileName");
-        const fileName = document.getElementById("fileName");
-        const fileDescription = document.getElementById("fileDescription");
-        const errorMessage = document.getElementById("errorMessageDocuments");
-        const modal = document.getElementById("uploadDocumentModal");
-        const uploadButton = document.getElementById("uploadDocumentsButton");
-        const cancelButton = document.getElementById("cancelUploadButton");
-        const loadingSpinner = document.getElementById("loadingSpinnerDocuments");
-        const uploadRow = document.getElementById("uploadRow");
+        const elements = {
+            modal: document.getElementById('uploadDocumentModal'),
+            modalDialog: document.getElementById('modalDocument'),
+            form: document.getElementById('uploadDocumentForm'),
+            fileInput: document.getElementById('document'),
+            fileDescription: document.getElementById('fileDescription'),
+            previewSection: document.getElementById('filePreviewSection'),
+            previewContainer: document.getElementById('documentPreview'),
+            uploadFileName: document.getElementById('uploadFileName'),
+            errorMessage: document.getElementById('errorMessageDocuments'),
+            loadingSpinner: document.getElementById('loadingSpinnerDocuments'),
+            uploadRow: document.getElementById('uploadRow'),
+            uploadButton: document.getElementById('uploadDocumentsButton'),
+            cancelButton: document.getElementById('cancelUploadButton')
+        };
 
-        fileInput.addEventListener("change", function(event) {
-            const file = event.target.files[0];
-            if (file && acceptableTypes.includes(file.type)) {
-                const reader = new FileReader();
-                modalDocument.style.width = "";
-                reader.onload = function(e) {
-                    previewDiv.innerHTML = "";
+        function toggleModalSize(showPreview) {
+            elements.modalDialog.classList.toggle('modal-preview', showPreview);
+        }
 
-                    if (["image/png", "image/jpeg"].includes(file.type)) {
-                        const img = document.createElement("img");
-                        img.src = e.target.result;
-                        img.style.width = "100%";
-                        img.style.height = "100%";
-                        previewDiv.appendChild(img);
-                    } else {
-                        const iframe = document.createElement("iframe");
-                        iframe.src = e.target.result;
-                        iframe.style.width = "100%";
-                        iframe.style.height = "500px";
-                        iframe.style.overflowY = "scroll";
-                        previewDiv.appendChild(iframe);
-                    }
-                    filePreviewSection.style.display = "flex";
-                    previewDiv.style.display = "block";
-
-                    uploadFileNameDiv.style.display = "block";
-                    const h5FileName = document.createElement("h5");
-                    h5FileName.textContent = file.name;
-                    uploadFileNameDiv.appendChild(h5FileName);
-                };
-                reader.readAsDataURL(file);
+        function updateColumnClasses(showPreview) {
+            const uploadColumn = document.querySelector('#uploadRow > .col-12:not(#filePreviewSection)');
+            if (showPreview) {
+                uploadColumn.classList.add('col-lg-6');
             } else {
-                previewDiv.style.display = "none";
-                filePreviewSection.style.display = "none";
-                modalDocument.style.width = "600px";
+                uploadColumn.classList.remove('col-lg-6');
+            }
+        }
+
+        function showError(message) {
+            elements.errorMessage.textContent = message;
+            elements.errorMessage.style.display = 'block';
+        }
+
+        function clearError() {
+            elements.errorMessage.style.display = 'none';
+            elements.errorMessage.textContent = '';
+        }
+
+        function resetForm() {
+            elements.form.reset();
+            elements.previewSection.style.display = 'none';
+            elements.previewContainer.innerHTML = '';
+            elements.uploadFileName.textContent = '';
+            toggleModalSize(false);
+            updateColumnClasses(false);
+            clearError();
+        }
+
+        function closePreviewAndResetInput() {
+            elements.previewSection.style.display = 'none';
+            elements.previewContainer.innerHTML = '';
+            elements.uploadFileName.textContent = '';
+            toggleModalSize(false);
+            updateColumnClasses(false);
+        }
+
+        function createPreview(file, dataUrl) {
+            elements.uploadFileName.textContent = file.name;
+            elements.previewContainer.innerHTML = '';
+
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = dataUrl;
+                img.alt = file.name;
+                elements.previewContainer.appendChild(img);
+            } else {
+                const iframe = document.createElement('iframe');
+                iframe.src = dataUrl;
+                elements.previewContainer.appendChild(iframe);
+            }
+
+            elements.previewSection.style.display = 'block';
+            toggleModalSize(true);
+            updateColumnClasses(true);
+        }
+
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 5MB
+
+        elements.fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            clearError();
+
+            if (!file) {
+                closePreviewAndResetInput();
+                return;
+            }
+            
+            if (!ACCEPTABLE_TYPES[file.type]) {
+                showError('Invalid file type. Please upload a supported file format.');
+                this.value = '';
+                closePreviewAndResetInput();
+                return;
+            }
+            
+            if (file.size > MAX_FILE_SIZE) {
+                showError('File size exceeds the 5MB limit. Please upload a smaller file.');
+                this.value = '';
+                closePreviewAndResetInput();
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = e => createPreview(file, e.target.result);
+            reader.onerror = () => showError('Error reading file. Please try again.');
+            reader.readAsDataURL(file);
+        });
+
+        elements.form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            clearError();
+
+            const formData = new FormData(this);
+            elements.loadingSpinner.style.display = 'block';
+            elements.uploadButton.disabled = true;
+            elements.cancelButton.disabled = true;
+            elements.uploadRow.style.display = 'none';
+
+            try {
+                const response = await fetch("{% url 'upload_document' %}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resetForm();
+                    bootstrap.Modal.getInstance(elements.modal).hide();
+                    location.reload();
+                } else {
+                    throw new Error(data.error || 'Upload failed. Please try again.');
+                }
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                elements.loadingSpinner.style.display = 'none';
+                elements.uploadButton.disabled = false;
+                elements.cancelButton.disabled = false;
+                elements.uploadRow.style.display = 'flex';
             }
         });
 
-        modal.addEventListener("hidden.bs.modal", function () {
-            fileInput.value = "";
-            fileName.value = "";
-            fileDescription.value = "";
-            previewDiv.style.display = "none";
-            filePreviewSection.style.display = "none";
-            errorMessage.style.display = "none";
-            modalDocument.style.width = "600px";
-        });
-
-        uploadButton.addEventListener("click", function(event) {
-            event.preventDefault();
-            const formData = new FormData(document.getElementById("uploadDocumentForm"));
-
-            loadingSpinner.style.display = "block";
-
-            uploadButton.disabled = true;
-            cancelButton.disabled = true;
-            uploadRow.style.display = "none";
-
-            fetch("{% url 'upload_document' %}", {
-                method: "POST",
-                body: formData,
-                headers: {
-                    "X-CSRFToken": "{{ csrf_token }}",
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        fileInput.value = "";
-                        fileName.value = "";
-                        fileDescription.value = "";
-                        previewDiv.style.display = "none";
-                        filePreviewSection.style.display = "none";
-                        errorMessage.style.display = "none";
-                        modalDocument.style.width = "600px";
-
-                        const modalInstance = bootstrap.Modal.getInstance(modal);
-                        modalInstance.hide();
-
-                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-                        location.reload();
-                    } else {
-                        errorMessage.innerText = data.error || "There was an error uploading your image.";
-                        errorMessage.style.display = "block";
-                    }
-                })
-                .catch(error => {
-                    errorMessage.innerText = "Unexpected error: " + error;
-                    errorMessage.style.display = "block";
-                })
-                .finally(() => {
-                    loadingSpinner.style.display = "none";
-                    uploadButton.disabled = false;
-                    cancelButton.disabled = false;
-                    uploadRow.style.display = "flex";
-                });
-        });
+        elements.modal.addEventListener('hidden.bs.modal', resetForm);
     });
 </script>

@@ -1,14 +1,7 @@
 from django import forms
-from .models import ChatRoom, Message
-from django.contrib.auth.models import User
+from .models import Message
 
-
-class ChatRoomForm(forms.ModelForm):
-    users = forms.ModelMultipleChoiceField(queryset=User.objects.all())
-
-    class Meta:
-        model = ChatRoom
-        fields = ("name", "description", "users")
+# from django.contrib.auth.models import User
 
 
 class MessageForm(forms.ModelForm):

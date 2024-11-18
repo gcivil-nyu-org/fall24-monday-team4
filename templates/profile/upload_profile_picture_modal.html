@@ -6,115 +6,318 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <form method="POST" enctype="multipart/form-data" id="uploadForm" >
-                    <div class="modal-body">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <input class="form-control" type="file" name="photo" id="profilePhoto" accept="image/*" required>
-                        </div>
-                        <div id="errorMessage" style="display: none; color: red; text-align: center; margin-top: 15px;">
-                            There was an error uploading your image. Please try again.
-                        </div>
-                        <div id="imagePreview" style="display: none; margin-top: 15px;">
-                            <img id="previewImage" src="#" alt="Image Preview" style="max-width: 100%; height: 500px; border-radius: 8px;"/>
-                        </div>
-                        <div id="loadingSpinner" style="display: none; text-align: center; margin-top: 15px;">
-                            <div class="spinner-border" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p>Uploading...</p>
+            <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" name="user_photo_key" value="{{ profile.photo_key }}">
+
+                    <div class="upload-area mb-3">
+                        <input class="form-control" type="file" name="photo" id="profilePhoto" accept="image/jpeg,image/png" required>
+                        <div class="upload-requirements text-muted mt-2 small">
+                            Accepted formats: JPEG and PNG<br>
+                            Maximum file size: 5MB
                         </div>
                     </div>
-                <div class="modal-footer" style="display: flex; flex-direction: row; justify-content: space-between">
-                    <button type="submit" class="btn btn-primary" id="uploadButton">Upload</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close" id="cancelButton">Cancel</button>
+
+                    <div class="alert alert-danger" id="errorMessage" style="display: none;" role="alert"></div>
+                    <div class="alert alert-warning" id="warningMessage" style="display: none;" role="alert"></div>
+                    <div class="alert alert-success" id="successMessage" style="display: none;" role="alert"></div>
+
+                    <div id="imagePreview" class="text-center mt-4" style="display: {% if profile.photo_key %}block{% else %}none{% endif %};">
+                        <div class="preview-container position-relative">
+                            <h5 id="imageFileName" class="text-break mb-3">{{ profile.file_name }}</h5>
+                            <img id="previewImage"
+                                 src="{% if profile.photo_key %}{{ profile_picture_url }}{% endif %}"
+                                 alt="Profile Picture Preview"
+                                 class="img-fluid rounded shadow-sm"
+                                 style="max-height: 500px; object-fit: contain;">
+                            <div class="image-overlay d-none">
+                                <div class="spinner-border text-light" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="loadingSpinner" class="text-center mt-4" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Processing...</p>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <div class="d-flex justify-content-between w-100">
+
+
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                            <div>
+                                {% if profile.photo_key %}
+                                <button type="button" class="btn btn-danger" id="removeProfilePicture">
+                                    <i class="bi bi-trash"></i> Remove Picture
+                                </button>
+                                {% endif %}
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="uploadButton">
+                                <i class="bi bi-cloud-upload"></i> Upload
+                            </button>
+
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const fileInput = document.getElementById("profilePhoto");
-        const errorMessage = document.getElementById("errorMessage");
-        const modal = document.getElementById("uploadModal");
-        const preview = document.getElementById("imagePreview");
-        const previewImage = document.getElementById("previewImage");
-        const uploadButton = document.getElementById("uploadButton");
-        const cancelButton = document.getElementById("cancelButton");
-        const loadingSpinner = document.getElementById("loadingSpinner");
-        const userPicture = document.getElementById("activeUserPicture");
+    class ProfilePictureUploader {
+        constructor() {
+            this.initializeElements();
+            this.bindEvents();
+            this.maxFileSize = 5 * 1024 * 1024;
+            this.acceptedTypes = ['image/jpeg', 'image/png'];
+        }
 
-        if (fileInput) {
-            fileInput.addEventListener("change", function(event) {
-                const file = event.target.files[0];
+        initializeElements() {
+            this.modal = document.getElementById('uploadModal');
+            this.form = document.getElementById('uploadForm');
+            this.fileInput = document.getElementById('profilePhoto');
+            this.preview = document.getElementById('imagePreview');
+            this.previewImage = document.getElementById('previewImage');
+            this.fileName = document.getElementById('imageFileName');
+            this.uploadButton = document.getElementById('uploadButton');
+            this.removeButton = document.getElementById('removeProfilePicture');
+            this.loadingSpinner = document.getElementById('loadingSpinner');
+            this.errorMessage = document.getElementById('errorMessage');
+            this.warningMessage = document.getElementById('warningMessage');
+            this.successMessage = document.getElementById('successMessage');
 
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        previewImage.src = e.target.result;
-                        preview.style.display = "block";
-                        errorMessage.style.display = "none";
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    preview.style.display = "none";
+            const photoKey = "{{ profile.photo_key }}";
+
+            if (photoKey && photoKey !== "None") {
+                this.originalPreviewSrc = "{{ profile_picture_url|safe }}";
+                this.originalFileName = this.fileName.textContent;
+            } else {
+                this.originalPreviewSrc = undefined;
+            }
+        }
+
+        bindEvents() {
+            this.fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+            this.form.addEventListener('submit', this.handleSubmit.bind(this));
+            if (this.removeButton) {
+                this.removeButton.addEventListener('click', this.handleRemove.bind(this));
+            }
+            this.modal.addEventListener('hidden.bs.modal', this.handleModalClose.bind(this));
+        }
+
+        showMessage(type, message, duration = 5000) {
+            const messageElement = this[`${type}Message`];
+            if (messageElement) {
+                messageElement.textContent = message;
+                messageElement.style.display = 'block';
+                if (duration) {
+                    setTimeout(() => {
+                        messageElement.style.display = 'none';
+                    }, duration);
                 }
+            }
+        }
+
+        validateFile(file) {
+            if (!file) return false;
+
+            if (!this.acceptedTypes.includes(file.type)) {
+                this.showMessage('error', 'Please upload a valid image file (JPEG or PNG).');
+                return false;
+            }
+
+            if (file.size > this.maxFileSize) {
+                this.showMessage('error', 'File size exceeds 5MB limit. Please upload a smaller file.');
+                return false;
+            }
+
+            return true;
+        }
+
+        async handleFileSelect(event) {
+            const file = event.target.files[0];
+            this.hideAllMessages();
+
+            if (!this.validateFile(file)) {
+                this.fileInput.value = '';
+                return;
+            }
+
+            try {
+                const dataUrl = await this.readFileAsDataURL(file);
+                this.previewImage.src = dataUrl;
+                this.fileName.textContent = file.name;
+                this.preview.style.display = 'block';
+            } catch (error) {
+                this.showMessage('error', 'Error loading image preview.');
+            }
+        }
+
+        readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = () => reject(new Error('Unable to read file'));
+                reader.readAsDataURL(file);
             });
         }
 
-        modal.addEventListener("hidden.bs.modal", function () {
-            fileInput.value = "";
-            preview.style.display = "none";
-            previewImage.src = "#";
-            errorMessage.style.display = "none";
-        });
-
-        uploadButton.addEventListener("click", function(event) {
+        async handleSubmit(event) {
             event.preventDefault();
-            const formData = new FormData(document.getElementById("uploadForm"));
+            this.hideAllMessages();
+            this.setLoadingState(true);
 
-            loadingSpinner.style.display = "block";
-            uploadButton.disabled = true;
-            cancelButton.disabled = true;
-            preview.style.display = "none";
-
-            fetch("{% url 'upload_user_profile_picture' %}", {
-                method: "POST",
-                body: formData,
-                headers: {
-                    "X-CSRFToken": "{{ csrf_token }}",
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        errorMessage.style.display = "none";
-                        fileInput.value = "";
-                        preview.style.display = "none";
-                        previewImage.src = "#";
-                        userPicture.src = data.url;
-
-                        const modalInstance = bootstrap.Modal.getInstance(modal);
-                        modalInstance.hide();
-
-                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-                    } else {
-                        errorMessage.innerText = data.error || "There was an error uploading your image.";
-                        errorMessage.style.display = "block";
+            try {
+                const formData = new FormData(this.form);
+                const response = await fetch("{% url 'upload_user_profile_picture' %}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
                     }
-                })
-                .catch(error => {
-                    errorMessage.innerText = "Unexpected error: " + error;
-                    errorMessage.style.display = "block";
-                })
-                .finally(() => {
-                    loadingSpinner.style.display = "none";
-                    uploadButton.disabled = false;
-                    cancelButton.disabled = false;
                 });
-        });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    this.handleUploadSuccess(data);
+                } else {
+                    throw new Error(data.error || 'Upload failed');
+                }
+            } catch (error) {
+                this.showMessage('error', `Upload failed: ${error.message}`);
+            } finally {
+                this.setLoadingState(false);
+            }
+        }
+
+        async handleRemove() {
+            if (!confirm('Are you sure you want to remove your profile picture?')) {
+                return;
+            }
+
+            this.hideAllMessages();
+            this.setLoadingState(true);
+
+            try {
+                const response = await fetch("{% url 'remove_profile_picture' %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    this.handleRemoveSuccess();
+                } else {
+                    throw new Error(data.message || 'Remove failed');
+                }
+            } catch (error) {
+                this.showMessage('error', `Remove failed: ${error.message}`);
+            } finally {
+                this.setLoadingState(false);
+            }
+        }
+
+        handleUploadSuccess() {
+            this.showMessage('success', 'Profile picture updated successfully!');
+            this.closeModal();
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        }
+
+        handleRemoveSuccess() {
+            this.preview.style.display = 'none';
+            this.showMessage('success', 'Profile picture removed successfully!');
+            this.closeModal();
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        }
+
+        handleModalClose() {
+            this.resetForm();
+            this.hideAllMessages();
+
+            if (this.originalPreviewSrc) {
+                this.previewImage.src = this.originalPreviewSrc;
+                this.fileName.textContent = this.originalFileName;
+                this.preview.style.display = 'block';
+            } else {
+                this.preview.style.display = 'none';
+            }
+        }
+
+        setLoadingState(loading) {
+            this.loadingSpinner.style.display = loading ? 'block' : 'none';
+            this.uploadButton.disabled = loading;
+            if (this.removeButton) this.removeButton.disabled = loading;
+            this.preview.style.opacity = loading ? '0.5' : '1';
+        }
+
+        hideAllMessages() {
+            this.errorMessage.style.display = 'none';
+            this.warningMessage.style.display = 'none';
+            this.successMessage.style.display = 'none';
+        }
+
+        resetForm() {
+            this.form.reset();
+            this.hideAllMessages();
+            this.setLoadingState(false);
+        }
+
+        closeModal() {
+            const modalInstance = bootstrap.Modal.getInstance(this.modal);
+            modalInstance.hide();
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        new ProfilePictureUploader();
     });
 </script>
 
+<style>
+    .preview-container {
+        position: relative;
+        display: inline-block;
+    }
 
+    .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .upload-area {
+        border: 2px dashed #dee2e6;
+        border-radius: 4px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .upload-area:hover {
+        border-color: #6c757d;
+    }
+</style>

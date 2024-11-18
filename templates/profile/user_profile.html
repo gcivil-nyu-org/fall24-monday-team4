@@ -70,7 +70,10 @@
                     </form>
                     {% if is_user %} <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button">Password Change</a></p> {% endif %}
                     <hr />
-                    {% if not is_user %}<button type="button" class="btn btn-danger btn-sm">Report User</button>{% endif %}
+                    {% if not is_user %}
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reportUserModal">Report User</button>
+                    {% include 'profile/report_user_modal.html' %}
+                    {% endif %}
                     <div class="social-icons">
                         <i class="fa-brands fa-instagram fa-2x" style="margin: 1rem"></i>
                         <i class="fa-brands fa-facebook fa-2x" style="margin: 1rem"></i>
@@ -81,22 +84,25 @@
         </div>
     </div>
 </div>
-<script>
-    const editButton = document.getElementById('edit-button');
-    const textarea = document.getElementById('user-bio');
-    const editControls = document.getElementById('edit-controls');
-    let originalValue = textarea.value;
 
-    editButton.addEventListener('click', () => {
-        textarea.removeAttribute('readonly');
-        editControls.style.display = 'block';
-    });
+{% if is_user %}
+    <script>
+        const editButton = document.getElementById('edit-button');
+        const textarea = document.getElementById('user-bio');
+        const editControls = document.getElementById('edit-controls');
+        let originalValue = textarea.value;
 
-    document.getElementById('cancel-button').addEventListener('click', () => {
-        textarea.setAttribute('readonly', true);
-        editControls.style.display = 'none';
-        textarea.value = originalValue;
-    });
+        editButton.addEventListener('click', () => {
+            textarea.removeAttribute('readonly');
+            editControls.style.display = 'block';
+        });
 
-</script>
+        document.getElementById('cancel-button').addEventListener('click', () => {
+            textarea.setAttribute('readonly', true);
+            editControls.style.display = 'none';
+            textarea.value = originalValue;
+        });
+    </script>
+{%endif%}
+
 {% endblock %}
