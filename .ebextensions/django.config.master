@@ -1,0 +1,27 @@
+container_commands:
+  01_migrate:
+    command: "source /var/app/venv/*/bin/activate && python3 manage.py migrate --noinput"
+    leader_only: true
+  
+  02_createsuperuser:
+    command: |
+      if [ ! -f /var/app/superuser_created ]; then
+        source /var/app/venv/*/bin/activate && python3 manage.py createsuperuser --noinput
+        touch /var/app/superuser_created
+      fi
+    leader_only: true
+  
+  03_collectstatic:
+    command: "python manage.py collectstatic --noinput"
+
+option_settings:
+  aws:elasticbeanstalk:environment:proxy:staticfiles:
+      /static: static
+  aws:elasticbeanstalk:application:environment:
+      DJANGO_SETTINGS_MODULE: "routepals.settings"
+      PYTHONPATH: "/var/app/current:$PYTHONPATH"
+      DJANGO_ASGI_APPLICATION: "routepals.asgi:application"
+  aws:elasticbeanstalk:container:python:
+      WSGIPath: "routepals.wsgi:application"
+  aws:autoscaling:launchconfiguration:
+      DisableIMDSv1: true
