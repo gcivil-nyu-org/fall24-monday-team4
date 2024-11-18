@@ -7,7 +7,7 @@ from locations.models import Match
 from utils.pusher_client import pusher_client
 from django.db.models import Q
 from django.conf import settings
-from utils.decorators import verification_required
+from user_profile.decorators import verification_required
 
 
 @login_required

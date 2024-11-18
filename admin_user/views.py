@@ -12,7 +12,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 import logging
 import json
-from utils.decorators import verification_required
+from user_profile.decorators import verification_required
 
 logger = logging.getLogger(__name__)
 

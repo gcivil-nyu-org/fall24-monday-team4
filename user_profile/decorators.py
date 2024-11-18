@@ -17,3 +17,13 @@ def verification_required(view_func):
             return redirect("user_document_list")
 
     return _wrapped_view
+
+
+def emergency_support_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.userprofile.is_emergency_support:
+            return view_func(request, *args, **kwargs)
+        return redirect("home")
+
+    return _wrapped_view

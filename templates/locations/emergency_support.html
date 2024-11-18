@@ -4,29 +4,86 @@
 {% block title %}Emergency Support{% endblock %}
 
 {% block content %}
-<h1>All User Locations</h1>
-<div id="map" style="height: 500px; width: 100%;"></div>
-<div id="panic-alert" class="mt-4" style="display: none;">
-    <h3>Active Panic Detected!</h3>
-    <p id="panic-coordinates"></p>
-    <button id="cancel-panic" class="btn btn-danger">Cancel Panic</button>
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Live Emergency Response Map</h4>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">Active Users</h6>
+                            <h3 id="active-user-count">{{ active_users }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Active Panics</h6>
+                            <h3 id="panic-count">{{ panic_users }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Last Update</h6>
+                            <h3 id="last-update">Just now</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="map" style="height: 500px; width: 100%;"></div>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6>Map Legend</h6>
+                    <div class="d-flex gap-3">
+                        <div><i class="fas fa-map-marker-alt text-danger"></i> User in Panic</div>
+                    </div>
+                </div>
+            </div>
+            <div id="panic-alert" class="alert alert-danger mt-4" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Active Panic Alert!</h4>
+                        <p id="panic-coordinates" class="mb-0"></p>
+                    </div>
+                    <button id="cancel-panic" class="btn btn-outline-light">Cancel Emergency</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-    const locations = {{ user_locations_json|safe }};
-    const map = L.map('map').setView([0, 0], 2); // World view
+    const pusher = new Pusher('{{ pusher_key }}', {
+        cluster: '{{ pusher_cluster }}',
+        encrypted: true
+    });
+    
+    const channelPanic = pusher.subscribe('emergency-channel');
+
+    const locations = {{ locations_json|safe }};
+    const activeUsers = {{ active_users }};
+    const panicUsers = {{ panic_users }};
+
+    const map = L.map('map').setView([40.7290, -73.9965], 9); // NYU coordinates
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
     }).addTo(map);
 
+    // Use for initial setup
+    updateMapBounds(locations);
+
     const markers = {}; // Object to store markers by location ID
 
     function getMarkerIcon(panic) {
         return L.icon({
-            iconUrl: panic 
-                ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png' 
-                : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
@@ -37,7 +94,7 @@
 
     // Add initial markers to the map
     locations.forEach(location => {
-        const marker = L.marker([location.latitude, location.longitude], {icon: getMarkerIcon(location.panic)})
+        const marker = L.marker([location.latitude, location.longitude], { icon: getMarkerIcon(location.panic) })
             .addTo(map)
             .bindTooltip(location.username, {
                 permanent: true,
@@ -49,100 +106,103 @@
         markers[location.id] = marker; // Store marker by ID
     });
 
+    document.getElementById('active-user-count').textContent = activeUsers;
+    document.getElementById('panic-count').textContent = panicUsers;
+    document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+
     const bounds = L.latLngBounds(locations.map(loc => [loc.latitude, loc.longitude]));
     map.fitBounds(bounds);
 
     let activePanic = null; // Track the active panic location
 
-    function updateMarkers() {
-        fetch("{% url 'emergency_support' %}", {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            data.forEach(location => {
-                if (markers[location.id]) {
-                    markers[location.id].setIcon(getMarkerIcon(location.panic));
-                } else {
-                    const newMarker = L.marker([location.latitude, location.longitude], {icon: getMarkerIcon(location.panic)})
-                        .addTo(map)
-                        .bindTooltip(location.username, {
-                            permanent: true,
-                            direction: 'top',
-                            offset: [0, -10]
-                        })
-                        .bindPopup(`User: ${location.username}<br>Latitude: ${location.latitude}<br>Longitude: ${location.longitude}`);
+    function updateMapBounds(locations, panic = false) {
+        if (locations.length === 0) return;
 
-                    markers[location.id] = newMarker;
-                }
+        const bounds = L.latLngBounds(locations.map(loc => [loc.latitude, loc.longitude]));
 
-                // Check for panic status and display alert
-                if (location.panic && (!activePanic || activePanic.id !== location.id)) {
-                    activePanic = location; // Set active panic
-                    document.getElementById('panic-alert').style.display = 'block';
-                    document.getElementById('panic-coordinates').textContent = 
-                        `User: ${location.username}, Latitude: ${location.latitude}, Longitude: ${location.longitude}, Panic Message: ${location.panic_message}`;
-                }
+        if (panic) {
+            // For panic situations, zoom in more but keep some context
+            map.fitBounds(bounds, {
+                padding: [100, 100], // Add padding around bounds
+                maxZoom: 15 // Limit how far it zooms in
             });
-
-            // Hide the panic alert if no active panic
-            if (!data.some(location => location.panic)) {
-                activePanic = null;
-                document.getElementById('panic-alert').style.display = 'none';
-            }
-        })
-        .catch(error => {
-            console.error('Error updating markers:', error);
-            alert(`Failed to update markers: ${error.message}`);
-        });
+        } else {
+            map.fitBounds(bounds, {
+                padding: [50, 50]
+            });
+        }
     }
+
+    channelPanic.bind('map-update', function(data) {
+        // Remove existing markers
+        Object.values(markers).forEach(marker => map.removeLayer(marker));
+        markers = {};
+
+        // Add new markers
+        data.locations.forEach(location => {
+            const marker = L.marker([location.latitude, location.longitude], { icon: getMarkerIcon(true) })
+                .addTo(map)
+                .bindTooltip(location.username, {
+                    permanent: true,
+                    direction: 'top',
+                    offset: [0, -10]
+                })
+                .bindPopup(`User: ${location.username}<br>Latitude: ${location.latitude}<br>Longitude: ${location.longitude}`);
+
+            markers[location.id] = marker;
+        });
+
+        document.getElementById('active-user-count').textContent = data.active_users;
+        document.getElementById('panic-count').textContent = data.panic_users;
+        document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+
+        updateMapBounds(data.locations, true);
+
+        // Check for panic status and display alert
+        const newActivePanic = data.locations.find(l => l.panic);
+        if (newActivePanic && (!activePanic || activePanic.id !== newActivePanic.id)) {
+            activePanic = newActivePanic;
+            document.getElementById('panic-alert').style.display = 'block';
+            document.getElementById('panic-coordinates').textContent =
+                `User: ${newActivePanic.username}, Latitude: ${newActivePanic.latitude}, Longitude: ${newActivePanic.longitude}, Panic Message: ${newActivePanic.panic_message}`;
+        } else if (!data.locations.some(l => l.panic)) {
+            activePanic = null;
+            document.getElementById('panic-alert').style.display = 'none';
+        }
+    });
 
     document.getElementById('cancel-panic').addEventListener('click', () => {
-    if (activePanic) {
-        // Construct the URL dynamically with the username (panic_user)
-        const url = `{% url 'cancel_panic' panic_username='username_placeholder' %}`.replace('username_placeholder', activePanic.username);
-
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                alert('Panic canceled successfully.');
-                activePanic = null;
-                document.getElementById('panic-alert').style.display = 'none';
-            } else {
-                alert(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error canceling panic:', error);
-            alert(`Failed to cancel panic: ${error.message}`);
-        });
-    }
-});
-
-
-    setInterval(updateMarkers, 5000);
+        if (activePanic) {
+            const url = `{% url 'cancel_panic' panic_username='username_placeholder' %}`.replace('username_placeholder', activePanic.username);
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('Panic canceled successfully.');
+                    activePanic = null;
+                    document.getElementById('panic-alert').style.display = 'none';
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error canceling panic:', error);
+                alert(`Failed to cancel panic: ${error.message}`);
+            });
+        }
+    });
 </script>
+
 {% endblock %}

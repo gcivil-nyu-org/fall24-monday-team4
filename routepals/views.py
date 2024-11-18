@@ -1,9 +1,18 @@
+from django.shortcuts import redirect
 from django.views.generic import TemplateView
 from locations.models import Trip
 
 
 class HomeView(TemplateView):
     template_name = "home.html"
+
+    def get(self, request, *args, **kwargs):
+        if (
+            request.user.is_authenticated
+            and request.user.userprofile.is_emergency_support
+        ):
+            return redirect("emergency_support")
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

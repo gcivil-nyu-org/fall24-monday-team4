@@ -3,10 +3,8 @@ import h3
 import uuid
 import json
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import get_object_or_404, render, redirect
-
-from user_profile.models import UserProfile
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
 from .models import Trip, Match, UserLocation
 from chat.models import ChatRoom, Message
 from datetime import timedelta, datetime
@@ -17,7 +15,7 @@ from django.core.paginator import Paginator
 from utils.pusher_client import pusher_client
 from django.conf import settings
 from django.utils import timezone
-from utils.decorators import verification_required
+from user_profile.decorators import emergency_support_required, verification_required
 
 
 def broadcast_trip_update(trip_id, status, message):
@@ -563,6 +561,27 @@ def trigger_panic(request):
             user_location.panic = True
             user_location.panic_message = request.POST.get("initial_message")
             user_location.save()
+
+            # Trigger a Pusher event to update the map
+            pusher_client.trigger(
+                "emergency-channel",
+                "map-update",
+                {
+                    "active_users": UserLocation.objects.filter(panic=False).count(),
+                    "panic_users": UserLocation.objects.filter(panic=True).count(),
+                    "locations": [
+                        {
+                            "id": user_location.id,
+                            "latitude": float(user_location.latitude),
+                            "longitude": float(user_location.longitude),
+                            "username": user_location.user.username,
+                            "panic": user_location.panic,
+                            "panic_message": user_location.panic_message,
+                        }
+                    ],
+                },
+            )
+
             return JsonResponse({"success": True, "message": "Panic mode activated."})
         except UserLocation.DoesNotExist:
             return JsonResponse(
@@ -573,6 +592,7 @@ def trigger_panic(request):
 
 @login_required
 @verification_required
+@emergency_support_required
 def cancel_panic(request, panic_username):
     if request.method == "POST":
         try:
@@ -580,7 +600,14 @@ def cancel_panic(request, panic_username):
                 user=User.objects.get(username=panic_username)
             )
             user_location.panic = False
+            user_location.panic_message = None
             user_location.save()
+
+            # Trigger a Pusher event to update the panic button
+            pusher_client.trigger(
+                "emergency-channel", "panic-cancel", {"username": panic_username}
+            )
+
             return JsonResponse({"success": True, "message": "Panic mode deactivated."})
         except UserLocation.DoesNotExist:
             return JsonResponse(
@@ -593,29 +620,14 @@ def cancel_panic(request, panic_username):
 
 @login_required
 @verification_required
-def emergency_support_view(request):
-    # Fetch user locations regardless of request type
-    user_locations = UserLocation.objects.select_related("user").all()
-    if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        user_locations_data = [
-            {
-                "id": location.id,
-                "latitude": float(location.latitude),
-                "longitude": float(location.longitude),
-                "username": location.user.username,
-                "panic": location.panic,
-                "panic_message": location.panic_message,
-            }
-            for location in user_locations
-        ]
-        return JsonResponse(user_locations_data, safe=False)
+@emergency_support_required
+def emergency_support(request):
+    # Fetch only the users who have panic mode activated
+    user_locations = UserLocation.objects.filter(panic=True).select_related("user")
 
-    # Check if the user is authorized for emrgency support
-    profile = get_object_or_404(UserProfile, user=request.user)
-    if not profile.is_emergency_support:
-        return HttpResponseForbidden()
+    active_user_count = UserLocation.objects.filter(panic=False).count()
+    panic_user_count = user_locations.count()
 
-    # Prepare data for rendering the template
     user_locations_data = [
         {
             "id": location.id,
@@ -623,6 +635,7 @@ def emergency_support_view(request):
             "longitude": float(location.longitude),
             "username": location.user.username,
             "panic": location.panic,
+            "panic_message": location.panic_message,
         }
         for location in user_locations
     ]
@@ -631,8 +644,12 @@ def emergency_support_view(request):
         request,
         "locations/emergency_support.html",
         {
-            "user_locations": user_locations,
-            "user_locations_json": json.dumps(user_locations_data),
+            "active_users": active_user_count,
+            "panic_users": panic_user_count,
+            "locations": user_locations,
+            "locations_json": json.dumps(user_locations_data),
+            "pusher_key": settings.PUSHER_KEY,
+            "pusher_cluster": settings.PUSHER_CLUSTER,
         },
     )
 

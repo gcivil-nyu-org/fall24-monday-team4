@@ -88,11 +88,13 @@
                                         onclick="toggleLiveLocations()">
                                     <i class="fa-solid fa-location-dot"></i> Hide Live Locations
                                 </button>
-                                <div class="mb-3">
-                                    <b><label for="initial_message" class="form-label">Panic Message</label></b>
-                                    <input type="text" class="form-control" id="initial_message" name="initial_message" placeholder="Describe your emergency">
-                                </div>
-                                <button type="button" class="btn btn-danger" id="panic">Panic Button</button>
+                                <button type="button" 
+                                        class="btn btn-danger" 
+                                        id="panic" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#panicModal">
+                                    Panic Button
+                                </button>
                             {% endif %}
                             {% if user_trip.chatroom %}
                                 <button type="button" 
@@ -204,7 +206,7 @@
                 </div>
             </div>
         {% endif %}
-
+        
         <div class="modal fade" id="chatModal" tabindex="-1" aria-labelledby="chatModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
@@ -214,6 +216,27 @@
                     </div>
                     <div class="modal-body p-0" id="chatModalBody">
                         <!-- Chat content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="panicModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Emergency Alert</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea id="panic_message" 
+                                 class="form-control" 
+                                 maxlength="200" 
+                                 placeholder="Describe your emergency (max 200 characters)"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" onclick="triggerPanic()">Confirm Emergency</button>
                     </div>
                 </div>
             </div>
@@ -260,11 +283,19 @@
             window.pusher.unsubscribe('trip-{{ user_trip.id }}');
             // Keep your existing cleanup code for location tracking
             window.pusher.unsubscribe(`chat-{{ user_trip.chatroom.id }}`);
-
+            window.pusher.unsubscribe('location-updates');
             if (locationUpdateInterval) {
                 clearInterval(locationUpdateInterval);
             }
         };
+
+        const channelPanic = window.pusher.subscribe('emergency-channel');
+
+        channelPanic.bind('panic-cancel', function(data) {
+            if (data.username === "{{ request.user.username }}") {
+                document.getElementById('panic').disabled = false;
+            }
+        });
     </script>
 
     <script>
@@ -578,42 +609,39 @@
                 clearInterval(locationUpdateInterval);
             }
         };
-
-        window.onbeforeunload = function() {
-            pusher.unsubscribe('location-updates');
-            if (locationUpdateInterval) {
-                clearInterval(locationUpdateInterval);
-            }
-        };
     </script>
     
     <script>
-        document.getElementById('panic').addEventListener('click', function() {
-            const initialMessage = document.getElementById('initial_message').value.trim();
+        function triggerPanic() {
+            const message = document.getElementById('panic_message').value.trim();
             if (confirm('Are you sure you want to activate Panic mode?')) {
+                const panicButton = document.getElementById('panic');
+                panicButton.disabled = true;
+                
                 fetch("{% url 'trigger_panic' %}", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/x-www-form-urlencoded",
                         "X-CSRFToken": "{{ csrf_token }}",
                     },
-                    body: `initial_message=${encodeURIComponent(initialMessage)}`
+                    body: `initial_message=${encodeURIComponent(message)}`
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('panicModal')).hide();
                         alert(data.message);
-                        document.getElementById('initial_message').value = '';
                     } else {
+                        panicButton.disabled = false;
                         alert(data.message);
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    panicButton.disabled = false;
                     alert('An error occurred while triggering Panic mode.');
                 });
             }
-        });
+        }
     </script>
 
     <script>

@@ -11,7 +11,7 @@ from utils.s3_utils import (
 import logging
 import uuid
 from django.http import JsonResponse
-from utils.decorators import verification_required
+from .decorators import verification_required
 
 logger = logging.getLogger(__name__)
 
