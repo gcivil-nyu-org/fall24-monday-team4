@@ -44,31 +44,6 @@ class SignUpViewTest(TestCase):
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, 200)
 
-    def signup_saves_correctly(self):
-        data = {
-            "username": "testuser",
-            "email": "testuser@nyu.edu",
-            "first_name": "test",
-            "last_name": "user",
-            "password": "adfsauiuj123474",
-            "password2": "adfsauiuj123474",
-        }
-        form = SignUpForm(data)
-
-        # Check if the form is valid
-        self.assertTrue(form.is_valid())
-
-        # Save the form and check if the object is created
-        user = form.save()
-        self.assertIsNotNone(user.pk)
-        self.assertEqual(user.username, "testuser")
-        self.assertEqual(user.email, "testuser@nyu.edu")
-
-        response = self.client.get(
-            reverse("login"), {"username": "testuser", "password": "adfsauiuj123474"}
-        )
-        self.assertRedirects(response, reverse("home"))
-
 
 class UnverifiedUserTest(TestCase):
     def setUp(self):
