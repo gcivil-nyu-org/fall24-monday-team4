@@ -11,9 +11,12 @@ flake8==7.1.1
 PyYAML==6.0.2
 awscli>=1.35.20,<=1.35.54
 boto3>=1.35.57,<=1.35.57
+botocore==1.35.58
 h3==4.1.2
 Twisted==24.10.0
 redis==5.2.0
 supervisor==4.2.5
 cryptography==43.0.3
 pusher==3.3.2
+uuid==1.30
+moto==5.0.21
