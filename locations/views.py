@@ -15,6 +15,7 @@ from django.core.paginator import Paginator
 from utils.pusher_client import pusher_client
 from django.conf import settings
 from utils.decorators import verification_required
+from django.utils import timezone
 
 
 def broadcast_trip_update(trip_id, status, message):
@@ -304,16 +305,6 @@ def handle_match_request(request):
                         status="MATCHED",  # Both trips should be MATCHED first
                     )
 
-                    # Broadcast update to both users
-                    broadcast_trip_update(
-                        trip.id,
-                        "MATCHED",
-                        (
-                            f"Match accepted between {match.trip1.user.username} and "
-                            f"{match.trip2.user.username}"
-                        ),
-                    )
-
                     # Check and update status if matched
                     trip.refresh_from_db()
                     if trip.accepted_companions_count >= trip.desired_companions:
@@ -332,11 +323,38 @@ def handle_match_request(request):
                     match.chatroom = chat_room
                     match.save()
 
-                    # Link chatroom to both trips
-                    match.trip1.chatroom = chat_room
-                    match.trip2.chatroom = chat_room
-                    match.trip1.save()
-                    match.trip2.save()
+                    Trip.objects.filter(id__in=[match.trip1.id, match.trip2.id]).update(
+                        chatroom=chat_room
+                    )
+
+                # Now clean up other pending requests from matched users
+                other_pending = Match.objects.filter(
+                    (Q(trip1=match.trip1) | Q(trip1=match.trip2)), status="PENDING"
+                )
+
+                # Get affected trips before deletion
+                affected_trip_ids = set(
+                    other_pending.values_list("trip2_id", flat=True)
+                )
+                other_pending.delete()
+
+                # Notify affected users who received requests
+                for trip_id in affected_trip_ids:
+                    broadcast_trip_update(
+                        trip_id,
+                        "SEARCHING",
+                        f"{match.trip1.user.username} is no longer available",
+                    )
+
+                for trip in [match.trip1, match.trip2]:
+                    broadcast_trip_update(
+                        trip.id,
+                        "MATCHED",
+                        (
+                            f"Match accepted between {match.trip1.user.username} and "
+                            f"{match.trip2.user.username}"
+                        ),
+                    )
             else:
                 match.status = "DECLINED"
                 match.save()
@@ -347,7 +365,6 @@ def handle_match_request(request):
                     "SEARCHING",
                     f"{request.user.username} declined your request",
                 )
-
             return redirect("current_trip")
         except Match.DoesNotExist:
             messages.error(request, "Match request not found or already handled")
@@ -565,13 +582,18 @@ def complete_trip(request):
 
             # If majority votes for completion
             if completion_votes >= total_members / 2:
+                current_time = timezone.now()
                 if trip.chatroom:
                     send_system_message(
                         trip.chatroom,
                         "Majority has voted to complete the trip. Trip is now archived.",
                     )
                 # Complete all trips in one query
-                matched_trips.update(status="COMPLETED", completion_requested=True)
+                matched_trips.update(
+                    status="COMPLETED",
+                    completion_requested=True,
+                    completed_at=current_time,
+                )
                 # Broadcast completion to all participants
                 for matched_trip in matched_trips:
                     broadcast_trip_update(

@@ -34,7 +34,7 @@
                                 step="60"
                                 min="{% now 'Y-m-d\TH:i' %}"
                                 onmouseleave="if(this.value=='')this.value='{% now 'Y-m-d\TH:i' %}'">
-                            <button type="button" class="btn btn-secondary" onclick="setCurrentTime()">Now</button>
+                            <button type="button" class="btn btn-info" onclick="setCurrentTime()">Now</button>
                         </div>
                     </div>
                 </div>
@@ -45,9 +45,9 @@
                     </label>
                     <select name="desired_companions" class="form-control" required>
                         <option value="1">1 Companion</option>
-                        <option value="2">2 Companions</option>
+                        <!-- <option value="2">2 Companions</option>
                         <option value="3">3 Companions</option>
-                        <option value="4">4 Companions</option>
+                        <option value="4">4 Companions</option> -->
                     </select>
                 </div>
                 <div class="mb-3">
@@ -65,7 +65,28 @@
                 <input type="hidden" name="start_longitude" id="start_longitude">
                 <input type="hidden" name="dest_latitude" id="dest_latitude">
                 <input type="hidden" name="dest_longitude" id="dest_longitude">
-        
+                
+                <div class="mb-3">
+                    <div>
+                        <div class="btn-group" role="group" aria-label="Start location selection">
+                            <button type="button" class="btn btn-outline-primary" id="customLocationBtn" onclick="setLocationMode('custom')">
+                                <i class="fa-solid fa-map-pin"></i> Custom
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="currentLocationBtn" onclick="setLocationMode('current')">
+                                <i class="fa-solid fa-location-crosshairs"></i> 
+                            </button>
+                            <button type="button" class="btn" id="reloadBtn" onclick="window.location.reload()" 
+                                    style="background-color: #E9F2A2; color: black; border: 2px solid black; transition: all 0.3s;" 
+                                    onmousedown="this.style.backgroundColor= 'black'; this.style.color='#E9F2A2';"
+                                    onmouseup="this.style.backgroundColor='#E9F2A2'; this.style.color= 'black';"
+                                    disabled>
+                                <i class="fa-solid fa-rotate"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted" id="locationHint" style="display: block;">Select start location first, then destination</small>
+                    </div>
+                </div>
+
                 <div id="map" style="height: 500px;" class="mb-3 position-relative rounded overflow-hidden"></div>
                 <!-- <div class="position-relative">
                     <div id="map" style="height: 500px;" class="mb-3 position-relative">
@@ -101,7 +122,8 @@
             let destMarker;
             let currentPosition;
             let currentMarkerCircle;
-            // let destMarkerCircle;
+            let locationMode = sessionStorage.getItem('locationMode') || 'custom';
+            let startLocationSet = false;
             
             const currentIcon = L.icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
@@ -111,7 +133,7 @@
                 popupAnchor: [1, -34],
                 shadowSize: [41, 41]
             });
-    
+        
             const destIcon = L.icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -120,7 +142,7 @@
                 popupAnchor: [1, -34],
                 shadowSize: [41, 41]
             });
-
+        
             function convertToDMS(dd, isLat) {
                 const dir = isLat ? (dd > 0 ? 'N' : 'S') : (dd > 0 ? 'E' : 'W');
                 dd = Math.abs(dd);
@@ -130,95 +152,180 @@
                 return `${degrees}°${minutes}'${seconds}"${dir}`;
             }
         
+            function setLocationMode(mode) {
+                locationMode = mode;
+                sessionStorage.setItem('locationMode', mode);
+                
+                document.getElementById('customLocationBtn').classList.toggle('active', mode === 'custom');
+                document.getElementById('currentLocationBtn').classList.toggle('active', mode === 'current');
+                document.getElementById('locationHint').style.display = mode === 'custom' ? 'block' : 'none';
+                document.getElementById('reloadBtn').disabled = mode !== 'current';
+
+                // Reset markers
+                if (currentMarker) {
+                    map.removeLayer(currentMarker);
+                    currentMarker = null;
+                }
+                if (currentMarkerCircle) {
+                    map.removeLayer(currentMarkerCircle);
+                    currentMarkerCircle = null;
+                }
+                if (destMarker) {
+                    map.removeLayer(destMarker);
+                    destMarker = null;
+                }
+        
+                startLocationSet = false;
+                
+                if (mode === 'current') {
+                    useCurrentLocation();
+                }
+            }
+        
+            function useCurrentLocation() {
+                map.locate({
+                    setView: true,
+                    enableHighAccuracy: true
+                });
+            }
+        
+            function addDragEndHandler(marker, latInput, lngInput) {
+                marker.on('dragend', function(e) {
+                    const pos = e.target.getLatLng();
+                    document.getElementById(latInput).value = pos.lat;
+                    document.getElementById(lngInput).value = pos.lng;
+
+                    const isStart = latInput === 'start_latitude';
+                    marker.setPopupContent(`${isStart ? 'Start Location' : 'Destination'}:<br>
+                        Latitude: ${convertToDMS(pos.lat, true)} (${pos.lat})<br>
+                        Longitude: ${convertToDMS(pos.lng, false)} (${pos.lng})`);
+                });
+            }
+        
             function initMap() {
                 // Initialize map centered on NYU initially
                 map = L.map('map').setView([40.7290, -73.9965], 13);
                 
                 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 20,
-                    // attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }).addTo(map);
-
-                // Find user's location
-                map.locate({
-                    setView: true,
-                    enableHighAccuracy: true
-                });
-
+        
                 // Handle location found
                 map.on('locationfound', function(e) {
-                    currentPosition = e;
-                    const latitude = e.latitude;
-                    const longitude = e.longitude;
-                    const accuracy = e.accuracy;
+                    if (locationMode === 'current') {
+                        currentPosition = e;
+                        const latitude = e.latitude;
+                        const longitude = e.longitude;
+                        const accuracy = e.accuracy;
+        
+                        if (currentMarker) {
+                            map.removeLayer(currentMarker);
+                        }
+                        if (currentMarkerCircle) {
+                            map.removeLayer(currentMarkerCircle);
+                        }
+        
+                        // Add marker for current location
+                        currentMarker = L.marker([latitude, longitude], {icon: currentIcon})
+                            .bindPopup(`Current Location:<br>
+                                Latitude: ${convertToDMS(latitude, true)} (${latitude})<br>
+                                Longitude: ${convertToDMS(longitude, false)} (${longitude})<br>
+                                Accuracy: ${accuracy}m`)
+                            .addTo(map);
+                        
+                        currentMarkerCircle = L.circle([latitude, longitude], {
+                            radius: accuracy,
+                            interactive: false
+                        }).addTo(map);
+        
+                        // Set form values
+                        document.getElementById('start_latitude').value = latitude;
+                        document.getElementById('start_longitude').value = longitude;
+                        startLocationSet = true;
+                        
+                        // Enable destination selection only after location is found
+                        document.getElementById('reloadBtn').disabled = false;
 
-                    // Add marker for current location
-                    currentMarker = L.marker([latitude, longitude], {icon: currentIcon})
-                        .bindPopup(`Current Location:<br>
-                            Latitude: ${convertToDMS(latitude, true)} (${latitude})<br>
-                            Longitude: ${convertToDMS(longitude, false)} (${longitude})<br>
-                            Accuracy: ${e.accuracy}m`)
-                        .openPopup();
-                    
-                    currentMarkerCircle = L.circle([latitude, longitude], {
-                        radius: accuracy,
-                        interactive: false
-                    });
-                    
-                    let currFeatureGroup = L.featureGroup([currentMarker, currentMarkerCircle]).addTo(map);
-                    map.fitBounds(currFeatureGroup.getBounds());
-
-                    // Click event to set destination (keeping your existing functionality)
-                    map.on('click', function(e) {
+                        // Fit bounds to show the marker and accuracy circle
+                        let currFeatureGroup = L.featureGroup([currentMarker, currentMarkerCircle]);
+                        map.fitBounds(currFeatureGroup.getBounds());
+                    }
+                });
+                
+                // Click event to handle both start and destination markers
+                map.on('click', function(e) {
+                    if (locationMode === 'custom' && !startLocationSet) {
+                        // Set start location
+                        if (currentMarker) {
+                            map.removeLayer(currentMarker);
+                        }
+                        if (currentMarkerCircle) {
+                            map.removeLayer(currentMarkerCircle);
+                        }
+        
+                        currentMarker = L.marker(e.latlng, {icon: currentIcon, draggable: true})
+                            .bindPopup(`Start Location:<br>
+                                Latitude: ${convertToDMS(e.latlng.lat, true)} (${e.latlng.lat})<br>
+                                Longitude: ${convertToDMS(e.latlng.lng, false)} (${e.latlng.lng})`)
+                            .addTo(map);
+                        
+                        document.getElementById('start_latitude').value = e.latlng.lat;
+                        document.getElementById('start_longitude').value = e.latlng.lng;
+                        
+                        addDragEndHandler(currentMarker, 'start_latitude', 'start_longitude');
+                        startLocationSet = true;
+                    } else {
+                        // Set destination (for both modes)
                         if (destMarker) {
                             map.removeLayer(destMarker);
                         }
-
-                        destMarker = L.marker(e.latlng, {icon: destIcon})
-                            .bindPopup(`Your Destination:<br>
-                            Latitude: ${convertToDMS(e.latlng.lat, true)} (${e.latlng.lat})<br>
-                            Longitude: ${convertToDMS(e.latlng.lng, false)} (${e.latlng.lng})`)
-                            .openPopup()
+        
+                        destMarker = L.marker(e.latlng, {icon: destIcon, draggable: true})
+                            .bindPopup(`Destination:<br>
+                                Latitude: ${convertToDMS(e.latlng.lat, true)} (${e.latlng.lat})<br>
+                                Longitude: ${convertToDMS(e.latlng.lng, false)} (${e.latlng.lng})`)
                             .addTo(map);
                         
                         document.getElementById('dest_latitude').value = e.latlng.lat;
                         document.getElementById('dest_longitude').value = e.latlng.lng;
-                    });
-
-                    // // Remove loader after location is found
-                    // const loadingElement = document.getElementById('loading');
-                    // if (loadingElement) {
-                    //     loadingElement.remove();
-                    // }
+                        
+                        addDragEndHandler(destMarker, 'dest_latitude', 'dest_longitude');
+                    }
                 });
-
+        
                 // Handle location error
                 map.on('locationerror', function(e) {
                     alert('Unable to find your location');
-                    // const loadingElement = document.getElementById('loading');
-                    // if (loadingElement) {
-                    //     loadingElement.remove();
-                    // }
+                    document.getElementById('reloadBtn').disabled = false;
                 });
+        
+                // If current location mode is active on init, trigger location search
+                if (locationMode === 'current') {
+                    useCurrentLocation();
+                }
             }
-
-            // Keep your form submission handler
+        
+            // Form submission handler
             document.getElementById('tripForm').addEventListener('submit', function(e) {
+                if (!currentMarker) {
+                    e.preventDefault();
+                    alert('Please set a start location');
+                    return;
+                }
                 if (!destMarker) {
                     e.preventDefault();
                     alert('Please select a destination on the map');
                     return;
                 }
-                
-                document.getElementById('start_latitude').value = currentPosition.latitude;
-                document.getElementById('start_longitude').value = currentPosition.longitude;
             });
-
-            // Wait for document and styles to load fully
+        
+            // Initialize map and UI state
             document.addEventListener('DOMContentLoaded', function() {
-                // Small delay to ensure styles are applied
+                document.getElementById('locationHint').style.display = locationMode === 'custom' ? 'block' : 'none';
+                
                 setTimeout(() => {
                     initMap();
+                    setLocationMode(locationMode);
                 }, 100);
             });
         </script>
