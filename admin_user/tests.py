@@ -43,7 +43,6 @@ class AdminUserViewsTestCase(TestCase):
     def test_admin_view_unauthorized(self):
         self.client.login(username="regularuser", password="testpass")
         response = self.client.get(reverse("admin_view"))
-        print("res: ", response)
         self.assertEqual(response.status_code, 302)
 
     def test_get_user_documents(self):
