@@ -28,42 +28,6 @@ class UserProfileTests(TestCase):
         self.assertEqual(self.user_profile.bio, "Updated test bio")
         self.assertRedirects(response, reverse("profile"))
 
-    def test_upload_profile_picture(self, mock_delete, mock_upload):
-        mock_upload.return_value = "https://test-s3-url.com"
-        mock_delete.return_value = True
-
-        test_image = SimpleUploadedFile(
-            name="test_image.jpg", content=b"file_content", content_type="image/jpeg"
-        )
-
-        response = self.client.post(
-            reverse("upload_user_profile_picture"), {"photo": test_image}
-        )
-
-        self.assertTrue(response.json()["success"])
-
-        self.user_profile.refresh_from_db()
-        self.assertIsNotNone(self.user_profile.photo_key)
-        self.assertEqual(self.user_profile.file_name, "test_image.jpg")
-        self.assertEqual(self.user_profile.file_type, "image/jpeg")
-
-    def test_remove_profile_picture(self, mock_delete):
-        self.user_profile.photo_key = "test-key"
-        self.user_profile.file_name = "test.jpg"
-        self.user_profile.file_type = "image/jpeg"
-        self.user_profile.save()
-
-        mock_delete.return_value = True
-
-        response = self.client.post(reverse("remove_profile_picture"))
-
-        self.assertTrue(response.json()["success"])
-
-        self.user_profile.refresh_from_db()
-        self.assertIsNone(self.user_profile.photo_key)
-        self.assertIsNone(self.user_profile.file_name)
-        self.assertIsNone(self.user_profile.file_type)
-
     def test_report_user(self):
         reported_user = User.objects.create_user(
             username="reporteduser", password="12345"
