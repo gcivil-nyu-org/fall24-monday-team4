@@ -3,18 +3,28 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from .models import ChatRoom, Message
-from locations.models import Match
+from locations.models import Match, UserLocation
 from utils.pusher_client import pusher_client
 from django.db.models import Q
 from django.conf import settings
 from user_profile.decorators import verification_required
+from locations.decorators import active_trip_required
+from django.views.decorators.http import require_http_methods
 
 
 @login_required
 @verification_required
+@require_http_methods(["GET"])
 def chat_room(request, pk):
     try:
         chat_room = ChatRoom.objects.get(pk=pk)
+
+        if not Match.objects.filter(
+            Q(trip1__user=request.user) | Q(trip2__user=request.user),
+            chatroom=chat_room,
+        ).exists():
+            return redirect("home")
+
         is_archive = request.GET.get("archive") == "true"
 
         if is_archive:
@@ -57,31 +67,42 @@ def chat_room(request, pk):
 
 @login_required
 @verification_required
+@active_trip_required
+@require_http_methods(["POST"])
 def send_message(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            chat_room = ChatRoom.objects.get(id=data["chat_room"])
-            message_text = data["message"]
+    try:
+        data = json.loads(request.body)
+        chat_room = ChatRoom.objects.get(id=data["chat_room"])
+        message_text = data["message"]
 
-            # Create and save the message
-            Message.objects.create(
-                chat_room=chat_room, user=request.user, message=message_text
-            )
+        # Create and save the message
+        user_location = UserLocation.objects.filter(user=request.user).first()
+        message_type = (
+            "EMS_PANIC_MESSAGE" if user_location and user_location.panic else "USER"
+        )
 
-            # Broadcast via Pusher
-            pusher_client.trigger(
-                f"chat-{chat_room.id}",
-                "message_event",
-                {
-                    "message": message_text,
-                    "username": request.user.username,
-                    "type": "user",
-                },
-            )
+        Message.objects.create(
+            chat_room=chat_room,
+            user=request.user,
+            message=message_text,
+            message_type=message_type,
+        )
 
-            return JsonResponse({"success": True})
-        except (ChatRoom.DoesNotExist, KeyError, json.JSONDecodeError) as e:
-            return JsonResponse({"error": str(e)}, status=400)
+        # Broadcast via Pusher
+        pusher_client.trigger(
+            f"chat-{chat_room.id}",
+            "message-event",
+            {
+                "message": message_text,
+                "username": request.user.username,
+                "type": (
+                    "ems_panic_message"
+                    if message_type == "EMS_PANIC_MESSAGE"
+                    else "user"
+                ),
+            },
+        )
 
-    return JsonResponse({"error": "Invalid request method"}, status=405)
+        return JsonResponse({"success": True})
+    except (ChatRoom.DoesNotExist, KeyError, json.JSONDecodeError) as e:
+        return JsonResponse({"error": str(e)}, status=400)

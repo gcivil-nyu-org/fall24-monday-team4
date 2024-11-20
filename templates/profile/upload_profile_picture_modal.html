@@ -176,7 +176,7 @@
 
             try {
                 const formData = new FormData(this.form);
-                const response = await fetch("{% url 'upload_user_profile_picture' %}", {
+                const response = await fetch("{% url 'upload_profile_picture' %}", {
                     method: 'POST',
                     body: formData,
                     headers: {

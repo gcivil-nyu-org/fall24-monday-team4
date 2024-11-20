@@ -8,12 +8,10 @@ from utils.s3_utils import (
     generate_presigned_url,
     delete_file_from_s3,
 )
-import logging
 import uuid
 from django.http import JsonResponse
 from .decorators import verification_required
-
-logger = logging.getLogger(__name__)
+from django.views.decorators.http import require_http_methods
 
 
 @login_required(login_url="home")
@@ -52,56 +50,64 @@ def profile_view(request, user_id=None):
     )
 
 
+@login_required(login_url="home")
+@verification_required
+@require_http_methods(["POST"])
 def upload_profile_picture(request):
-    if request.method == "POST" and request.FILES.get("photo"):
+    if request.FILES.get("photo"):
         file = request.FILES["photo"]
         unique_key = str(uuid.uuid4())
-        user_photo_key = request.POST.get("user_photo_key")
+        profile = get_object_or_404(UserProfile, user=request.user)
 
         try:
-            if user_photo_key:
-                result = delete_file_from_s3(user_photo_key)
-                if not result:
-                    print(
-                        f"Failed to delete old profile picture with key: {user_photo_key}"
-                    )
+            # First try uploading new file
+            if upload_file_to_s3(file, unique_key):
 
-            s3_url = upload_file_to_s3(file, unique_key)
-            profile = get_object_or_404(UserProfile, user=request.user)
-            profile.photo_key = unique_key
-            profile.file_name = file.name
-            profile.file_type = file.content_type
-            profile.save()
+                # Only delete old file if new upload succeeded
+                if profile.photo_key:
+                    delete_file_from_s3(profile.photo_key)
 
-            return JsonResponse({"success": True, "url": s3_url})
+                # Update profile with new file info
+                profile.photo_key = unique_key
+                profile.file_name = file.name
+                profile.file_type = file.content_type
+                profile.save()
+
+                return JsonResponse({"success": True})
+
+            return JsonResponse({"success": False, "error": "Upload failed"})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
+    return JsonResponse({"success": False, "error": "Photo attachment not found."})
 
-    return JsonResponse({"success": False, "error": "Invalid request"})
 
-
+@login_required(login_url="home")
+@verification_required
+@require_http_methods(["POST"])
 def report_user(request):
-    if request.method == "POST":
-        subject = request.POST.get("subject")
-        description = request.POST.get("description")
-        reported_user_id = request.POST.get("reported_user_id")
+    subject = request.POST.get("subject")
+    description = request.POST.get("description")
+    reported_user_id = request.POST.get("reported_user_id")
 
-        reporter = request.user
-        reported_user = User.objects.get(id=reported_user_id)
+    reporter = request.user
+    reported_user = User.objects.get(id=reported_user_id)
 
-        try:
-            report = UserReports(
-                reporter=reporter,
-                reported_user=reported_user,
-                subject=subject,
-                description=description,
-            )
-            report.save()
-            return JsonResponse({"success": True})
-        except Exception as e:
-            return JsonResponse({"success": False, "error_message": str(e)})
+    try:
+        report = UserReports(
+            reporter=reporter,
+            reported_user=reported_user,
+            subject=subject,
+            description=description,
+        )
+        report.save()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error_message": str(e)})
 
 
+@login_required(login_url="home")
+@verification_required
+@require_http_methods(["POST"])
 def remove_profile_picture(request):
     user = request.user
 

@@ -166,7 +166,7 @@ class LocationViewsTest(TestCase):
         response = self.client.post(
             reverse("handle_match_request"), {"match_id": "asdasd", "action": 99}
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 400)
 
         # Test accepting match
         response = self.client.post(
@@ -210,7 +210,7 @@ class LocationViewsTest(TestCase):
         self.assertTrue(Trip.objects.filter(user=self.user).exists())
 
         response = self.client.get(reverse("create_trip"))
-        self.assertRedirects(response, reverse("home"))
+        self.assertEqual(response.status_code, 405)
 
     def test_update_location(self):
         data = {"latitude": "40.7128", "longitude": "-74.0060"}
@@ -369,8 +369,7 @@ class LocationViewsTest(TestCase):
         """Test get_trip_locations when no trip exists"""
         self.trip.delete()
         response = self.client.get(reverse("get_trip_locations"))
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.json()["success"])
+        self.assertRedirects(response, reverse("home"))
 
     def test_update_location_error(self):
         """Test update_location with invalid data"""
@@ -412,8 +411,7 @@ class LocationViewsTest(TestCase):
     def test_send_match_request_invalid_method(self):
         """Test send_match_request with GET method"""
         response = self.client.get(reverse("send_match_request"))
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.status_code, 405)
 
     def test_cancel_nonexistent_trip(self):
         """Test cancelling when no active trip exists"""
@@ -482,8 +480,7 @@ class LocationViewsTest(TestCase):
         response = self.client.post(
             reverse("handle_match_request"), {"match_id": match.id, "action": "accept"}
         )
-
-        self.assertRedirects(response, reverse("current_trip"))
+        self.assertEqual(response.status_code, 400)
 
     def test_handle_match_request_exceptions(self):
         """Test handle_match_request different exceptions"""
@@ -491,16 +488,16 @@ class LocationViewsTest(TestCase):
         response = self.client.post(
             reverse("handle_match_request"), {"match_id": 99999, "action": "accept"}
         )
-        self.assertRedirects(response, reverse("current_trip"))
+        self.assertEqual(response.status_code, 404)
 
         response = self.client.get(reverse("handle_match_request"))
-        self.assertRedirects(response, reverse("current_trip"))
+        self.assertEqual(response.status_code, 405)
 
         # Test general exception
         response = self.client.post(
             reverse("handle_match_request"), {"action": "accept"}  # Missing match_id
         )
-        self.assertRedirects(response, reverse("current_trip"))
+        self.assertEqual(response.status_code, 404)
 
     def test_send_match_request_exceptions(self):
         """Test send_match_request exception handling"""
@@ -509,15 +506,13 @@ class LocationViewsTest(TestCase):
         response = self.client.post(
             reverse("send_match_request"), {"trip_id": 99999, "action": "send"}
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.json()["success"])
+        self.assertRedirects(response, reverse("home"))
 
         # Test with missing data
         response = self.client.post(
             reverse("send_match_request"), {"action": "send"}  # Missing trip_id
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.json()["success"])
+        self.assertRedirects(response, reverse("home"))
 
     def test_complete_trip_redirect_to_previous_trips(self):
         """Test complete_trip redirects correctly when enough votes are received"""
@@ -555,7 +550,7 @@ class LocationViewsTest(TestCase):
         # Setup trip with IN_PROGRESS status
 
         response = self.client.get(reverse("complete_trip"))
-        self.assertRedirects(response, reverse("current_trip"))
+        self.assertEqual(response.status_code, 405)
 
     def test_complete_trip_lifecycle(self):
         """Test full trip lifecycle: matching, ready, in_progress, and completion"""

@@ -23,9 +23,4 @@ urlpatterns = [
     path("activate-account/", views.activate_account, name="activate_account"),
     path("verify-account/", views.verify_account, name="verify_account"),
     path("unverify-account/", views.unverify_account, name="unverify_account"),
-    path(
-        "get_admin_documents/",
-        views.get_admin_document_list,
-        name="get_admin_documents",
-    ),
 ]

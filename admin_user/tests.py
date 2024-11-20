@@ -51,12 +51,6 @@ class AdminUserViewsTestCase(TestCase):
         print("res: ", response)
         self.assertEqual(response.status_code, 302)
 
-    @patch("utils.s3_utils.generate_presigned_url")
-    def test_get_admin_documents(self, mock_url):
-        mock_url.return_value = "https://test-url.com"
-        self.client.login(username="staffuser", password="testpass")
-        # Add any additional test code here
-
     def test_acknowledge_report(self):
         self.client.login(username="staffuser", password="testpass")
         response = self.client.post(
