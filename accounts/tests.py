@@ -64,11 +64,11 @@ class UnverifiedUserTest(TestCase):
 
         # Try to access the current trip page
         response = self.client.get(reverse("current_trip"))
-        self.assertRedirects(response, reverse("user_document_list"))
+        self.assertRedirects(response, reverse("home"))
 
         # Try to access the previous trips page
         response = self.client.get(reverse("previous_trips"))
-        self.assertRedirects(response, reverse("user_document_list"))
+        self.assertRedirects(response, reverse("home"))
 
         # Try to create a new trip
         response = self.client.post(
@@ -83,11 +83,11 @@ class UnverifiedUserTest(TestCase):
                 "search_radius": 200,
             },
         )
-        self.assertRedirects(response, reverse("user_document_list"))
+        self.assertRedirects(response, reverse("home"))
 
         # Try to access the chat room
         response = self.client.get(reverse("chat_room", kwargs={"pk": 1}))
-        self.assertRedirects(response, reverse("user_document_list"))
+        self.assertRedirects(response, reverse("home"))
 
 
 class SignUpViewTests(TestCase):
