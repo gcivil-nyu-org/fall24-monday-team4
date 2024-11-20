@@ -48,12 +48,14 @@
       </style>
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-light p-3 mb-2 bg-dark bg-gradient text-white">
-      <div class="container-fluid">
-        <a class="navbar-brand text-light" href="/">RoutePals</a>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark bg-gradient text-white p-3 mb-2">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#routepalsNav" aria-controls="routepalsNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <a class="navbar-brand text-light" href="/"><b>RoutePals</b></a>
         {% if user.is_authenticated %}
-          <div class="collapse navbar-collapse">
-            <ul class="navbar-nav mr-auto">
+          <div class="collapse navbar-collapse" id="routepalsNav">
+            <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
               <!-- Regular User Navigation -->
               {% if user.userprofile.is_verified %}
                 {% if user.userprofile.is_emergency_support %}
@@ -90,18 +92,17 @@
               {% csrf_token %}
               <button class="btn btn-outline-light" type="submit">Log Out</button>
             </form>
-          </span>
+        </span>
         {% endif %}
-      </div>
     </nav>
     <main class="container mb-3">
       {% block content %}
       {% endblock %}
     </main>
     
-    <footer class="footer p-3 mt-3 bg-dark bg-gradient text-white">
+    <footer class="footer p-3 mt-3 bg-light bg-gradient text-dark">
       <div class="container text-center">
-          <span class="text-light">&copy; <script>document.write(new Date().getFullYear())</script> RoutePals. All rights reserved.</span>
+          <span class="text-dark">&copy; <script>document.write(new Date().getFullYear())</script> RoutePals. All rights reserved.</span>
       </div>
     </footer>
     {% bootstrap_javascript %}

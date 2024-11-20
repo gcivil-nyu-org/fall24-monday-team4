@@ -5,9 +5,24 @@
 {% block content %}
 {% if user.is_authenticated %}
     {% if not user.is_staff and not user.userprofile.is_verified %}
-        <div class="alert alert-warning">
-            Access to Route Pals features is restricted to verified users. Please upload your verification documents <a href="{% url 'user_document_list' %}">here</a>. If you have already uploaded documents, view them <a href="{% url 'user_document_list' %}">here</a>. You will be notified via email once they are approved.
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+                <div class="card shadow-lg border-0 rounded-lg mt-0 mb-3">
+                    <div class="card-header justify-content-center">
+                        <div id="error_div"></div>
+                        <h4 class="font-weight-light my-4 text-center">Welcome to Route Pals!</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            Access to Route Pals features is restricted to verified users. Please upload your verification documents <a href="{% url 'user_document_list' %}">here</a>. If you have already uploaded documents, view them <a href="{% url 'user_document_list' %}">here</a>. You will be notified via email once they are approved.
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
+        
     {% elif has_active_trip %}
         <div class="container mt-4">
             <div class="alert alert-info">
@@ -331,8 +346,26 @@
         </script>
     {% endif %}
 {% else %}
-    <p>Welcome to Route Pals. You are not currently logged in.</p>
-    <a class="btn btn-secondary btn-lg" href="{% url 'signup' %}" role="button">Sign Up</a>
-    <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Log In</a>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+                <div class="card shadow-lg border-0 rounded-lg mt-0 mb-3">
+                    <div class="card-header justify-content-center">
+                        <h4 class="font-weight-light my-4 text-center">Welcome to Route Pals!</h4>
+                        <p class="font-weight-light text-center">You are not currently logged in.</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="col-md-10 offset-md-1 text-center">
+                            <a class="btn btn-secondary btn-lg" href="{% url 'signup' %}" role="button">Sign Up</a>
+                        </div>
+                        <br/>
+                        <div class="col-md-10 offset-md-1 text-center">
+                            <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Log In</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endif %}
 {% endblock %}
