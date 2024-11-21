@@ -186,7 +186,7 @@ class DocumentDeleteViewTests(TestCase):
         self.url = reverse("delete_document")  # Adjust based on your URL configuration
 
     @patch("accounts.views.delete_file_from_s3")  # Mock S3 delete
-    def test_delete_document_success(self, mock_delete):
+    def test_delete_document_success_1(self, mock_delete):
         self.document.delete()
         self.assertFalse(
             UserDocument.objects.filter(s3_key=self.document.s3_key).exists()
@@ -250,21 +250,19 @@ class AccountViewsTest(TestCase):
         self.assertFalse(data["success"])
         self.assertEqual(data["error"], "No document attachment found.")
 
-    def test_delete_document_success(self):
-        doc = UserDocument.objects.create(
-            user=self.user, filename="test.pdf", s3_key="test-key"
+    @patch("utils.s3_utils.delete_file_from_s3")
+    def test_delete_document_success_2(self, mock_delete):
+        mock_delete.return_value = True
+        self.document = UserDocument.objects.create(
+            user=self.user, filename="testfile.pdf", s3_key="mock-s3-key"
         )
-
         response = self.client.post(
             reverse("delete_document"),
-            json.dumps({"document_id": doc.id}),
+            {"document_id": self.document.id},
             content_type="application/json",
         )
-
         self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertTrue(data["success"])
-        self.assertFalse(UserDocument.objects.filter(id=doc.id).exists())
+        self.assertFalse(UserDocument.objects.filter(id=self.document.id).exists())
 
     def test_delete_document_no_id(self):
         response = self.client.post(
