@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 from accounts.models import UserDocument, UserReports
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .models import UserProfile
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from botocore.exceptions import ClientError
 
 
 class UserProfileTests(TestCase):
@@ -243,9 +244,13 @@ class UserProfileViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.context["profile_picture_url"])
 
-    @patch("utils.s3_utils.upload_file_to_s3")
-    def test_upload_profile_picture_success(self, mock_upload):
-        mock_upload.return_value = "http://test-url.com/image.jpg"
+    @patch("utils.s3_utils.s3_client")
+    def test_upload_profile_picture_success(self, mock_s3):
+        # Setup mock
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
+        mock_s3.upload_fileobj.return_value = None  # S3 upload doesn't return anything
+        mock_s3.generate_presigned_url.return_value = "https://test-url.com/image.jpg"
 
         # Create a simple test image file
         image_content = b"GIF89a\x01\x00\x01\x00\x00\xff\x00,\
@@ -259,6 +264,9 @@ class UserProfileViewsTest(TestCase):
         )
 
         self.assertTrue(response.json()["success"])
+
+        # Verify mock was called
+        mock_s3.upload_fileobj.assert_called_once()
 
     def test_upload_profile_picture_no_file(self):
         response = self.client.post(reverse("upload_profile_picture"))

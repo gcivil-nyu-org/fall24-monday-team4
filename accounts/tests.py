@@ -7,7 +7,8 @@ from accounts.forms import SignUpForm
 from django.core import mail
 from django.contrib.auth import get_user_model
 from .models import UserDocument
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from botocore.exceptions import ClientError
 
 User = get_user_model()
 
@@ -250,15 +251,20 @@ class AccountViewsTest(TestCase):
         self.assertFalse(data["success"])
         self.assertEqual(data["error"], "No document attachment found.")
 
-    @patch("utils.s3_utils.delete_file_from_s3")
-    def test_delete_document_success_2(self, mock_delete):
-        mock_delete.return_value = True
+    @patch("utils.s3_utils.s3_client")
+    def test_delete_document_success_2(self, mock_s3):
+        # Setup mock
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
+        mock_s3.head_object.return_value = True  # Pretend file exists
+        mock_s3.delete_object.return_value = True
+
         self.document = UserDocument.objects.create(
             user=self.user, filename="testfile.pdf", s3_key="mock-s3-key"
         )
         response = self.client.post(
             reverse("delete_document"),
-            {"document_id": self.document.id},
+            json.dumps({"document_id": self.document.id}),
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)

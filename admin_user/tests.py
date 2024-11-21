@@ -198,9 +198,13 @@ class AdminViewTest(AdminViewsBaseTest):
 
 
 class DocumentManagementTest(AdminViewsBaseTest):
-    @patch("utils.s3_utils.generate_presigned_url")
-    def test_get_user_documents_success(self, mock_url):
-        mock_url.return_value = "https://test-url.com"
+    @patch("utils.s3_utils.s3_client")
+    def test_get_user_documents_success(self, mock_s3):
+        # Setup mock
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
+        mock_s3.generate_presigned_url.return_value = "https://test-url.com"
+
         response = self.client.get(
             reverse("get_user_documents", kwargs={"user_id": self.regular_user.id})
         )
@@ -241,9 +245,13 @@ class DocumentManagementTest(AdminViewsBaseTest):
         )
         self.assertEqual(response.status_code, 404)
 
-    @patch("utils.s3_utils.generate_presigned_url")
-    def test_reject_document_success(self, mock_url):
-        mock_url.return_value = "https://test-url.com"
+    @patch("utils.s3_utils.s3_client")
+    def test_reject_document_success(self, mock_s3):
+        # Setup mock
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
+        mock_s3.generate_presigned_url.return_value = "https://test-url.com"
+
         response = self.client.post(
             reverse(
                 "reject_document",
