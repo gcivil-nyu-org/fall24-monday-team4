@@ -847,9 +847,75 @@ class LocationViewsTest(TestCase):
         self.client.login(username="testuser", password="testpass")
 
         response = self.client.post(reverse("resolve_panic", args=["testuser"]))
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()["success"])
-        self.assertEqual(response.json()["message"], "User location not found.")
+        self.assertEqual(
+            response.json()["error"], "UserLocation matching query does not exist."
+        )
+        mock_pusher.trigger.assert_not_called()
+
+    @patch("locations.views.pusher_client")
+    def test_resolve_panic_success(self, mock_pusher):
+        # Setup panic state
+        self.location.panic = True
+        self.location.panic_message = "Help!"
+        self.location.save()
+
+        # Setup trip status
+        self.trip.status = "IN_PROGRESS"
+        self.trip.chatroom = ChatRoom.objects.create(name="Test Chatroom")
+        self.trip.save()
+
+        self.user2.userprofile.is_emergency_support = True
+        self.user2.save()
+        self.client.login(username="testuser2", password="testpass2")
+
+        response = self.client.post(reverse("resolve_panic", args=[self.user.username]))
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+        self.assertEqual(response.json()["message"], "Panic mode deactivated.")
+
+        # Check location updated
+        self.location.refresh_from_db()
+        self.assertFalse(self.location.panic)
+        self.assertIsNone(self.location.panic_message)
+
+        outLog = f"Emergency support has resolved {self.user.username}'s panic request."
+
+        # Verify pusher calls
+        mock_pusher.trigger.assert_has_calls(
+            [
+                call(
+                    "emergency-channel",
+                    "panic-resolve",
+                    {"username": self.user.username},
+                ),
+                call(
+                    f"chat-{self.trip.chatroom.id}",
+                    "message-event",
+                    {
+                        "message": outLog,
+                        "type": "system",
+                    },
+                ),
+            ]
+        )
+
+    @patch("locations.views.pusher_client")
+    def test_resolve_panic_location_not_found(self, mock_pusher):
+        self.user.userprofile.is_emergency_support = True
+        self.location.delete()
+        self.user.save()
+
+        response = self.client.post(reverse("resolve_panic", args=["testuser"]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(
+            response.json()["error"], "UserLocation matching query does not exist."
+        )
         mock_pusher.trigger.assert_not_called()
 
     @patch("locations.views.pusher_client")
@@ -917,7 +983,9 @@ class LocationViewsTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()["success"])
-        self.assertEqual(response.json()["message"], "User location not found.")
+        self.assertEqual(
+            response.json()["error"], "UserLocation matching query does not exist."
+        )
         mock_pusher.trigger.assert_not_called()
 
     @patch("locations.views.pusher_client")

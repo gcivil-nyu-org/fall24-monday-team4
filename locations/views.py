@@ -206,7 +206,7 @@ def current_trip(request):
             },
         )
 
-    except Trip.DoesNotExist:
+    except Exception:
         return render(
             request,
             "locations/current_trip.html",
@@ -619,8 +619,8 @@ def trigger_panic(request):
             )
 
         return JsonResponse({"success": True, "message": "Panic mode activated."})
-    except UserLocation.DoesNotExist:
-        return JsonResponse({"success": False, "message": "User location not found."})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
 
 
 @login_required
@@ -650,10 +650,8 @@ def resolve_panic(request, panic_username):
             )
 
         return JsonResponse({"success": True, "message": "Panic mode deactivated."})
-    except UserLocation.DoesNotExist:
-        return JsonResponse(
-            {"success": False, "message": "User location not found."}, status=404
-        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
 
 
 @login_required
