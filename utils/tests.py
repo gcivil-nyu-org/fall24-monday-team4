@@ -116,3 +116,27 @@ class S3UtilsTest(TestCase):
         self.assertFalse(result)
         mock_s3.head_object.assert_called_once()
         mock_s3.delete_object.assert_not_called()
+
+    @patch("utils.s3_utils.s3_client")
+    def test_generate_presigned_url_other_error(self, mock_s3):
+        error = ClientError(
+            error_response={"Error": {"Code": "500", "Message": "Internal Error"}},
+            operation_name="HeadObject",
+        )
+        mock_s3.head_object.side_effect = error
+        mock_s3.exceptions.ClientError = ClientError
+
+        url = generate_presigned_url(self.test_key)
+        self.assertIsNone(url)
+
+    @patch("utils.s3_utils.s3_client")
+    def test_delete_file_from_s3_other_error(self, mock_s3):
+        error = ClientError(
+            error_response={"Error": {"Code": "500", "Message": "Internal Error"}},
+            operation_name="HeadObject",
+        )
+        mock_s3.head_object.side_effect = error
+        mock_s3.exceptions.ClientError = ClientError
+
+        result = delete_file_from_s3(self.test_key)
+        self.assertFalse(result)
