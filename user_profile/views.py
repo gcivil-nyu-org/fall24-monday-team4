@@ -88,11 +88,11 @@ def report_user(request):
     subject = request.POST.get("subject")
     description = request.POST.get("description")
     reported_user_id = request.POST.get("reported_user_id")
-
     reporter = request.user
-    reported_user = User.objects.get(id=reported_user_id)
 
     try:
+        reported_user = User.objects.get(id=reported_user_id)
+
         report = UserReports(
             reporter=reporter,
             reported_user=reported_user,
