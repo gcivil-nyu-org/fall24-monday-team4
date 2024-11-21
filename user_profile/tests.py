@@ -354,12 +354,18 @@ class UserProfileViewsTest(TestCase):
         self.assertIsNone(self.user_profile.file_name)
         self.assertIsNone(self.user_profile.file_type)
 
-    @patch("utils.s3_utils.delete_file_from_s3")
-    def test_remove_profile_picture_oldpicdelete(self, mock_delete):
+    @patch("utils.s3_utils.s3_client")
+    def test_remove_profile_picture_oldpicdelete(self, mock_s3):
         self.user_profile.photo_key = "test_photo_key"
         self.user_profile.save()
 
-        mock_delete.return_value = False
+        mock_s3.head_object.return_value = {}
+        mock_s3.delete_object.side_effect = ClientError(
+            error_response={"Error": {"Code": "404", "Message": "Not Found"}},
+            operation_name="DeleteObject",
+        )
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
 
         with patch("builtins.print") as mock_print:
             response = self.client.post(reverse("remove_profile_picture"))
