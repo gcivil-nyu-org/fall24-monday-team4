@@ -18,5 +18,8 @@ def validate_email_domain(value):
         if domain != "nyu.edu":
             raise ValidationError(_("Invalid email domain."))
 
-    except ValidationError:
-        raise ValidationError(_("Invalid email address."))
+    except ValidationError as e:
+        # Only re-raise with different message if it's not our domain error
+        if "Invalid email domain." not in str(e):
+            raise ValidationError(_("Invalid email address."))
+        raise  # Re-raise our domain error as-is

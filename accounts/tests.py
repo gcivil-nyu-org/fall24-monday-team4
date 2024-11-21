@@ -6,7 +6,7 @@ from accounts.validators import validate_email_domain
 from accounts.forms import SignUpForm
 from django.core import mail
 from django.contrib.auth import get_user_model
-from .models import UserDocument
+from .models import UserDocument, UserReports
 from unittest.mock import patch, MagicMock
 from botocore.exceptions import ClientError
 
@@ -201,6 +201,31 @@ class AccountViewsTest(TestCase):
             username="testuser", password="test123", email="test@example.com"
         )
         self.client.login(username="testuser", password="test123")
+
+    def test_model_str_methods(self):
+        """Test string representations of models"""
+        # Test UserDocument str
+        doc = UserDocument.objects.create(
+            user=self.user, filename="test.pdf", s3_key="test-key"
+        )
+        self.assertEqual(str(doc), "test.pdf - testuser")
+
+        # Test UserReports str
+        reported_user = User.objects.create_user(
+            username="reporteduser", password="testpass"
+        )
+        report = UserReports.objects.create(
+            reporter=self.user,
+            reported_user=reported_user,
+            subject="Test",
+            description="Test",
+        )
+        self.assertEqual(str(report), "Report by testuser on reporteduser")
+
+    def test_non_nyu_domain(self):
+        """Test that non-nyu.edu emails are rejected"""
+        with self.assertRaisesMessage(ValidationError, "Invalid email domain."):
+            validate_email_domain("test@gmail.com")
 
     def test_welcome_email(self):
         from accounts.views import WelcomeEmail

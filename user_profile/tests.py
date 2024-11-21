@@ -215,6 +215,46 @@ class UserProfileViewsTest(TestCase):
 
         self.client.login(username="testuser", password="12345")
 
+    @patch("utils.s3_utils.s3_client")
+    def test_upload_profile_picture_exception(self, mock_s3):
+        """Test exception handling in upload_profile_picture"""
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
+        mock_s3.upload_fileobj.side_effect = Exception("Upload failed")
+
+        image_content = b"GIF89a\x01\x00\x01\x00\x00\xff\x00,\
+            \x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x00;"
+        test_image = SimpleUploadedFile(
+            name="test.gif", content=image_content, content_type="image/gif"
+        )
+
+        response = self.client.post(
+            reverse("upload_profile_picture"), {"photo": test_image}, format="multipart"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["error"], "Upload failed")
+
+    @patch("utils.s3_utils.s3_client")
+    def test_remove_profile_picture_delete_fail_1(self, mock_s3):
+        """Test failed deletion message in remove_profile_picture"""
+        # Setup profile with photo
+        self.user_profile.photo_key = "test_key"
+        self.user_profile.save()
+
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
+        # Make delete operation fail
+        mock_s3.head_object.return_value = True
+        mock_s3.delete_object.side_effect = Exception("Delete failed")
+
+        response = self.client.post(reverse("remove_profile_picture"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["error_message"], "Delete failed")
+
     def test_profile_view_other_user(self):
         response = self.client.get(
             reverse("user_profile", kwargs={"user_id": self.other_user.id})
@@ -327,7 +367,7 @@ class UserProfileViewsTest(TestCase):
         )
 
     @patch("user_profile.views.delete_file_from_s3")
-    def test_remove_profile_picture_delete_fails(self, mock_delete):
+    def test_remove_profile_picture_delete_fails_2(self, mock_delete):
         mock_delete.side_effect = Exception("Delete failed")
 
         response = self.client.post(reverse("remove_profile_picture"))
