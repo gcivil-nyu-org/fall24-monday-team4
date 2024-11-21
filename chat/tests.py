@@ -104,6 +104,18 @@ class ChatViewTests(TestCase):
 
         self.client.login(username="testuser", password="testpass")
 
+    def test_chat_filters(self):
+        """Test chat template filters"""
+        from chat.templatetags.chat_filters import css_for_messagetype
+
+        # Test all message types
+        self.assertEqual(css_for_messagetype("SYSTEM"), "system-message")
+        self.assertEqual(css_for_messagetype("EMS_SYSTEM"), "ems-system-message")
+        self.assertEqual(css_for_messagetype("EMS_PANIC_MESSAGE"), "panic-message")
+        self.assertIsNone(
+            css_for_messagetype("USER")
+        )  # Regular messages have no special CSS
+
     def test_chat_room_view(self):
         response = self.client.get(
             reverse("chat_room", kwargs={"pk": self.chat_room.pk})

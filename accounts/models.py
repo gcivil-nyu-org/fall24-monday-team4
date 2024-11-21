@@ -10,7 +10,6 @@ class UserDocument(models.Model):
     filename = models.CharField(max_length=255, null=False)
     file_type = models.CharField(max_length=50, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
     status = models.IntegerField(choices=STATUS_CHOICES, default=1)
     description = models.TextField(null=True, blank=True)
 

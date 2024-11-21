@@ -9,6 +9,7 @@ class HomeView(TemplateView):
     def get(self, request, *args, **kwargs):
         if (
             request.user.is_authenticated
+            and request.user.userprofile.is_verified
             and request.user.userprofile.is_emergency_support
         ):
             return redirect("emergency_support")

@@ -7,7 +7,7 @@ urlpatterns = [
     path(
         "upload_profile_picture/",
         views.upload_profile_picture,
-        name="upload_user_profile_picture",
+        name="upload_profile_picture",
     ),
     path("report_user/", views.report_user, name="report_user"),
     path(

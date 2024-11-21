@@ -44,14 +44,14 @@
                                     </li>
                                     {% endfor %}
                                 </ul>
-                            {% endif %}
-                            {% if trip.status in "CANCELLED,COMPLETED," and trip.chatroom %}
-                                <button type="button" class="btn btn-warning" 
-                                        onclick="loadChat('{{ trip.chatroom.id }}', true)" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#chatModal">
-                                    <i class="fa-solid fa-history"></i> Chat Archive
-                                </button>
+                                {% if trip.status in "CANCELLED,COMPLETED," and trip.chatroom %}
+                                    <button type="button" class="btn btn-warning" 
+                                            onclick="loadChat('{{ trip.chatroom.id }}', true)" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#chatModal">
+                                        <i class="fa-solid fa-history"></i> Chat Archive
+                                    </button>
+                                {% endif %}
                             {% endif %}
                         </div>
                         <div class="col-md-8">

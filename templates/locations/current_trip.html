@@ -101,7 +101,8 @@
                                         class="btn btn-danger" 
                                         id="panic" 
                                         data-bs-toggle="modal" 
-                                        data-bs-target="#panicModal">
+                                        data-bs-target="#panicModal"
+                                        {% if user_trip.user.userlocation.panic %}disabled{% endif %}>
                                     Panic Button
                                 </button>
                             {% endif %}
@@ -231,9 +232,11 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
+                        <div id="panic_error" class="alert alert-danger" style="display: none;"></div>
                         <textarea id="panic_message" 
                                  class="form-control" 
                                  maxlength="200" 
+                                 required
                                  placeholder="Describe your emergency (max 200 characters)"></textarea>
                     </div>
                     <div class="modal-footer">
@@ -280,20 +283,9 @@
             location.reload();
         });
 
-        // Update cleanup
-        window.onbeforeunload = function() {
-            window.pusher.unsubscribe('trip-{{ user_trip.id }}');
-            // Keep your existing cleanup code for location tracking
-            window.pusher.unsubscribe(`chat-{{ user_trip.chatroom.id }}`);
-            window.pusher.unsubscribe('location-updates');
-            if (locationUpdateInterval) {
-                clearInterval(locationUpdateInterval);
-            }
-        };
-
         const channelPanic = window.pusher.subscribe('emergency-channel');
 
-        channelPanic.bind('panic-cancel', function(data) {
+        channelPanic.bind('panic-resolve', function(data) {
             if (data.username === "{{ request.user.username }}") {
                 document.getElementById('panic').disabled = false;
             }
@@ -605,45 +597,17 @@
             updateCompanionLocations();
         }
 
-        // Cleanup on page unload
-        window.onunload = function() {
+        window.addEventListener('unload', function() {
+            // Unsubscribe from all channels
+            window.pusher.unsubscribe('trip-{{ user_trip.id }}');
+            window.pusher.unsubscribe('chat-{{ user_trip.chatroom.id }}');
+            window.pusher.unsubscribe('emergency-channel');
+            
+            // Clear intervals
             if (locationUpdateInterval) {
                 clearInterval(locationUpdateInterval);
             }
-        };
-    </script>
-    
-    <script>
-        function triggerPanic() {
-            const message = document.getElementById('panic_message').value.trim();
-            if (confirm('Are you sure you want to activate Panic mode?')) {
-                const panicButton = document.getElementById('panic');
-                panicButton.disabled = true;
-                
-                fetch("{% url 'trigger_panic' %}", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded",
-                        "X-CSRFToken": "{{ csrf_token }}",
-                    },
-                    body: `initial_message=${encodeURIComponent(message)}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        bootstrap.Modal.getInstance(document.getElementById('panicModal')).hide();
-                        alert(data.message);
-                    } else {
-                        panicButton.disabled = false;
-                        alert(data.message);
-                    }
-                })
-                .catch(error => {
-                    panicButton.disabled = false;
-                    alert('An error occurred while triggering Panic mode.');
-                });
-            }
-        }
+        });
     </script>
 
     <script>
@@ -676,6 +640,56 @@
                 });
             });
         });
+    </script>
+
+    <script>
+        document.getElementById('panicModal').addEventListener('hidden.bs.modal', function () {
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.getElementById('panic_error').style.display = 'none';
+            document.getElementById('panic_message').value = '';
+        });
+        
+        function triggerPanic() {
+            const message = document.getElementById('panic_message').value.trim();
+            const errorDiv = document.getElementById('panic_error');
+            
+            if (!message) {
+                errorDiv.textContent = 'Please describe your emergency';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // Hide error if validation passes
+            errorDiv.style.display = 'none';
+
+            if (confirm('Are you sure you want to activate Panic mode?')) {
+                const panicButton = document.getElementById('panic');
+                panicButton.disabled = true;
+                
+                fetch("{% url 'trigger_panic' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-CSRFToken": "{{ csrf_token }}",
+                    },
+                    body: `initial_message=${encodeURIComponent(message)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('panicModal')).hide();
+                        alert(data.message);
+                    } else {
+                        panicButton.disabled = false;
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    panicButton.disabled = false;
+                    alert('An error occurred while triggering Panic mode.');
+                });
+            }
+        }
     </script>
 {% endif %}
 {% endblock %}
