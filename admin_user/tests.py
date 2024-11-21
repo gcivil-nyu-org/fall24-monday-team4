@@ -2,7 +2,8 @@ import json
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from botocore.exceptions import ClientError
 from accounts.models import UserDocument, UserReports
 
 
@@ -180,10 +181,13 @@ class AdminViewsBaseTest(TestCase):
 
 
 class AdminViewTest(AdminViewsBaseTest):
-    @patch("utils.s3_utils.generate_presigned_url")
-    def test_admin_view_success(self, mock_url):
-        mock_url.return_value = "https://test-url.com"
-        self.client.login(username="staffuser", password="testpass")
+    @patch("utils.s3_utils.s3_client")
+    def test_admin_view_success(self, mock_s3):
+        # Setup mock
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
+        mock_s3.generate_presigned_url.return_value = "https://test-url.com"
+
         response = self.client.get(reverse("admin_view"))
         self.assertEqual(response.status_code, 200)
 
@@ -209,9 +213,13 @@ class DocumentManagementTest(AdminViewsBaseTest):
         )
         self.assertEqual(response.status_code, 404)
 
-    @patch("utils.s3_utils.generate_presigned_url")
-    def test_accept_document_success(self, mock_url):
-        mock_url.return_value = "https://test-url.com"
+    @patch("utils.s3_utils.s3_client")
+    def test_accept_document_success(self, mock_s3):
+        # Setup mock
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
+        mock_s3.generate_presigned_url.return_value = "https://test-url.com"
+
         response = self.client.post(
             reverse(
                 "accept_document",
