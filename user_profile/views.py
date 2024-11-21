@@ -56,10 +56,11 @@ def profile_view(request, user_id=None):
 def upload_profile_picture(request):
     if request.FILES.get("photo"):
         file = request.FILES["photo"]
-        unique_key = str(uuid.uuid4())
-        profile = get_object_or_404(UserProfile, user=request.user)
 
         try:
+            profile = get_object_or_404(UserProfile, user=request.user)
+            unique_key = str(uuid.uuid4())
+
             # First try uploading new file
             if upload_file_to_s3(file, unique_key):
 

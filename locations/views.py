@@ -57,6 +57,7 @@ def update_location(request):
 @login_required
 @verification_required
 @active_trip_required
+@require_http_methods(["GET"])
 def get_trip_locations(request):
     try:
         trip = Trip.objects.get(user=request.user, status="IN_PROGRESS")

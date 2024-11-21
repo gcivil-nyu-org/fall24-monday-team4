@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from accounts.models import UserDocument, UserReports
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import Http404
 from .models import UserProfile
 from unittest.mock import call, patch, MagicMock
 from botocore.exceptions import ClientError
@@ -216,7 +217,7 @@ class UserProfileViewsTest(TestCase):
         self.client.login(username="testuser", password="12345")
 
     @patch("utils.s3_utils.s3_client")
-    def test_upload_profile_picture_exception(self, mock_s3):
+    def test_upload_profile_picture_exception_1(self, mock_s3):
         """Test exception handling in upload_profile_picture"""
         mock_s3.exceptions = MagicMock()
         mock_s3.exceptions.ClientError = ClientError
@@ -235,6 +236,21 @@ class UserProfileViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()["success"])
         self.assertEqual(response.json()["error"], "Upload failed")
+
+    @patch("user_profile.views.get_object_or_404")
+    def test_upload_profile_picture_exception_2(self, mock_get_object):
+        # Make get_object_or_404 raise Http404
+        mock_get_object.side_effect = Http404("Profile not found")
+
+        image = SimpleUploadedFile(
+            "test.jpg", b"test content", content_type="image/jpeg"
+        )
+
+        response = self.client.post(reverse("upload_profile_picture"), {"photo": image})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["error"], "Profile not found")
 
     @patch("utils.s3_utils.s3_client")
     def test_remove_profile_picture_delete_fail(self, mock_s3):

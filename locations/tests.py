@@ -2,6 +2,7 @@
 
 # Create your tests here.
 
+from unittest.mock import call, patch
 from django.conf import settings
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -10,7 +11,7 @@ from .models import Trip, Match, UserLocation
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
 from chat.models import ChatRoom, Message
-from locations.views import send_system_message
+from locations.views import send_ems_message, send_system_message
 
 from locations.templatetags.trip_filters import (
     all_matches,
@@ -225,6 +226,96 @@ class LocationViewsTest(TestCase):
         self.trip.refresh_from_db()
         self.assertEqual(self.trip.status, "CANCELLED")
 
+    @patch("locations.views.broadcast_trip_update")
+    def test_cancel_trip_exception(self, mock_broadcast):
+        # Create potential match trip
+        Trip.objects.create(
+            user=self.user2,
+            start_latitude="40.7129",
+            start_longitude="-74.0061",
+            dest_latitude="40.7581",
+            dest_longitude="-73.9856",
+            status="SEARCHING",
+            planned_departure=self.trip.planned_departure,
+            desired_companions=1,
+            search_radius=200,
+        )
+
+        # Make broadcast throw error
+        mock_broadcast.side_effect = Exception("Broadcasting error")
+
+        response = self.client.post(reverse("cancel_trip"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["error"], "Broadcasting error")
+
+    @patch("locations.views.UserLocation.objects.filter")
+    def test_get_trip_locations_exception(self, mock_filter):
+        # Setup in-progress trip
+        self.trip.status = "IN_PROGRESS"
+        self.trip.save()
+
+        # Make the filter query raise an exception
+        mock_filter.side_effect = Exception("Database query failed")
+
+        response = self.client.get(reverse("get_trip_locations"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["error"], "Database query failed")
+
+    @patch("locations.views.broadcast_trip_update")
+    def test_send_match_request_exception(self, mock_broadcast):
+        potential_trip = Trip.objects.create(
+            user=self.user2,
+            status="SEARCHING",
+            start_latitude="40.7129",
+            start_longitude="-74.0061",
+            dest_latitude="40.7581",
+            dest_longitude="-73.9856",
+            planned_departure=self.trip.planned_departure,
+            desired_companions=1,
+        )
+
+        mock_broadcast.side_effect = Exception("Match request broadcast failed")
+
+        response = self.client.post(
+            reverse("send_match_request"),
+            {"trip_id": potential_trip.id, "action": "send"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["error"], "Match request broadcast failed")
+
+    @patch("locations.views.broadcast_trip_update")
+    def test_handle_match_request_exception(self, mock_broadcast):
+        # Create pending match
+        other_trip = Trip.objects.create(
+            user=self.user2,
+            status="SEARCHING",
+            start_latitude="40.7129",
+            start_longitude="-74.0061",
+            dest_latitude="40.7581",
+            dest_longitude="-73.9856",
+            planned_departure=self.trip.planned_departure,
+        )
+
+        match = Match.objects.create(
+            trip1=other_trip, trip2=self.trip, status="PENDING"
+        )
+
+        mock_broadcast.side_effect = Exception("Match handling broadcast failed")
+
+        response = self.client.post(
+            reverse("handle_match_request"), {"match_id": match.id, "action": "accept"}
+        )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["error"], "Match handling broadcast failed")
+
     def test_send_match_request(self):
         # Create another trip to match with
         other_trip = Trip.objects.create(
@@ -337,6 +428,16 @@ class LocationViewsTest(TestCase):
 
         response = self.client.get(reverse("current_trip"))
         self.assertEqual(response.status_code, 200)
+
+    def test_get_trip_locations_with_decorator(self):
+        self.trip.delete()
+        response = self.client.get(
+            reverse("get_trip_locations"), HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(
+            response.json(), {"success": False, "message": "No Active Trip Found."}
+        )
 
     def test_current_trip_with_potential_match(self):
         """Test current_trip view when potential matches exist"""
@@ -545,12 +646,37 @@ class LocationViewsTest(TestCase):
         self.assertEqual(self.trip.status, "COMPLETED")
         self.assertEqual(matched_trip.status, "COMPLETED")
 
-    def test_complete_trip_redirect_to_current_trip(self):
+    def test_complete_trip_invalid_request(self):
         """Test complete_trip redirects to current_trip when not enough votes"""
         # Setup trip with IN_PROGRESS status
 
         response = self.client.get(reverse("complete_trip"))
         self.assertEqual(response.status_code, 405)
+
+    def test_complete_trip_redirect_to_current_trip(self):
+        """Test complete_trip redirects to current_trip when not enough votes"""
+        # Setup trip with IN_PROGRESS status and completion_requested = False
+        self.trip.status = "IN_PROGRESS"
+        self.trip.completion_requested = True
+        self.trip.save()
+
+        # Create a matched trip that has already requested completion
+        matched_trip = Trip.objects.create(
+            user=self.user2,
+            start_latitude="40.7129",
+            start_longitude="-74.0061",
+            dest_latitude="40.7581",
+            dest_longitude="-73.9856",
+            status="IN_PROGRESS",
+            planned_departure=make_aware(datetime.now() + timedelta(hours=1)),
+            completion_requested=False,
+        )
+
+        # Create an accepted match between the trips
+        Match.objects.create(trip1=self.trip, trip2=matched_trip, status="ACCEPTED")
+
+        response = self.client.post(reverse("complete_trip"))
+        self.assertRedirects(response, reverse("current_trip"))
 
     def test_complete_trip_lifecycle(self):
         """Test full trip lifecycle: matching, ready, in_progress, and completion"""
@@ -708,6 +834,128 @@ class LocationViewsTest(TestCase):
 
         expected = "Match between testuser and testuser2"
         self.assertEqual(str(match), expected)
+
+    @patch("locations.views.pusher_client")
+    def test_resolve_panic_user_location_not_found(self, mock_pusher):
+        # Use non-existent username
+        self.user.userprofile.is_verified = True
+        self.user.userprofile.is_emergency_support = True
+        self.location.delete()
+        self.user.save()
+
+        self.client.logout()
+        self.client.login(username="testuser", password="testpass")
+
+        response = self.client.post(reverse("resolve_panic", args=["testuser"]))
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["message"], "User location not found.")
+        mock_pusher.trigger.assert_not_called()
+
+    @patch("locations.views.pusher_client")
+    def test_trigger_panic_success(self, mock_pusher):
+        self.trip.status = "IN_PROGRESS"
+        self.trip.chatroom = ChatRoom.objects.create(name="Test Chatroom")
+        self.trip.save()
+
+        response = self.client.post(
+            reverse("trigger_panic"), {"initial_message": "Help!"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+
+        self.location.refresh_from_db()
+        self.assertTrue(self.location.panic)
+        self.assertEqual(self.location.panic_message, "Help!")
+
+        mock_pusher.trigger.assert_has_calls(
+            [
+                call(
+                    "emergency-channel",
+                    "panic-create",
+                    {
+                        "locations": [
+                            {
+                                "id": self.location.id,
+                                "username": self.user.username,
+                                "panic_message": "Help!",
+                                "latitude": float(self.location.latitude),
+                                "longitude": float(self.location.longitude),
+                            }
+                        ],
+                        "active_users": 1,
+                        "panic_users": 1,
+                    },
+                ),
+                call(
+                    f"chat-{self.trip.chatroom.id}",
+                    "message-event",
+                    {
+                        "message": f"{self.user.username} has triggered panic mode.",
+                        "type": "ems_system",
+                    },
+                ),
+                call(
+                    f"chat-{self.trip.chatroom.id}",
+                    "message-event",
+                    {
+                        "message": self.location.panic_message,
+                        "username": self.user.username,
+                        "type": "ems_panic_message",
+                    },
+                ),
+            ]
+        )
+
+    @patch("locations.views.pusher_client")
+    def test_trigger_panic_user_location_not_found(self, mock_pusher):
+        self.location.delete()
+        response = self.client.post(
+            reverse("trigger_panic"), {"initial_message": "Help!"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["message"], "User location not found.")
+        mock_pusher.trigger.assert_not_called()
+
+    @patch("locations.views.pusher_client")
+    def test_send_ems_message(self, mock_pusher):
+        chatroom = ChatRoom.objects.create(name="Test Chatroom")
+        system_message = "Emergency alert!"
+        panic_message = "Help!"
+
+        send_ems_message(chatroom, system_message, panic_message, self.user)
+
+        self.assertEqual(Message.objects.count(), 2)
+        system_msg = Message.objects.get(message_type="EMS_SYSTEM")
+        panic_msg = Message.objects.get(message_type="EMS_PANIC_MESSAGE")
+
+        self.assertEqual(system_msg.decrypt_message(), system_message)
+        self.assertEqual(system_msg.chat_room, chatroom)
+        self.assertEqual(panic_msg.decrypt_message(), panic_message)
+        self.assertEqual(panic_msg.chat_room, chatroom)
+        self.assertEqual(panic_msg.user, self.user)
+
+        mock_pusher.trigger.assert_has_calls(
+            [
+                call(
+                    f"chat-{chatroom.id}",
+                    "message-event",
+                    {"message": system_message, "type": "ems_system"},
+                ),
+                call(
+                    f"chat-{chatroom.id}",
+                    "message-event",
+                    {
+                        "message": panic_message,
+                        "username": self.user.username,
+                        "type": "ems_panic_message",
+                    },
+                ),
+            ]
+        )
 
 
 class TripFiltersTest(TestCase):
