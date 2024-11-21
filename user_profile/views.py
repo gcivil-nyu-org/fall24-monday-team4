@@ -113,10 +113,7 @@ def remove_profile_picture(request):
 
     try:
         profile = UserProfile.objects.get(user=user)
-    except UserProfile.DoesNotExist:
-        return redirect("profile")
 
-    try:
         if profile.photo_key:
             result = delete_file_from_s3(profile.photo_key)
             if not result:

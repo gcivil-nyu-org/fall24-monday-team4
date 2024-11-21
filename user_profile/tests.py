@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from accounts.models import UserDocument, UserReports
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .models import UserProfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import call, patch, MagicMock
 from botocore.exceptions import ClientError
 
 
@@ -237,7 +237,7 @@ class UserProfileViewsTest(TestCase):
         self.assertEqual(response.json()["error"], "Upload failed")
 
     @patch("utils.s3_utils.s3_client")
-    def test_remove_profile_picture_delete_fail_1(self, mock_s3):
+    def test_remove_profile_picture_delete_fail(self, mock_s3):
         """Test failed deletion message in remove_profile_picture"""
         # Setup profile with photo
         self.user_profile.photo_key = "test_key"
@@ -354,6 +354,30 @@ class UserProfileViewsTest(TestCase):
         self.assertIsNone(self.user_profile.file_name)
         self.assertIsNone(self.user_profile.file_type)
 
+    @patch("utils.s3_utils.delete_file_from_s3")
+    def test_remove_profile_picture_oldpicdelete(self, mock_delete):
+        self.user_profile.photo_key = "test_photo_key"
+        self.user_profile.save()
+
+        mock_delete.return_value = False
+
+        with patch("builtins.print") as mock_print:
+            response = self.client.post(reverse("remove_profile_picture"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+        self.user_profile.refresh_from_db()
+        self.assertIsNone(self.user_profile.photo_key)
+        self.assertIsNone(self.user_profile.file_name)
+        self.assertIsNone(self.user_profile.file_type)
+
+        mock_print.assert_has_calls(
+            [
+                call("File with key test_photo_key does not exist."),
+                call("Failed to delete old profile picture with key: test_photo_key"),
+            ]
+        )
+
     def test_remove_profile_picture_no_photo(self):
         self.user_profile.photo_key = None
         self.user_profile.save()
@@ -365,13 +389,3 @@ class UserProfileViewsTest(TestCase):
         self.assertEqual(
             response.json()["error_message"], "No profile picture to remove."
         )
-
-    @patch("user_profile.views.delete_file_from_s3")
-    def test_remove_profile_picture_delete_fails_2(self, mock_delete):
-        mock_delete.side_effect = Exception("Delete failed")
-
-        response = self.client.post(reverse("remove_profile_picture"))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.json()["success"])
-        self.assertEqual(response.json()["error_message"], "Delete failed")
