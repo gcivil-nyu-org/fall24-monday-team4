@@ -184,9 +184,9 @@
         data.documents.forEach(doc => {
             const row = document.createElement('tr');
             row.innerHTML = `
-            <td>${doc.filename}</td>
+            <td>${Security.escapeHTML(doc.filename)}</td>
             <td>
-               <textarea class="form-control" rows="2" readonly>${doc.description || 'No description added.'}</textarea>
+               <textarea class="form-control" rows="1" readonly>${Security.escapeHTML(doc.description) || 'No description added.'}</textarea>
             </td>
             <td>${formatDate(doc.created_at)}</td>
             <td>${createBadge(doc.status_id)}</td>

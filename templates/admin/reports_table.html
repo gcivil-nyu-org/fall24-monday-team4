@@ -120,9 +120,11 @@
                                                             <i class="fa-${report.is_acknowledged ? 'regular fa-circle-check' : 'solid fa-circle-exclamation'}"></i>
                                                         </span>
                                                     </td>
-                                                    <td>${report.subject}</td>
                                                     <td>
-                                                        <textarea class="form-control" rows="2" readonly>${report.description || 'No description added.'}</textarea>
+                                                        <textarea class="form-control" rows="1" readonly>${Security.escapeHTML(report.subject) || 'No subject added.'}</textarea>
+                                                    </td>
+                                                    <td>
+                                                        <textarea class="form-control" rows="1" readonly>${Security.escapeHTML(report.description) || 'No description added.'}</textarea>
                                                     </td>
                                                     <td>${report.reporter_username}</td>
                                                     <td>${new Date(report.created_at).toLocaleString()}</td>

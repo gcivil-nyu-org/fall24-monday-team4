@@ -6,9 +6,8 @@
       <title>RoutePals - {% block title %}{% endblock %}</title>
       {% load bootstrap5 %}
       {% bootstrap_css %}
-
-      <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
       
+      <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -23,6 +22,7 @@
       <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
       <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+      <script src="{% static 'js/security.js' %}"></script>
 
       <style>
         .leaflet-routing-container{
