@@ -35,7 +35,8 @@
         <!-- Show map with user's current location if logged in -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <div class="container mt-4">    
-            <h2>Create a Trip</h2>
+            <h3>Create a Trip</h3>
+            <hr />
             <form method="POST" action="{% url 'create_trip' %}" class="mt-3" id="tripForm">
                 {% csrf_token %}
                 <div class="mb-3">
@@ -112,9 +113,9 @@
                         </div>
                     </div>
                 </div> -->
-                <p>Click on map to set destination</p>
+                <p>Click on map to set location</p>
 
-                <button type="submit" class="btn btn-primary" id="submitTrip">Create Trip</button>
+                <button type="submit" class="btn btn-primary btn-lg" id="submitTrip">Create Trip</button>
             </form>
         </div>
         
