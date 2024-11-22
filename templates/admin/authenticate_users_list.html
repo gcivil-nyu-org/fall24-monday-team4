@@ -10,8 +10,10 @@
                 <th scope="col">Emergency Support</th>
                 <th scope="col">Status</th>
                 <th scope="col">Date Joined</th>
-                <th scope="col">Manage Authentication</th>
                 <th scope="col">Manage Account</th>
+                <th scope="col">Manage Authentication</th>
+                <th scope="col">Set Emergency Support</th>
+                <th scope="col">Set Administrator</th>
             </tr>
             </thead>
             <tbody id="user-authenticate-list" style="display: table-row-group;">
@@ -53,9 +55,19 @@
                     </td>
                     <td>{{ item.date_joined|date:"Y-m-d H:i:s" }}</td>
                     <td>
-                        {% if user == item %}
-                        -
-                        {% else %}
+                        {% if item != user %}
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-success btn-sm" {% if item.is_active %}disabled{%endif%} onclick="activateAccount('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
+                                Activate
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" {% if not item.is_active %}disabled{%endif%} onclick="deactivateAccount('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
+                                Deactivate
+                            </button>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item != user %}
                         <div class="btn-group" role="group">
                             <button type="button" class="btn btn-info btn-sm" {% if item.userprofile.is_verified %}disabled{%endif%} onclick="verifyAccount('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
                                 Authenticate
@@ -67,15 +79,25 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if user == item %}
-                        -
-                        {% else %}
+                        {% if item != user %}
                         <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-success btn-sm" {% if item.is_active %}disabled{%endif%} onclick="activateAccount('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
-                                Activate
+                            <button type="button" class="btn btn-info btn-sm" {% if item.userprofile.is_emergency_support %}disabled{%endif%} onclick="setEmergencySupport('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
+                                Assign
                             </button>
-                            <button type="button" class="btn btn-danger btn-sm" {% if not item.is_active %}disabled{%endif%} onclick="deactivateAccount('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
-                                Deactivate
+                            <button type="button" class="btn btn-warning btn-sm" {% if not item.userprofile.is_emergency_support %}disabled{%endif%} onclick="unsetEmergencySupport('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
+                                Unassign
+                            </button>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item != user %}
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-info btn-sm" {% if item.is_staff %}disabled{%endif%} onclick="setAdmin('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
+                                Authorize
+                            </button>
+                            <button type="button" class="btn btn-warning btn-sm" {% if not item.is_staff %}disabled{%endif%} onclick="unsetAdmin('{{item.id}}', '{{ item.first_name }} {{ item.last_name}} ({{ item.username }})')">
+                                Unauthorize
                             </button>
                         </div>
                         {% endif %}
@@ -246,6 +268,154 @@
             }
         } catch (error) {
             alert("An error occurred while unauthenticating the account.");
+            tableBody.style.display = 'table-row-group';
+            spinner.style.display = 'none';
+        }
+    }
+
+    async function setEmergencySupport(accountId, name) {
+        if (!confirm(`Are you sure you want to assign this account to Emergency Support - "${name}"?`)) {
+            return;
+        }
+
+        const tableBody = document.getElementById('user-authenticate-list');
+        const spinner = document.getElementById('table-loading-spinner');
+
+        tableBody.style.display = 'none';
+        spinner.style.display = 'table-row-group';
+
+        try {
+            const response = await fetch("{% url 'set_emergency_support' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ user_id: accountId })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                window.location.reload();
+            } else {
+                alert(`Error: ${result.error}`);
+                tableBody.style.display = 'table-row-group';
+                spinner.style.display = 'none';
+            }
+        } catch (error) {
+            alert("An error occurred while assigning as emergency support.");
+            tableBody.style.display = 'table-row-group';
+            spinner.style.display = 'none';
+        }
+    }
+
+    async function unsetEmergencySupport(accountId, name) {
+        if (!confirm(`Are you sure you want to unassign this account from Emergency Support - "${name}"?`)) {
+            return;
+        }
+
+        const tableBody = document.getElementById('user-authenticate-list');
+        const spinner = document.getElementById('table-loading-spinner');
+
+        tableBody.style.display = 'none';
+        spinner.style.display = 'table-row-group';
+
+        try {
+            const response = await fetch("{% url 'unset_emergency_support' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ user_id: accountId })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                window.location.reload();
+            } else {
+                alert(`Error: ${result.error}`);
+                tableBody.style.display = 'table-row-group';
+                spinner.style.display = 'none';
+            }
+        } catch (error) {
+            alert("An error occurred while unassigning from emergency support.");
+            tableBody.style.display = 'table-row-group';
+            spinner.style.display = 'none';
+        }
+    }
+
+    async function setAdmin(accountId, name) {
+        if (!confirm(`Are you sure you want to authorize this account as an administrator - "${name}"?`)) {
+            return;
+        }
+
+        const tableBody = document.getElementById('user-authenticate-list');
+        const spinner = document.getElementById('table-loading-spinner');
+
+        tableBody.style.display = 'none';
+        spinner.style.display = 'table-row-group';
+
+        try {
+            const response = await fetch("{% url 'set_admin' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ user_id: accountId })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                window.location.reload();
+            } else {
+                alert(`Error: ${result.error}`);
+                tableBody.style.display = 'table-row-group';
+                spinner.style.display = 'none';
+            }
+        } catch (error) {
+            alert("An error occurred while authorizing as administrator.");
+            tableBody.style.display = 'table-row-group';
+            spinner.style.display = 'none';
+        }
+    }
+
+    async function unsetAdmin(accountId, name) {
+        if (!confirm(`Are you sure you want to unauthorize this account as an administrator - "${name}"?`)) {
+            return;
+        }
+
+        const tableBody = document.getElementById('user-authenticate-list');
+        const spinner = document.getElementById('table-loading-spinner');
+
+        tableBody.style.display = 'none';
+        spinner.style.display = 'table-row-group';
+
+        try {
+            const response = await fetch("{% url 'unset_admin' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ user_id: accountId })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                window.location.reload();
+            } else {
+                alert(`Error: ${result.error}`);
+                tableBody.style.display = 'table-row-group';
+                spinner.style.display = 'none';
+            }
+        } catch (error) {
+            alert("An error occurred while unauthorizing as administrator.");
             tableBody.style.display = 'table-row-group';
             spinner.style.display = 'none';
         }

@@ -368,3 +368,51 @@ class UserManagementTest(AdminViewsBaseTest):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 500)
+
+    def test_set_emergency_support_no_user_id(self):
+        response = self.client.post(
+            reverse("set_emergency_support"),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_set_emergency_support_exception(self):
+        response = self.client.post(
+            reverse("set_emergency_support"),
+            data=json.dumps({"user_id": 99999}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+
+    def test_set_admin_no_user_id(self):
+        response = self.client.post(
+            reverse("set_admin"),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_set_admin_exception(self):
+        response = self.client.post(
+            reverse("set_admin"),
+            data=json.dumps({"user_id": 99999}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+
+    def test_unset_admin_no_user_id(self):
+        response = self.client.post(
+            reverse("unset_admin"),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_unset_admin_exception(self):
+        response = self.client.post(
+            reverse("unset_admin"),
+            data=json.dumps({"user_id": 99999}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
