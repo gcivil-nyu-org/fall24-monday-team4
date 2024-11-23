@@ -219,3 +219,58 @@ class XSSMiddlewareTest(TestCase):
         self.assertIn('"number": 123', response.content.decode())
         self.assertIn('"boolean": true', response.content.decode())
         self.assertIn('"null": null', response.content.decode())
+
+    def test_response_without_content_type(self):
+        """Test handling response without content_type attribute"""
+        request = self.factory.get("/")
+        mock_response = MagicMock()
+        delattr(mock_response, "content_type")  # Force hasattr to return False
+        request.test_response = mock_response
+
+        response = self.middleware(request)
+        self.assertEqual(response, mock_response)
+
+    def test_non_json_content_type(self):
+        """Test handling non-JSON content type"""
+        request = self.factory.get("/")
+        mock_response = MagicMock()
+        mock_response.content_type = "text/html"
+        request.test_response = mock_response
+
+        response = self.middleware(request)
+        self.assertEqual(response, mock_response)
+
+    def test_empty_json_content(self):
+        """Test handling empty content in JSON response"""
+        request = self.factory.get("/")
+        mock_response = MagicMock()
+        mock_response.content_type = "application/json"
+        mock_response.content = b""
+        request.test_response = mock_response
+
+        response = self.middleware(request)
+        self.assertEqual(response, mock_response)
+
+    def test_invalid_json_decode(self):
+        """Test handling invalid JSON content"""
+        request = self.factory.get("/")
+        mock_response = MagicMock()
+        mock_response.content_type = "application/json"
+        mock_response.content = b"invalid json"
+        mock_response.content.decode.return_value = "invalid json"
+        request.test_response = mock_response
+
+        response = self.middleware(request)
+        self.assertEqual(response, mock_response)
+
+    def test_tuple_in_json(self):
+        """Test handling tuple in JSON content"""
+        request = self.factory.get("/")
+        request.test_response = JsonResponse(
+            {"tuple": tuple(["<script>alert(1)</script>", "<script>alert(2)</script>"])}
+        )
+
+        response = self.middleware(request)
+        data = json.loads(response.content)
+        self.assertEqual(data["tuple"][0], "<script>alert(1)</script>")
+        self.assertEqual(data["tuple"][1], "<script>alert(2)</script>")
