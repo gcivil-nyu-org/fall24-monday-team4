@@ -402,3 +402,119 @@ def unverify_account(request):
         )
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@login_required
+@verification_required
+@staff_member_required
+@require_http_methods(["POST"])
+def set_emergency_support(request):
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+
+        if user_id is None:
+            return JsonResponse(
+                {"success": False, "error": "User ID is required."}, status=400
+            )
+
+        user = get_object_or_404(User, id=user_id)
+        user_profile = get_object_or_404(UserProfile, user=user)
+
+        user_profile.is_emergency_support = True
+        user_profile.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "User account has been successfully set as Emergency Support.",
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@login_required
+@verification_required
+@staff_member_required
+@require_http_methods(["POST"])
+def unset_emergency_support(request):
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+
+        if user_id is None:
+            return JsonResponse(
+                {"success": False, "error": "User ID is required."}, status=400
+            )
+        user = get_object_or_404(User, id=user_id)
+        user_profile = get_object_or_404(UserProfile, user=user)
+
+        user_profile.is_emergency_support = False
+        user_profile.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "User account has been successfully unset as Emergency Support.",
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@login_required
+@verification_required
+@staff_member_required
+@require_http_methods(["POST"])
+def set_admin(request):
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+
+        if user_id is None:
+            return JsonResponse(
+                {"success": False, "error": "User ID is required."}, status=400
+            )
+
+        user = get_object_or_404(User, id=user_id)
+
+        user.is_staff = True
+        user.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "User account has been successfully set as administrator.",
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@login_required
+@verification_required
+@staff_member_required
+@require_http_methods(["POST"])
+def unset_admin(request):
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+
+        if user_id is None:
+            return JsonResponse(
+                {"success": False, "error": "User ID is required."}, status=400
+            )
+        user = get_object_or_404(User, id=user_id)
+
+        user.is_staff = False
+        user.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "User account has been successfully unset as administrator.",
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

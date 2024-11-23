@@ -36,6 +36,8 @@
           display: flex;
           flex-direction: column;
           margin: 0;
+          background-color: white;
+          color: black;
         }
 
         main {
@@ -45,40 +47,46 @@
         .container-fluid {
           flex: 1;
         }
+
+        .navbar-light .navbar-brand {
+          color: rgb(81, 0, 128);
+        }
       </style>
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-light p-3 mb-2 bg-dark bg-gradient text-white">
-      <div class="container-fluid">
-        <a class="navbar-brand text-light" href="/">RoutePals</a>
+    <nav class="navbar navbar-expand-lg navbar-light bg-transparent bg-gradient p-3">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#routepalsNav" aria-controls="routepalsNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <a class="navbar-brand" href="/"><b>RoutePals</b></a>
         {% if user.is_authenticated %}
-          <div class="collapse navbar-collapse">
-            <ul class="navbar-nav mr-auto">
+          <div class="collapse navbar-collapse" id="routepalsNav">
+            <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
               <!-- Regular User Navigation -->
               {% if user.userprofile.is_verified %}
                 {% if user.userprofile.is_emergency_support %}
                   <li class="nav-item">
-                    <a class="nav-link link-light" href="{% url 'emergency_support' %}">Emergency Support</a>
+                    <a class="nav-link" href="{% url 'emergency_support' %}">Emergency Support</a>
                   </li>
                 {% else %}
                   <li class="nav-item">
-                    <a class="nav-link link-light" href="{% url 'home' %}">Home</a>
+                    <a class="nav-link" href="{% url 'home' %}">Home</a>
                   </li>
                   <li class="nav-item">
-                    <a class="nav-link link-light" href="{% url 'current_trip' %}">Current Trip</a>
+                    <a class="nav-link" href="{% url 'current_trip' %}">Current Trip</a>
                   </li>
                   <li class="nav-item">
-                    <a class="nav-link link-light" href="{% url 'previous_trips' %}">Previous Trips</a>
+                    <a class="nav-link" href="{% url 'previous_trips' %}">Previous Trips</a>
                   </li>
                   {% if user.is_staff %}
                     <li class="nav-item">
-                      <a class="nav-link link-light" href="{% url 'admin_view' %}">Admin</a>
+                      <a class="nav-link" href="{% url 'admin_view' %}">Admin</a>
                     </li>
                   {% endif %}
                 {% endif %}
               {% endif %}
               <li class="nav-item">
-                <a class="nav-link link-light" href="{% url 'user_document_list' %}">Documents</a>
+                <a class="nav-link" href="{% url 'user_document_list' %}">Documents</a>
               </li>
             </ul>
           </div>
@@ -96,20 +104,19 @@
           <span class="navbar-text">
             <form class="form-inline" action="{% url 'logout' %}" method="post">
               {% csrf_token %}
-              <button class="btn btn-outline-light" type="submit">Log Out</button>
+              <button class="btn btn-outline-dark" type="submit">Log Out</button>
             </form>
           </span>
         {% endif %}
-      </div>
     </nav>
     <main class="container mb-3">
       {% block content %}
       {% endblock %}
     </main>
     
-    <footer class="footer p-3 mt-3 bg-dark bg-gradient text-white">
+    <footer class="footer p-3 mt-3 bg-transparent">
       <div class="container text-center">
-          <span class="text-light">&copy; <script>document.write(new Date().getFullYear())</script> RoutePals. All rights reserved.</span>
+          <span class="text-dark">&copy; <script>document.write(new Date().getFullYear())</script> RoutePals. All rights reserved.</span>
       </div>
     </footer>
     {% bootstrap_javascript %}
