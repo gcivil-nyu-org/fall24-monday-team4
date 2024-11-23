@@ -57,6 +57,7 @@
 
                         reportForm.reset();
                         errorMessage.style.display = "none";
+                        alert("Your Report Has Been Submitted Successfully!");
                     } else {
                         errorMessage.innerText = data.error_message || "There was an error saving your report.";
                         errorMessage.style.display = "block";
