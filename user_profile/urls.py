@@ -15,4 +15,5 @@ urlpatterns = [
         views.remove_profile_picture,
         name="remove_profile_picture",
     ),
+    path('update_social_handles/', views.update_social_handles, name='update_social_handles'),
 ]

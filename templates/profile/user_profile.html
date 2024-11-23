@@ -10,19 +10,19 @@
             <div class="card profile-card text-center shadow" style="margin-top: 5rem">
                 <div>
                     <div class="row justify-content-center">
-                    {% if profile.photo_key %}
+                        {% if profile.photo_key %}
                         <img src={{ profile_picture_url }} alt="User Picture" id="activeUserPicture" class="rounded-circle" style="padding: unset; width: 150px; height: 150px; margin-top: -75px; display: flex; align-items: center; justify-content: center;"/>
-                    {% else %}
+                        {% else %}
                         <div class="rounded-circle" style="width: 150px; height: 150px; background-color: black; margin-top: -75px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
                             ?
                         </div>
-                    {% endif %}
+                        {% endif %}
                     </div>
                     {% if is_user %}
-                        <button type="button" class="btn btn-outline-dark btn-sm mt-1" id="upload-button" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                            <i class="fa-solid fa-camera"></i> Manage Profile Picture
-                        </button>
-                        {% include 'profile/upload_profile_picture_modal.html' %}
+                    <button type="button" class="btn btn-outline-dark btn-sm mt-1" id="upload-button" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                        <i class="fa-solid fa-camera"></i> Manage Profile Picture
+                    </button>
+                    {% include 'profile/upload_profile_picture_modal.html' %}
                     {% endif %}
                 </div>
                 <div class="card-body">
@@ -74,11 +74,38 @@
                     <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reportUserModal">Report User</button>
                     {% include 'profile/report_user_modal.html' %}
                     {% endif %}
-                    <div class="social-icons">
-                        <i class="fa-brands fa-instagram fa-2x" style="margin: 1rem"></i>
-                        <i class="fa-brands fa-facebook fa-2x" style="margin: 1rem"></i>
-                        <i class="fa-brands fa-twitter fa-2x" style="margin: 1rem"></i>
+                    <div class="social-icons" style="text-decoration: unset">
+                        {% if profile.instagram_handle %}
+                            <a href="https://instagram.com/{{ profile.instagram_handle }}" target="_blank">
+                                <i class="fa-brands fa-instagram fa-2x" style="margin: 1rem; color: #000"></i>
+                            </a>
+                        {% else %}
+                            <i class="fa-brands fa-instagram fa-2x" style="margin: 1rem; color: #ccc"></i>
+                        {% endif %}
+
+                        {% if profile.facebook_handle %}
+                            <a href="https://facebook.com/{{ profile.facebook_handle }}" target="_blank">
+                                <i class="fa-brands fa-facebook fa-2x" style="margin: 1rem; color: #000"></i>
+                            </a>
+                        {% else %}
+                            <i class="fa-brands fa-facebook fa-2x" style="margin: 1rem; color: #ccc"></i>
+                        {% endif %}
+
+                        {% if profile.twitter_handle %}
+                            <a href="https://twitter.com/{{ profile.twitter_handle }}" target="_blank">
+                                <i class="fa-brands fa-twitter fa-2x" style="margin: 1rem; color: #000"></i>
+                            </a>
+                        {% else %}
+                            <i class="fa-brands fa-twitter fa-2x" style="margin: 1rem; color: #ccc"></i>
+                        {% endif %}
                     </div>
+
+                    {% if is_user %}
+                    <button type="button" class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#socialMediaModal">
+                        Manage Social Media Handles
+                    </button>
+                    {% include 'profile/add_social_media_modal.html' %}
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -86,23 +113,27 @@
 </div>
 
 {% if is_user %}
-    <script>
-        const editButton = document.getElementById('edit-button');
-        const textarea = document.getElementById('user-bio');
-        const editControls = document.getElementById('edit-controls');
-        let originalValue = textarea.value;
+<script>
+    const editButton = document.getElementById('edit-button');
+    const textarea = document.getElementById('user-bio');
+    const editControls = document.getElementById('edit-controls');
+    let originalValue = textarea.value;
 
-        editButton.addEventListener('click', () => {
-            textarea.removeAttribute('readonly');
-            editControls.style.display = 'block';
-        });
+    editButton.addEventListener('click', () => {
+        textarea.removeAttribute('readonly');
+        editControls.style.display = 'block';
+    });
 
-        document.getElementById('cancel-button').addEventListener('click', () => {
-            textarea.setAttribute('readonly', true);
-            editControls.style.display = 'none';
-            textarea.value = originalValue;
-        });
-    </script>
+    document.getElementById('cancel-button').addEventListener('click', () => {
+        textarea.setAttribute('readonly', true);
+        editControls.style.display = 'none';
+        textarea.value = originalValue;
+    });
+</script>
 {%endif%}
-
+<style>
+    a {
+        text-decoration: unset;
+    }
+</style>
 {% endblock %}

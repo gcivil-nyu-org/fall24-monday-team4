@@ -111,7 +111,6 @@ def report_user(request):
 @require_http_methods(["POST"])
 def remove_profile_picture(request):
     user = request.user
-
     try:
         profile = UserProfile.objects.get(user=user)
 
@@ -133,3 +132,23 @@ def remove_profile_picture(request):
         )
     except Exception as e:
         return JsonResponse({"success": False, "error_message": str(e)})
+
+@login_required(login_url="home")
+@verification_required
+@require_http_methods(["POST"])
+def update_social_handles(request):
+    if request.method == "POST":
+        profile = UserProfile.objects.get(user=request.user)
+
+        instagram = request.POST.get("instagram", "").strip() or None
+        facebook = request.POST.get("facebook", "").strip() or None
+        twitter = request.POST.get("twitter", "").strip() or None
+
+        profile.instagram_handle = instagram
+        profile.facebook_handle = facebook
+        profile.twitter_handle = twitter
+        profile.save()
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False, "error_message": "Invalid request."})
