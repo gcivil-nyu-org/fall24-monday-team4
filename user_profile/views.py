@@ -133,6 +133,7 @@ def remove_profile_picture(request):
     except Exception as e:
         return JsonResponse({"success": False, "error_message": str(e)})
 
+
 @login_required(login_url="home")
 @verification_required
 @require_http_methods(["POST"])

@@ -76,7 +76,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
-                "routepals.context_processors.profile_picture"
+                "routepals.context_processors.profile_picture",
             ],
         },
     },
