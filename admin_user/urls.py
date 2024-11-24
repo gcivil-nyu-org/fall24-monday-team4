@@ -23,4 +23,16 @@ urlpatterns = [
     path("activate-account/", views.activate_account, name="activate_account"),
     path("verify-account/", views.verify_account, name="verify_account"),
     path("unverify-account/", views.unverify_account, name="unverify_account"),
+    path(
+        "set-emergency-support/",
+        views.set_emergency_support,
+        name="set_emergency_support",
+    ),
+    path(
+        "unset-emergency-support/",
+        views.unset_emergency_support,
+        name="unset_emergency_support",
+    ),
+    path("set-admin/", views.set_admin, name="set_admin"),
+    path("unset-admin/", views.unset_admin, name="unset_admin"),
 ]

@@ -36,9 +36,6 @@
         const reportModal = document.getElementById('reportUserModal');
         const errorMessage = document.getElementById('error-message-report-user');
 
-        const subjectField = document.getElementById('subject');
-        const descriptionField = document.getElementById('description');
-
         reportForm.addEventListener('submit', function(event) {
             event.preventDefault();
             const formData = new FormData(this);
@@ -57,6 +54,7 @@
 
                         reportForm.reset();
                         errorMessage.style.display = "none";
+                        alert("Your Report Has Been Submitted Successfully!");
                     } else {
                         errorMessage.innerText = data.error_message || "There was an error saving your report.";
                         errorMessage.style.display = "block";

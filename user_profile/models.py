@@ -14,6 +14,9 @@ class UserProfile(models.Model):
     file_type = models.CharField(max_length=50, blank=True, null=True)
     is_emergency_support = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
+    instagram_handle = models.CharField(max_length=100, blank=True, null=True)
+    twitter_handle = models.CharField(max_length=100, blank=True, null=True)
+    facebook_handle = models.CharField(max_length=100, blank=True, null=True)
 
     def get_photo_url(self):
         if self.photo_key:
