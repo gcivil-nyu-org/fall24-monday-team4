@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
-from django.db.models import Q, Count, Case, When, IntegerField
+from django.db.models import Count, Case, When, IntegerField
 from accounts.models import UserReports, UserDocument
 from utils.s3_utils import generate_presigned_url
 from django.http import JsonResponse
@@ -10,11 +10,8 @@ from user_profile.models import UserProfile
 from django.views.decorators.http import require_http_methods
 from django.core.mail import send_mail
 from django.conf import settings
-import logging
 import json
 from user_profile.decorators import verification_required
-
-logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -24,19 +21,14 @@ def admin_view(request):
     users = User.objects.select_related("userprofile").all()
     active_users = (
         User.objects.select_related("userprofile")
-        .filter(
-            Q(documents__deleted_at__isnull=True) & Q(documents__s3_key__isnull=False)
-        )
+        .filter(documents__s3_key__isnull=False)
         .distinct()
     )
 
     user_documents = []
-
     for user in active_users:
-        documents = user.documents.filter(deleted_at__isnull=True)
-
-        pending_count = user.documents.filter(status=1, deleted_at__isnull=True).count()
-
+        documents = user.documents.all()
+        pending_count = documents.filter(status=1).count()
         document_data = [
             {
                 "filename": document.filename,
@@ -48,7 +40,6 @@ def admin_view(request):
             }
             for document in documents
         ]
-
         if document_data:
             user_documents.append(
                 {
@@ -68,6 +59,7 @@ def admin_view(request):
 @login_required
 @verification_required
 @staff_member_required
+@require_http_methods(["GET"])
 def reported_users_list(request):
     reported_active_users = (
         User.objects.filter(is_active=True, reports_received__isnull=False)
@@ -97,54 +89,12 @@ def reported_users_list(request):
 @login_required
 @verification_required
 @staff_member_required
-def get_admin_document_list(request):
-    try:
-        active_users = User.objects.filter(
-            Q(documents__deleted_at__isnull=True) & Q(documents__s3_key__isnull=False)
-        ).distinct()
-
-        user_documents = []
-
-        for user in active_users:
-            documents = user.documents.filter(deleted_at__isnull=True)
-
-            pending_count = user.documents.filter(
-                status=1, deleted_at__isnull=True
-            ).count()
-            document_data = [
-                {
-                    "id": document.id,
-                    "filename": document.filename,
-                    "file_type": document.file_type,
-                    "created_at": document.created_at,
-                    "status": dict(UserDocument.STATUS_CHOICES)[document.status],
-                    "description": document.description,
-                    "document_url": generate_presigned_url(document.s3_key),
-                }
-                for document in documents
-            ]
-
-            if document_data:
-                user_documents.append(
-                    {
-                        "user": user,
-                        "documents": document_data,
-                        "pending_count": pending_count,
-                    }
-                )
-
-        return JsonResponse({"success": True, "documents": user_documents}, status=200)
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
-
-
-@login_required
-@verification_required
-@staff_member_required
+@require_http_methods(["GET"])
 def get_user_documents(request, user_id):
-    documents = UserDocument.objects.filter(user_id=user_id, deleted_at__isnull=True)
+    documents = UserDocument.objects.filter(user_id=user_id)
     user = get_object_or_404(User, id=user_id)
-    pending_count = user.documents.filter(status=1, deleted_at__isnull=True).count()
+    pending_count = documents.filter(status=1).count()
+
     document_data = [
         {
             "id": document.id,
@@ -173,6 +123,7 @@ def get_user_documents(request, user_id):
 @login_required
 @verification_required
 @staff_member_required
+@require_http_methods(["POST"])
 def accept_document(request, user_id, document_id):
     document = get_object_or_404(UserDocument, id=document_id, user_id=user_id)
     document.status = 2
@@ -195,6 +146,7 @@ def accept_document(request, user_id, document_id):
 @login_required
 @verification_required
 @staff_member_required
+@require_http_methods(["POST"])
 def reject_document(request, user_id, document_id):
     document = get_object_or_404(UserDocument, id=document_id, user_id=user_id)
     document.status = 3
@@ -288,6 +240,7 @@ def deactivate_account_email(user):
 @login_required
 @verification_required
 @staff_member_required
+@require_http_methods(["POST"])
 def deactivate_account(request):
     try:
         data = json.loads(request.body)
@@ -330,6 +283,7 @@ def activate_account_email(user):
 @login_required
 @verification_required
 @staff_member_required
+@require_http_methods(["POST"])
 def activate_account(request):
     try:
         data = json.loads(request.body)
@@ -374,6 +328,7 @@ def verify_account_email(user):
 @login_required
 @verification_required
 @staff_member_required
+@require_http_methods(["POST"])
 def verify_account(request):
     try:
         data = json.loads(request.body)
@@ -422,6 +377,7 @@ def unverify_account_email(user):
 @login_required
 @verification_required
 @staff_member_required
+@require_http_methods(["POST"])
 def unverify_account(request):
     try:
         data = json.loads(request.body)

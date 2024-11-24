@@ -23,11 +23,6 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path("documents-list/", views.uploaded_documents_view, name="user_document_list"),
-    path(
-        "upload_document_modal/",
-        views.upload_document_modal,
-        name="upload_document_modal_url",
-    ),
     path("upload_document/", views.upload_document, name="upload_document"),
     path("delete_document/", views.delete_document, name="delete_document"),
 ]

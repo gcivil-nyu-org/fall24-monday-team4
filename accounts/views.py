@@ -16,10 +16,9 @@ from utils.s3_utils import (
 )
 import uuid
 from django.http import JsonResponse
-from django.db.models import Q
-from django.contrib.auth.models import User
-from django.utils.timezone import now
 import json
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods
 
 
 def WelcomeEmail(user):
@@ -92,8 +91,9 @@ class ResetPassword(SuccessMessageMixin, PasswordResetView):
     success_url = reverse_lazy("password_reset_done")
 
 
+@login_required(login_url="home")
 def uploaded_documents_view(request):
-    documents = UserDocument.objects.filter(user=request.user, deleted_at__isnull=True)
+    documents = UserDocument.objects.filter(user=request.user)
     for document in documents:
         document.documentUrl = generate_presigned_url(document.s3_key)
 
@@ -104,14 +104,10 @@ def uploaded_documents_view(request):
     )
 
 
-def upload_document_modal(request):
-    return render(
-        request, "documents/upload_document_modal.html", {"user": request.user}
-    )
-
-
+@login_required(login_url="home")
+@require_http_methods(["POST"])
 def upload_document(request):
-    if request.method == "POST" and request.FILES.get("document"):
+    if request.FILES.get("document"):
         document = request.FILES["document"]
         description = request.POST.get("fileDescription")
         user = request.user
@@ -132,49 +128,11 @@ def upload_document(request):
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
 
-    return JsonResponse({"success": False, "error": "Invalid request"})
+    return JsonResponse({"success": False, "error": "No document attachment found."})
 
 
-def documents_list(request):
-    active_users = User.objects.filter(
-        Q(documents__deleted_at__isnull=True) & Q(documents__s3_key__isnull=False)
-    ).distinct()
-
-    user_documents = []
-
-    for user in active_users:
-        documents = user.documents.filter(deleted_at__isnull=True)
-
-        pending_count = user.documents.filter(
-            status__id=1, deleted_at__isnull=True
-        ).count()
-
-        document_data = [
-            {
-                "filename": document.filename,
-                "file_type": document.file_type,
-                "created_at": document.created_at,
-                "status": document.status,
-                "description": document.description,
-                "document_url": generate_presigned_url(document.s3_key),
-            }
-            for document in documents
-        ]
-
-        if document_data:
-            user_documents.append(
-                {
-                    "user": user,
-                    "documents": document_data,
-                    "pending_count": pending_count,
-                }
-            )
-
-    return render(
-        request, "documents/documents_list.html", {"user_documents": user_documents}
-    )
-
-
+@login_required(login_url="home")
+@require_http_methods(["POST"])
 def delete_document(request):
     try:
         data = json.loads(request.body)
@@ -186,10 +144,9 @@ def delete_document(request):
                 status=400,
             )
 
-        document = get_object_or_404(UserDocument, id=document_id)
+        document = get_object_or_404(UserDocument, id=document_id, user=request.user)
         delete_file_from_s3(document.s3_key)
-        document.deleted_at = now()
-        document.save()
+        document.delete()
 
         return JsonResponse(
             {"success": True, "message": "Document has been successfully deleted."}

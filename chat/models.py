@@ -16,15 +16,18 @@ class ChatRoom(models.Model):
 
 
 class Message(models.Model):
+    MESSAGE_TYPES = [
+        ("USER", "User Message"),
+        ("SYSTEM", "System Alert"),
+        ("EMS_SYSTEM", "Emergency System Alert"),
+        ("EMS_PANIC_MESSAGE", "Emergency Panic Message"),
+    ]
+
     chat_room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, null=True
-    )  # Make user nullable
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     message = models.TextField()
     message_type = models.CharField(
-        max_length=10,
-        choices=[("USER", "User Message"), ("SYSTEM", "System Alert")],
-        default="USER",
+        max_length=20, choices=MESSAGE_TYPES, default="USER"
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

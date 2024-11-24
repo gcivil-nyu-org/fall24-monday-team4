@@ -45,13 +45,23 @@
                     </div>
                 </div>
             </div>
-            <div id="panic-alert" class="alert alert-danger mt-4" style="display: none;">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Active Panic Alert!</h4>
-                        <p id="panic-coordinates" class="mb-0"></p>
+            <div class="modal fade" id="panicDetailsModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Active Panic Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>User:</strong> <span id="modalUsername"></span></p>
+                            <p><strong>Message:</strong> <span id="modalPanicMessage"></span></p>
+                            <p><strong>Location:</strong> (<span id="modalCoordinates"></span>)</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" id="modalResolvePanic" class="btn btn-danger">Resolve Emergency</button>
+                        </div>
                     </div>
-                    <button id="cancel-panic" class="btn btn-outline-light">Cancel Emergency</button>
                 </div>
             </div>
         </div>
@@ -70,7 +80,7 @@
     const activeUsers = {{ active_users }};
     const panicUsers = {{ panic_users }};
 
-    const map = L.map('map').setView([40.7290, -73.9965], 9); // NYU coordinates
+    const map = L.map('map').setView([40.7290, -73.9965], 11); // NYU coordinates
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -79,7 +89,7 @@
     // Use for initial setup
     updateMapBounds(locations);
 
-    const markers = {}; // Object to store markers by location ID
+    let markers = {}; // Object to store markers by location ID
 
     function getMarkerIcon(panic) {
         return L.icon({
@@ -95,23 +105,28 @@
     // Add initial markers to the map
     locations.forEach(location => {
         const marker = L.marker([location.latitude, location.longitude], { icon: getMarkerIcon(location.panic) })
-            .addTo(map)
-            .bindTooltip(location.username, {
-                permanent: true,
-                direction: 'top',
-                offset: [0, -10]
-            })
-            .bindPopup(`User: ${location.username}<br>Latitude: ${location.latitude}<br>Longitude: ${location.longitude}`);
+                        .addTo(map)
+                        .on('click', function() {
+                            document.getElementById('modalUsername').textContent = location.username;
+                            document.getElementById('modalPanicMessage').textContent = `${location.panic_message}` || 'No message provided';
+                            document.getElementById('modalCoordinates').textContent = `${location.latitude}, ${location.longitude}`;
+                            document.getElementById('modalResolvePanic').dataset.username = location.username;
+                            
+                            const modal = new bootstrap.Modal(document.getElementById('panicDetailsModal'));
+                            modal.show();
+                        });
 
-        markers[location.id] = marker; // Store marker by ID
+        markers[location.id] = marker;
     });
 
     document.getElementById('active-user-count').textContent = activeUsers;
     document.getElementById('panic-count').textContent = panicUsers;
     document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
 
-    const bounds = L.latLngBounds(locations.map(loc => [loc.latitude, loc.longitude]));
-    map.fitBounds(bounds);
+    if (locations.length > 0) {
+        const bounds = L.latLngBounds(locations.map(loc => [loc.latitude, loc.longitude]));
+        map.fitBounds(bounds);
+    }
 
     let activePanic = null; // Track the active panic location
 
@@ -133,21 +148,25 @@
         }
     }
 
-    channelPanic.bind('map-update', function(data) {
+    channelPanic.bind('panic-create', function(data) {
+
         // Remove existing markers
         Object.values(markers).forEach(marker => map.removeLayer(marker));
         markers = {};
 
         // Add new markers
         data.locations.forEach(location => {
-            const marker = L.marker([location.latitude, location.longitude], { icon: getMarkerIcon(true) })
+            const marker = L.marker([location.latitude, location.longitude], { icon: getMarkerIcon(location.panic) })
                 .addTo(map)
-                .bindTooltip(location.username, {
-                    permanent: true,
-                    direction: 'top',
-                    offset: [0, -10]
-                })
-                .bindPopup(`User: ${location.username}<br>Latitude: ${location.latitude}<br>Longitude: ${location.longitude}`);
+                .on('click', function() {
+                    document.getElementById('modalUsername').textContent = location.username;
+                    document.getElementById('modalPanicMessage').textContent = location.panic_message || 'No message provided';
+                    document.getElementById('modalCoordinates').textContent = `${location.latitude}, ${location.longitude}`;
+                    document.getElementById('modalResolvePanic').dataset.username = location.username;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('panicDetailsModal'));
+                    modal.show();
+                });
 
             markers[location.id] = marker;
         });
@@ -157,28 +176,25 @@
         document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
 
         updateMapBounds(data.locations, true);
-
-        // Check for panic status and display alert
-        const newActivePanic = data.locations.find(l => l.panic);
-        if (newActivePanic && (!activePanic || activePanic.id !== newActivePanic.id)) {
-            activePanic = newActivePanic;
-            document.getElementById('panic-alert').style.display = 'block';
-            document.getElementById('panic-coordinates').textContent =
-                `User: ${newActivePanic.username}, Latitude: ${newActivePanic.latitude}, Longitude: ${newActivePanic.longitude}, Panic Message: ${newActivePanic.panic_message}`;
-        } else if (!data.locations.some(l => l.panic)) {
-            activePanic = null;
-            document.getElementById('panic-alert').style.display = 'none';
-        }
     });
 
-    document.getElementById('cancel-panic').addEventListener('click', () => {
-        if (activePanic) {
-            const url = `{% url 'cancel_panic' panic_username='username_placeholder' %}`.replace('username_placeholder', activePanic.username);
+
+    channelPanic.bind('panic-resolve', function(data) {
+        location.reload();
+    });
+
+    document.getElementById('modalResolvePanic').addEventListener('click', function() {
+        const button = this;
+        const username = button.dataset.username;
+        if (username) {
+            // Disable button during request
+            button.disabled = true;
+            button.textContent = 'Resolving...';
+
+            const url = `{% url 'resolve_panic' panic_username='username_placeholder' %}`.replace('username_placeholder', username);
             fetch(url, {
                 method: 'POST',
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token }}'
                 }
             })
@@ -190,18 +206,25 @@
             })
             .then(data => {
                 if (data.success) {
-                    alert('Panic canceled successfully.');
-                    activePanic = null;
-                    document.getElementById('panic-alert').style.display = 'none';
+                    bootstrap.Modal.getInstance(document.getElementById('panicDetailsModal')).hide();
                 } else {
                     alert(data.message);
                 }
             })
             .catch(error => {
-                console.error('Error canceling panic:', error);
-                alert(`Failed to cancel panic: ${error.message}`);
+                console.error('Error:', error);
+                // alert('Failed to resolve emergency. Please try again.');
+            })
+            .finally(() => {
+                // Re-enable button
+                button.disabled = false;
+                button.textContent = 'Resolve Emergency';
             });
         }
+    });
+
+    window.addEventListener('unload', function() {
+        window.pusher.unsubscribe('emergency-channel');
     });
 </script>
 

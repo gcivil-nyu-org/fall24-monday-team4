@@ -14,7 +14,7 @@ def verification_required(view_func):
                 "Access to Route Pals features is restricted to verified users.\
                       Please upload your verification documents.",
             )
-            return redirect("user_document_list")
+            return redirect("home")
 
     return _wrapped_view
 

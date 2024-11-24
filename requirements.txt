@@ -13,8 +13,5 @@ awscli>=1.35.20,<=1.35.54
 boto3>=1.35.57,<=1.35.57
 h3==4.1.2
 Twisted==24.10.0
-redis==5.2.0
-supervisor==4.2.5
 cryptography==43.0.3
 pusher==3.3.2
-moto==5.0.21

@@ -1,7 +1,8 @@
+{% load chat_filters %}
 {% block content %}
 
 <style>
-    .system-message {
+    .system-message, .ems-system-message {
         display: flex;
         justify-content: center;  /* Center horizontally */
         width: 100%;
@@ -10,7 +11,7 @@
     .system-message .message-content {
         background-color: #fdeddb !important;  /* Light blue background */
         border-radius: 8px;
-        color: #e49131;
+        color: #2b2d33;
         padding: 10px 16px;
         display: flex;
         align-items: center;
@@ -26,9 +27,30 @@
         font-weight: 400;  /* Changed to 400 for outlined version */
         color: #c46b04;  /* Blue color for icon */
     }   
+    
+    .ems-system-message .message-content {
+        background-color: #fce5e5 !important;  /* Light blue background */
+        border-radius: 8px;
+        color: #2b2d33;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        display: inline-flex;  /* Changed to inline-flex */
+        width: auto;
+    }
 
-    .system-message small {
-        color: #000000 !important;  /* Subtle gray for timestamp */
+    .ems-system-message .message-content:before {
+        content: "\f071";  /* Font Awesome info icon */
+        font-family: "Font Awesome 6 Free";
+        font-size: 25px;
+        font-weight: 400;  /* Changed to 400 for outlined version */
+        color: #e61c1c;  /* Blue color for icon */
+    }   
+
+    .system-message small,
+    .ems-system-message small {
+        color: #000000 !important;
     }
     
     .chat-messages {
@@ -56,14 +78,19 @@
         border-radius: 12px;
         box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
+
+    .panic-message .message-content {
+        background-color: #e61c1c !important;  /* Light red background */
+        color: #ffffff !important;  /* Dark red text */
+    }
 </style>
 
 
 <div class="d-flex flex-column" style="height: 80vh;">  <!-- Parent container -->
     <div class="chat-messages p-3 flex-grow-1 overflow-auto" id="messageContainer">
         {% for message in messages %}
-            <div class="message {% if message.message_type == 'SYSTEM' %}system-message{% endif %}">
-                {% if message.message_type == 'SYSTEM' %}
+            <div class="message {{ message.message_type|css_for_messagetype }}">
+                {% if message.message_type in "SYSTEM,EMS_SYSTEM" %}
                     <div class="message-content p-2 rounded">
                         <strong>{{ message.decrypt_message }}</strong>
                         <small class="message-timestamp d-block mt-1">{{ message.created_at|date:'g:i A' }}</small>
@@ -121,13 +148,20 @@
             
             const chatChannel = window.pusher.subscribe('chat-{{ chat_room.id }}');
             
-            chatChannel.bind('message_event', function(data) {
+            chatChannel.bind('message-event', function(data) {
                 document.getElementById('placeholderText')?.remove();
                 
                 if (data.type === 'system') {
                     addSystemMessage(data.message);
+                } else if (data.type === 'ems_system') {
+                    addEmsMessage(data.message);
                 } else {
-                    addUserMessage(data.username, data.message);
+                    addUserMessage(data.username, data.message, data.type);
+                }
+
+                const messageContainer = document.getElementById('messageContainer');
+                if (messageContainer) {
+                    messageContainer.scrollTop = messageContainer.scrollHeight;
                 }
             });
 
@@ -141,9 +175,9 @@
                 }
             });
 
-           function addUserMessage(username, message) {
+           function addUserMessage(username, message, type) {
                 const msgDiv = document.createElement('div');
-                msgDiv.className = 'message';
+                msgDiv.className = `message ${type === 'ems_panic_message' ? 'panic-message' : ''}`;
 
                 const flexDiv = document.createElement('div');
                 flexDiv.className = `d-flex flex-column ${username === "{{ request.user.username }}" ? 'align-items-end' : 'align-items-start'}`;
@@ -175,7 +209,6 @@
                 msgDiv.appendChild(flexDiv);
 
                 messageContainer.appendChild(msgDiv);
-                messageContainer.scrollTop = messageContainer.scrollHeight;
             }
 
             function addSystemMessage(message) {
@@ -202,7 +235,32 @@
                 msgContent.appendChild(timestampSpan);
                 msgDiv.appendChild(msgContent);
                 messageContainer.appendChild(msgDiv);
-                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
+            
+            function addEmsMessage(message) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message mb-3 ems-system-message';
+                
+                const msgContent = document.createElement('div');
+                msgContent.className = 'message-content p-2 rounded';
+                
+                // Message text
+                const strong = document.createElement('strong');
+                const messageText = document.createElement('p');
+
+                messageText.className = 'mb-0';
+                messageText.textContent = message;
+                
+                // Timestamp
+                const timestampSpan = document.createElement('small');
+                timestampSpan.className = 'message-timestamp d-block mt-1';
+                timestampSpan.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                
+                strong.appendChild(messageText)
+                msgContent.appendChild(strong);
+                msgContent.appendChild(timestampSpan);
+                msgDiv.appendChild(msgContent);
+                messageContainer.appendChild(msgDiv);
             }
 
             messageInput.onkeyup = function(e) {
@@ -235,20 +293,23 @@
             };
 
 
-            // Cleanup on page unload
-            window.onbeforeunload = function() {
+            window.addEventListener('unload', function() {
                 window.pusher.unsubscribe('chat-{{ chat_room.id }}');
-            };
+            });
 
-            // Cleanup on component unmount
-            document.addEventListener("visibilitychange", function() {
-                if (document.visibilityState === 'hidden') {
-                    window.pusher.unsubscribe('chat-{{ chat_room.id }}');
+
+            document.getElementById('chatModal').addEventListener('shown.bs.modal', function () {
+                const messageContainer = document.getElementById('messageContainer');
+                if (messageContainer) {
+                    messageContainer.scrollTop = messageContainer.scrollHeight;
                 }
+            });
+
+            document.getElementById('chatModal').addEventListener('hidden.bs.modal', function () {
+                window.pusher.unsubscribe(`chat-{{ chat_room.id }}`);
             });
         {% endif %}
     
-    // Always scroll to bottom on load
     messageContainer.scrollTop = messageContainer.scrollHeight;
 </script>
 {% endblock %}
