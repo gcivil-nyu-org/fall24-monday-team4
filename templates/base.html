@@ -93,11 +93,13 @@
           <div class="row justify-content-center">
               <a class="nav-link link-light" href="{% url 'profile' %}">
                   {% if user.userprofile.photo_key %}
-                  <img src={{ profile_picture }} alt="User Picture" id="activeUserPicture" class="rounded-circle" style="padding: unset; width: 50px; height: 50px; border: 1px solid white; margin-right: 50px; display: flex; align-items: center; justify-content: center;"/>
+                    {% with profile_picture_url=user.userprofile.get_photo_url %}
+                      <img src={{ profile_picture_url }} alt="User Picture" id="activeUserPicture" class="rounded-circle" style="padding: unset; width: 50px; height: 50px; border: 1px solid white; margin-right: 50px; display: flex; align-items: center; justify-content: center;"/>
+                    {% endwith %}
                   {% else %}
-                  <div class="rounded-circle" style="width: 50px; height: 50px; border: 1px solid white; margin-right: 50px; background-color: black; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
+                    <div class="rounded-circle" style="width: 50px; height: 50px; border: 1px solid white; margin-right: 50px; background-color: black; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
                       ?
-                  </div>
+                    </div>
                   {% endif %}
               </a>
           </div>
