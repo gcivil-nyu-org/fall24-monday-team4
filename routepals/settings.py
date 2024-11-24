@@ -60,6 +60,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "utils.security.XSSMiddleware",
 ]
 
 ROOT_URLCONF = "routepals.urls"
@@ -191,6 +192,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "/static/"
 STATIC_ROOT = "static"
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "staticfiles"),
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -220,3 +224,7 @@ PUSHER_SECRET = os.environ.get("PUSHER_SECRET")
 PUSHER_CLUSTER = os.environ.get("PUSHER_CLUSTER")
 
 ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY").encode()
+
+SESSION_COOKIE_HTTPONLY = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True

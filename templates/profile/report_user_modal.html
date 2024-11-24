@@ -13,11 +13,11 @@
                     {% endif %}
                     <div class="mb-3">
                         <label for="subject" class="form-label">Subject</label>
-                        <input type="text" class="form-control" id="subject" name="subject" placeholder="Enter a Subject" required>
+                        <input type="text" class="form-control" id="subject" maxlength="70" name="subject" placeholder="Enter a Subject" required>
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="5" placeholder="Describe the issue in detail." required></textarea>
+                        <textarea class="form-control" id="description" maxlength="200" name="description" rows="5" placeholder="Describe the issue in detail." required></textarea>
                     </div>
                     <div id="error-message-report-user" style="display: none; color: red; text-align: center; margin-top: 15px; margin-bottom: 15px;">
                     </div>

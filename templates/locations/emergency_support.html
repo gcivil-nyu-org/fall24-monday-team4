@@ -55,7 +55,6 @@
                         <div class="modal-body">
                             <p><strong>User:</strong> <span id="modalUsername"></span></p>
                             <p><strong>Message:</strong> <span id="modalPanicMessage"></span></p>
-                            <p><strong>Trip ID:</strong> <span id="modalTripID"></span></p>
                             <p><strong>Location:</strong> (<span id="modalCoordinates"></span>)</p>
                         </div>
                         <div class="modal-footer">
@@ -109,9 +108,8 @@
                         .addTo(map)
                         .on('click', function() {
                             document.getElementById('modalUsername').textContent = location.username;
-                            document.getElementById('modalPanicMessage').textContent = location.panic_message || 'No message provided';
+                            document.getElementById('modalPanicMessage').textContent = `${location.panic_message}` || 'No message provided';
                             document.getElementById('modalCoordinates').textContent = `${location.latitude}, ${location.longitude}`;
-                            document.getElementById('modalTripID').textContent = location.user;
                             document.getElementById('modalResolvePanic').dataset.username = location.username;
                             
                             const modal = new bootstrap.Modal(document.getElementById('panicDetailsModal'));
@@ -215,7 +213,7 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to resolve emergency. Please try again.');
+                // alert('Failed to resolve emergency. Please try again.');
             })
             .finally(() => {
                 // Re-enable button

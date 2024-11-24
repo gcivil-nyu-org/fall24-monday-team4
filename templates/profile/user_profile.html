@@ -59,6 +59,7 @@
                                     name="bio"
                                     id="user-bio"
                                     rows="5"
+                                    maxlength="200"
                                     readonly
                                     placeholder="{% if profile.bio %}Add Information About Yourself{% else %}No information added yet.{% endif %}">{% if profile.bio %}{{ profile.bio }}{% endif %}</textarea>
                         </div>
