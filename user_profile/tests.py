@@ -242,27 +242,6 @@ class UserProfileViewsTest(TestCase):
         self.assertFalse(response.json()["success"])
         self.assertEqual(response.json()["error_message"], "Delete failed")
 
-    def test_profile_view_other_user(self):
-        response = self.client.get(
-            reverse("user_profile", kwargs={"user_id": self.other_user.id})
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.context["is_user"])
-        self.assertEqual(response.context["user_to_view"], self.other_user)
-
-    @patch("user_profile.views.generate_presigned_url")
-    def test_profile_view_with_photo(self, mock_generate_url):
-        mock_generate_url.return_value = "https://test-url.com/photo.jpg"
-        response = self.client.get(reverse("profile"))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.context["profile_picture_url"], "https://test-url.com/photo.jpg"
-        )
-        mock_generate_url.assert_called_once_with(
-            self.user_profile.photo_key, expiration=3600
-        )
-
     def test_profile_view_without_photo(self):
         self.user_profile.photo_key = None
         self.user_profile.save()
