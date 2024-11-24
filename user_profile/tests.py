@@ -242,7 +242,14 @@ class UserProfileViewsTest(TestCase):
         self.assertFalse(response.json()["success"])
         self.assertEqual(response.json()["error_message"], "Delete failed")
 
-    def test_profile_view_other_user(self):
+    @patch("utils.s3_utils.s3_client")
+    def test_profile_view_other_user(self, mock_s3):
+        # Setup mock
+        mock_s3.head_object.return_value = True
+        mock_s3.generate_presigned_url.return_value = "https://test-url.com/photo.jpg"
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
+
         response = self.client.get(
             reverse("user_profile", kwargs={"user_id": self.other_user.id})
         )
@@ -250,18 +257,27 @@ class UserProfileViewsTest(TestCase):
         self.assertFalse(response.context["is_user"])
         self.assertEqual(response.context["user_to_view"], self.other_user)
 
-    @patch("user_profile.views.generate_presigned_url")
-    def test_profile_view_with_photo(self, mock_generate_url):
-        mock_generate_url.return_value = "https://test-url.com/photo.jpg"
-        response = self.client.get(reverse("profile"))
+    @patch("utils.s3_utils.s3_client")
+    def test_profile_view_with_photo(self, mock_s3):
+        # Setup mock
+        mock_s3.head_object.return_value = True
+        mock_s3.generate_presigned_url.return_value = "https://test-url.com/photo.jpg"
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
 
+        response = self.client.get(reverse("profile"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.context["profile_picture_url"], "https://test-url.com/photo.jpg"
         )
-        mock_generate_url.assert_called_once_with(
-            self.user_profile.photo_key, expiration=3600
-        )
+
+        # Verify head_object was called twice with same parameters
+        head_object_calls = [
+            call(Bucket="routepals-files", Key="test_photo_key"),
+            call(Bucket="routepals-files", Key="test_photo_key"),
+        ]
+        mock_s3.head_object.assert_has_calls(head_object_calls)
+        self.assertEqual(mock_s3.head_object.call_count, 2)
 
     def test_profile_view_without_photo(self):
         self.user_profile.photo_key = None
