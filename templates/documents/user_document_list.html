@@ -32,7 +32,7 @@
         <tr>
             <th scope="row">{{ item.filename }}</th>
             <td>
-                <textarea class="form-control" rows="2" readonly>{{ item.description|default:'No description available' }}</textarea>
+                <textarea class="form-control" rows="1" readonly>{{ item.description|default:'No description available' }}</textarea>
             </td>
             <td>{{ item.created_at|date:"Y-m-d H:i:s" }}</td>
             <td>

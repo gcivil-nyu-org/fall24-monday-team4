@@ -1,4 +1,5 @@
-from django.test import TestCase
+import json
+from django.test import TestCase, RequestFactory
 from django.core.files.uploadedfile import SimpleUploadedFile
 from unittest.mock import patch, MagicMock
 from botocore.exceptions import ClientError
@@ -7,6 +8,8 @@ from utils.s3_utils import (
     upload_file_to_s3,
     delete_file_from_s3,
 )
+from django.http import JsonResponse, HttpResponse
+from utils.security import XSSMiddleware
 
 
 class S3UtilsTest(TestCase):
@@ -140,3 +143,79 @@ class S3UtilsTest(TestCase):
 
         result = delete_file_from_s3(self.test_key)
         self.assertFalse(result)
+
+
+class XSSMiddlewareTest(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.middleware = XSSMiddleware(self.get_test_response)
+
+    def get_test_response(self, request):
+        if hasattr(request, "test_response"):
+            return request.test_response
+        return HttpResponse()
+
+    def test_escape_basic_json(self):
+        request = self.factory.get("/")
+        request.test_response = JsonResponse(
+            {"message": '<script>alert("xss")</script>'}
+        )
+
+        response = self.middleware(request)
+        data = json.loads(response.content)
+        # Plain string comparison instead of escaped literals
+        self.assertEqual(data["message"], '<script>alert("xss")</script>')
+
+    def test_escape_nested_json(self):
+        request = self.factory.get("/")
+        request.test_response = JsonResponse(
+            {
+                "data": {
+                    "message": '<script>alert("xss")</script>',
+                    "nested": {"text": '<img src="x" onerror="alert(1)"/>'},
+                }
+            }
+        )
+
+        response = self.middleware(request)
+        data = json.loads(response.content)
+        self.assertEqual(data["data"]["message"], '<script>alert("xss")</script>')
+        self.assertEqual(
+            data["data"]["nested"]["text"], '<img src="x" onerror="alert(1)"/>'
+        )
+
+    def test_escape_list_in_json(self):
+        request = self.factory.get("/")
+        request.test_response = JsonResponse(
+            {"messages": ["<script>alert(1)</script>", "<script>alert(2)</script>"]}
+        )
+
+        response = self.middleware(request)
+        data = json.loads(response.content)
+        self.assertEqual(data["messages"][0], "<script>alert(1)</script>")
+        self.assertEqual(data["messages"][1], "<script>alert(2)</script>")
+
+    def test_non_json_response(self):
+        request = self.factory.get("/")
+        request.test_response = HttpResponse('<script>alert("xss")</script>')
+
+        response = self.middleware(request)
+        self.assertEqual(response.content.decode(), '<script>alert("xss")</script>')
+
+    def test_empty_json_response(self):
+        request = self.factory.get("/")
+        request.test_response = JsonResponse({})
+
+        response = self.middleware(request)
+        self.assertEqual(response.content.decode(), "{}")
+
+    def test_non_string_values(self):
+        request = self.factory.get("/")
+        request.test_response = JsonResponse(
+            {"number": 123, "boolean": True, "null": None}
+        )
+
+        response = self.middleware(request)
+        self.assertIn('"number": 123', response.content.decode())
+        self.assertIn('"boolean": true', response.content.decode())
+        self.assertIn('"null": null', response.content.decode())
