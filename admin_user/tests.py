@@ -2,6 +2,7 @@ import json
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from unittest.mock import patch, MagicMock
 from botocore.exceptions import ClientError
 from accounts.models import UserDocument, UserReports
@@ -368,3 +369,337 @@ class UserManagementTest(AdminViewsBaseTest):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 500)
+
+    def test_set_emergency_support_no_user_id(self):
+        response = self.client.post(
+            reverse("set_emergency_support"),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_set_emergency_support_exception(self):
+        response = self.client.post(
+            reverse("set_emergency_support"),
+            data=json.dumps({"user_id": 99999}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+
+    def test_set_admin_no_user_id(self):
+        response = self.client.post(
+            reverse("set_admin"),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_set_admin_exception(self):
+        response = self.client.post(
+            reverse("set_admin"),
+            data=json.dumps({"user_id": 99999}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+
+    def test_unset_admin_no_user_id(self):
+        response = self.client.post(
+            reverse("unset_admin"),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_unset_admin_exception(self):
+        response = self.client.post(
+            reverse("unset_admin"),
+            data=json.dumps({"user_id": 99999}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+
+
+class EmergencySupportTestCase(TestCase):
+    def setUp(self):
+        # Create a staff user
+        self.staff_user = User.objects.create_user(
+            username="staffuser", password="12345", is_staff=True
+        )
+        self.staff_user.userprofile.save()
+
+        # Create a non-staff user
+        self.normal_user = User.objects.create_user(
+            username="normaluser", password="12345"
+        )
+        self.normal_user.userprofile.save()
+
+        # Create a client
+        self.client = Client()
+
+    def test_set_emergency_support_success(self):
+        self.client.login(username="staffuser", password="12345")
+        response = self.client.post(
+            reverse("set_emergency_support"),
+            data=json.dumps({"user_id": self.normal_user.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(json.loads(response.content)["success"])
+        self.normal_user.userprofile.refresh_from_db()
+        self.assertTrue(self.normal_user.userprofile.is_emergency_support)
+
+    def test_unset_emergency_support_success(self):
+        self.normal_user.userprofile.is_emergency_support = True
+        self.normal_user.userprofile.save()
+        self.client.login(username="staffuser", password="12345")
+        response = self.client.post(
+            reverse("unset_emergency_support"),
+            data=json.dumps({"user_id": self.normal_user.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(json.loads(response.content)["success"])
+        self.normal_user.userprofile.refresh_from_db()
+        self.assertFalse(self.normal_user.userprofile.is_emergency_support)
+
+    def test_set_emergency_support_no_user_id(self):
+        self.client.login(username="staffuser", password="12345")
+        response = self.client.post(
+            reverse("set_emergency_support"),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(json.loads(response.content)["success"])
+
+    def test_unset_emergency_support_no_user_id(self):
+        self.client.login(username="staffuser", password="12345")
+        response = self.client.post(
+            reverse("unset_emergency_support"),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(json.loads(response.content)["success"])
+
+    def test_set_emergency_support_non_existent_user(self):
+        self.client.login(username="staffuser", password="12345")
+        response = self.client.post(
+            reverse("set_emergency_support"),
+            data=json.dumps({"user_id": 9999}),  # Non-existent user ID
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+
+    def test_unset_emergency_support_non_existent_user(self):
+        self.client.login(username="staffuser", password="12345")
+        response = self.client.post(
+            reverse("unset_emergency_support"),
+            data=json.dumps({"user_id": 9999}),  # Non-existent user ID
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+
+    def test_set_emergency_support_unauthenticated(self):
+        response = self.client.post(
+            reverse("set_emergency_support"),
+            data=json.dumps({"user_id": self.normal_user.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 302)  # Redirect to login
+
+    def test_unset_emergency_support_unauthenticated(self):
+        response = self.client.post(
+            reverse("unset_emergency_support"),
+            data=json.dumps({"user_id": self.normal_user.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 302)  # Redirect to login
+
+    def test_set_emergency_support_non_staff(self):
+        self.client.login(username="normaluser", password="12345")
+        response = self.client.post(
+            reverse("set_emergency_support"),
+            data=json.dumps({"user_id": self.normal_user.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_unset_emergency_support_non_staff(self):
+        self.client.login(username="normaluser", password="12345")
+        response = self.client.post(
+            reverse("unset_emergency_support"),
+            data=json.dumps({"user_id": self.normal_user.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 302)
+
+
+class SetAdminViewTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("set_admin")
+        self.user = get_user_model().objects.create_user(
+            username="testuser", email="testuser@example.com", password="testpass123"
+        )
+        self.staff_user = get_user_model().objects.create_user(
+            username="staffuser",
+            email="staffuser@example.com",
+            password="staffpass123",
+            is_staff=True,
+        )
+
+    def test_set_admin_success(self):
+        self.client.force_login(self.staff_user)
+        data = {"user_id": self.user.id}
+        response = self.client.post(
+            self.url, data=json.dumps(data), content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        response_data = json.loads(response.content)
+        self.assertTrue(response_data["success"])
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_staff)
+
+    def test_set_admin_missing_user_id(self):
+        self.client.force_login(self.staff_user)
+        data = {}
+        response = self.client.post(
+            self.url, data=json.dumps(data), content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        response_data = json.loads(response.content)
+        self.assertFalse(response_data["success"])
+        self.assertEqual(response_data["error"], "User ID is required.")
+
+    def test_set_admin_invalid_user_id(self):
+        self.client.force_login(self.staff_user)
+        data = {"user_id": 9999}  # Non-existent user ID
+        response = self.client.post(
+            self.url, data=json.dumps(data), content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 500)
+
+    def test_set_admin_unauthenticated(self):
+        data = {"user_id": self.user.id}
+        response = self.client.post(
+            self.url, data=json.dumps(data), content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 302)  # Redirect to login page
+
+    def test_set_admin_non_staff(self):
+        self.client.force_login(self.user)
+        data = {"user_id": self.user.id}
+        response = self.client.post(
+            self.url, data=json.dumps(data), content_type="application/json"
+        )
+        self.assertEqual(
+            response.status_code, 302
+        )  # Redirect due to @staff_member_required
+
+    def test_set_admin_get_method(self):
+        self.client.force_login(self.staff_user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)  # Method Not Allowed
+
+    # Mock test for @verification_required
+    def test_set_admin_not_verified(self):
+        # Assuming @verification_required checks a 'is_verified' field
+        self.staff_user.is_verified = False
+        self.staff_user.save()
+        self.client.force_login(self.staff_user)
+        data = {"user_id": self.user.id}
+        response = self.client.post(
+            self.url, data=json.dumps(data), content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)  # Forbidden
+
+
+class UnsetAdminTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.url = reverse("unset_admin")
+
+        # Create a superuser (admin)
+        self.admin_user = get_user_model().objects.create_superuser(
+            username="admin", email="admin@example.com", password="adminpassword"
+        )
+
+        # Create a regular staff user
+        self.staff_user = get_user_model().objects.create_user(
+            username="staffuser",
+            email="staff@example.com",
+            password="staffpassword",
+            is_staff=True,
+        )
+
+        # Create a regular non-staff user
+        self.regular_user = get_user_model().objects.create_user(
+            username="regularuser",
+            email="regular@example.com",
+            password="regularpassword",
+        )
+
+    def test_unset_admin_success(self):
+        self.client.force_login(self.admin_user)
+        data = {"user_id": self.staff_user.id}
+        response = self.client.post(
+            self.url, json.dumps(data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+        self.staff_user.refresh_from_db()
+        self.assertFalse(self.staff_user.is_staff)
+
+    def test_unset_admin_missing_user_id(self):
+        self.client.force_login(self.admin_user)
+        data = {}
+        response = self.client.post(
+            self.url, json.dumps(data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["error"], "User ID is required.")
+
+    def test_unset_admin_non_existent_user(self):
+        self.client.force_login(self.admin_user)
+        data = {"user_id": 9999}  # Non-existent user ID
+        response = self.client.post(
+            self.url, json.dumps(data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 500)
+
+    def test_unset_admin_unauthorized(self):
+        self.client.force_login(self.regular_user)
+        data = {"user_id": self.staff_user.id}
+        response = self.client.post(
+            self.url, json.dumps(data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 302)  # Forbidden
+
+    def test_unset_admin_not_logged_in(self):
+        data = {"user_id": self.staff_user.id}
+        response = self.client.post(
+            self.url, json.dumps(data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 302)  # Redirect to login page
+
+    def test_unset_admin_get_method_not_allowed(self):
+        self.client.force_login(self.admin_user)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 405)  # Method Not Allowed
+
+    def test_unset_admin_invalid_json(self):
+        self.client.force_login(self.admin_user)
+        response = self.client.post(
+            self.url, "invalid json", content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(response.json()["success"])
