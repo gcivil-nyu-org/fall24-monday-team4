@@ -264,17 +264,17 @@ class UserProfileViewsTest(TestCase):
         mock_s3.generate_presigned_url.return_value = "https://test-url.com/photo.jpg"
         mock_s3.exceptions = MagicMock()
         mock_s3.exceptions.ClientError = ClientError
-        
+
         response = self.client.get(reverse("profile"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.context["profile_picture_url"], "https://test-url.com/photo.jpg"
         )
-        
+
         # Just verify the number of calls and that they were made with the same key
         self.assertEqual(mock_s3.head_object.call_count, 2)
         for call_args in mock_s3.head_object.call_args_list:
-            self.assertEqual(call_args[1]['Key'], 'test_photo_key')
+            self.assertEqual(call_args[1]["Key"], "test_photo_key")
 
     def test_profile_view_without_photo(self):
         self.user_profile.photo_key = None
