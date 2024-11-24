@@ -138,7 +138,7 @@ def remove_profile_picture(request):
 @verification_required
 @require_http_methods(["POST"])
 def update_social_handles(request):
-    if request.method == "POST":
+    try:
         profile = UserProfile.objects.get(user=request.user)
 
         instagram = request.POST.get("instagram", "").strip() or None
@@ -151,5 +151,5 @@ def update_social_handles(request):
         profile.save()
 
         return JsonResponse({"success": True})
-
-    return JsonResponse({"success": False, "error_message": "Invalid request."})
+    except Exception as e:
+        return JsonResponse({"success": False, "error_message": str(e)})
