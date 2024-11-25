@@ -24,26 +24,37 @@
             <th scope="col">Uploaded At</th>
             <th scope="col">Status</th>
             <th scope="col">View</th>
+            <th scope="col">Delete</th>
         </tr>
         </thead>
         <tbody>
         {% for item in documents %}
         <tr>
             <th scope="row">{{ item.filename }}</th>
-            <td>{{ item.description }}</td>
+            <td>
+                <textarea class="form-control" rows="1" readonly>{{ item.description|default:'No description available' }}</textarea>
+            </td>
             <td>{{ item.created_at|date:"Y-m-d H:i:s" }}</td>
             <td>
-                {% if item.status.id == 1 %}
-                <span class="badge rounded-pill text-bg-primary">Pending</span>
-                {% endif %}
-                {% if item.status.id == 2 %}
-                <span class="badge rounded-pill text-bg-warning">Accepted</span>
-                {% endif %}
-                {% if item.status.id == 3 %}
-                <span class="badge rounded-pill text-bg-danger">Rejected</span>
+                {% if item.status == 1 %}
+                    <span class="badge rounded-pill text-bg-warning">Pending</span>
+                {% elif item.status == 2 %}
+                    <span class="badge rounded-pill text-bg-success">Accepted</span>
+                {% else %}
+                    <span class="badge rounded-pill text-bg-danger">Rejected</span>
                 {% endif %}
             </td>
-            <td><i class="fa-solid fa-eye"></i></td>
+            <td>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#viewDocumentModal" onclick="viewDocument('{{ item.documentUrl }}', '{{ item.file_type }}', '{{ item.filename }}')">
+                    <i class="fa-solid fa-eye"></i> View
+                </button>
+            </td>
+            {% include 'documents/view_document_modal.html' %}
+            <td>
+                <button type="button" class="btn btn-danger btn-sm" onclick="deleteDocument('{{item.id}}', '{{ item.filename }}')">
+                    <i class="fa-solid fa-trash"></i> Delete
+                </button>
+            </td>
         </tr>
         {% endfor %}
         </tbody>
@@ -51,7 +62,67 @@
     {% else %}
     <p>No documents found.</p>
     {% endif %}
-
-
 </div>
+<script>
+    function viewDocument(documentUrl, fileType, name) {
+        const acceptableTypes = [
+            "image/png",
+            "text/plain",
+            "application/pdf",
+            "image/jpeg",
+        ];
+
+        const iframe = document.getElementById("documentIframe");
+        const imgTag = document.getElementById("documentImage");
+        const iframeDiv = document.getElementById("iframeSection");
+        const imgSection = document.getElementById("imageSection");
+        const fileName = document.getElementById("documentFileName");
+        const warningMessage = document.getElementById("warningMessage");
+
+        warningMessage.style.display = "none";
+        if (acceptableTypes.includes(fileType) && documentUrl) {
+            if (["image/png", "image/jpeg"].includes(fileType)) {
+                iframeDiv.style.display = "none";
+                imgSection.style.display = "block";
+                imgTag.src = documentUrl;
+            } else {
+                iframeDiv.style.display = "block";
+                imgSection.style.display = "none";
+                iframe.src = documentUrl;
+            }
+        } else {
+            warningMessage.style.display = "block";
+        }
+
+        fileName.textContent = name;
+    }
+
+    async function deleteDocument(documentId, filename) {
+        if (!confirm(`Are you sure you want to delete this file - "${filename}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch("{% url 'delete_document' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ document_id: documentId })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                alert("File successfully deleted.");
+                location.reload();
+            } else {
+                alert(`Error: ${result.error}`);
+            }
+        } catch (error) {
+            alert("An error occurred while deleting this file, please try again.");
+        }
+    }
+</script>
 {% endblock %}

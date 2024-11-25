@@ -1,0 +1,314 @@
+<div class="container-fluid">
+
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Username</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Authentication</th>
+                    <th scope="col" class="text-center">Pending Documents</th>
+                    <th scope="col" class="text-center">Total Documents</th>
+                    <th scope="col" class="text-center">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="userDocumentsTableBody">
+                {% if user_documents %}
+                    {% for user_document in user_documents %}
+                    <tr>
+                        <td>{{ user_document.user.first_name }} {{ user_document.user.last_name }}</td>
+                        <td>{{ user_document.user.username }}</td>
+                        <td>{{ user_document.user.email }}</td>
+                        <td>
+                            {% if user_document.user.is_staff %}
+                            <span class="badge bg-primary">Admin</span>
+                            {% else %}
+                            <span class="badge bg-secondary">User</span>
+                            {% endif %}
+                        </td>
+                        <td id="status-{{ user_document.user.id }}">
+                            {% if user_document.user.userprofile.is_verified %}
+                            <span class="badge rounded-pill text-bg-success">Yes</span>
+                            {% else %}
+                            <span class="badge rounded-pill text-bg-danger">No</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center" id="pending-count-{{ user_document.user.id }}">
+                            {{ user_document.pending_count }}
+                        </td>
+                        <td class="text-center">{{ user_document.documents|length }}</td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'user_profile' user_document.user.id %}"
+                                class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-user me-1"></i> Profile
+                                </a>
+                                <button type="button"
+                                        class="btn btn-outline-info btn-sm"
+                                        onclick="openDocumentsModal({{ user_document.user.id }})">
+                                    <i class="fas fa-file me-1"></i> Documents
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted">
+                        <i class="fas fa-folder-open me-2"></i>No users with uploaded documents
+                    </td>
+                </tr>
+                {% endif %}
+                </tbody>
+            </table>
+</div>
+<div class="modal fade" id="documentsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg" id="modalDialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt me-2"></i>
+                    Documents for <span id="modalUserName" class="fw-bold"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div id="tableSection">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                        <tr>
+                                            <th>Filename</th>
+                                            <th>Description</th>
+                                            <th>Uploaded</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="documentsTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="previewSection" style="display: none;">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0" id="previewFileName"></h6>
+                                <button type="button" class="btn-close" onclick="closePreview()"></button>
+                            </div>
+                            <div class="card-body">
+                                <div id="previewControls" class="mb-3"></div>
+                                <div id="documentPreview" class="border rounded"
+                                     style="height: 600px; overflow: auto;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    #modalDialog {
+        transition: width 0.3s ease-in-out;
+        max-width: 100%;
+    }
+
+    #modalDialog.modal-xl {
+        width: 1500px;
+    }
+
+    #modalDialog.modal-lg {
+        width: 800px;
+    }
+
+</style>
+<script>
+    const STATE = {
+        currentUserId: null,
+        currentDocumentId: null
+    };
+
+    const createBadge = (status) => {
+        const badges = {
+            1: '<span class="badge bg-warning">Pending</span>',
+            2: '<span class="badge bg-success">Accepted</span>',
+            3: '<span class="badge bg-danger">Rejected</span>'
+        };
+        return badges[status] || '<span class="badge bg-secondary">Unknown</span>';
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleString();
+    };
+
+    async function openDocumentsModal(userId) {
+        STATE.currentUserId = userId;
+        const modal = new bootstrap.Modal(document.getElementById('documentsModal'));
+
+        closePreview();
+
+        await refreshDocumentsList();
+        modal.show();
+
+        document.getElementById('documentsModal').addEventListener('hidden.bs.modal', function () {
+            closePreview();
+        });
+    }
+
+    async function refreshDocumentsList() {
+        try {
+            const response = await fetch(`/documents/${STATE.currentUserId}/`);
+            const data = await response.json();
+
+            if (data.success) {
+                updateModalContent(data);
+                updateMainTableCounts(STATE.currentUserId, data.pending_count);
+            }
+        } catch (error) {
+            showError('Error loading documents');
+        }
+    }
+
+    function updateModalContent(data) {
+        document.getElementById('modalUserName').textContent = data.username;
+        const tableBody = document.getElementById('documentsTableBody');
+        tableBody.innerHTML = '';
+
+        data.documents.forEach(doc => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+            <td>${Security.escapeHTML(doc.filename)}</td>
+            <td>
+               <textarea class="form-control" rows="1" readonly>${Security.escapeHTML(doc.description) || 'No description added.'}</textarea>
+            </td>
+            <td>${formatDate(doc.created_at)}</td>
+            <td>${createBadge(doc.status_id)}</td>
+            <td>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary btn-sm"
+                            onclick="previewDocument('${doc.id}', '${doc.filename}', '${doc.file_type}', '${doc.document_url}', ${doc.status_id})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${doc.status_id === 1 ? `
+                        <button class="btn btn-outline-success btn-sm"
+                                onclick="updateDocumentStatus('accept', '${doc.id}')">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm"
+                                onclick="updateDocumentStatus('reject', '${doc.id}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            </td>
+        `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    function updateMainTableCounts(userId, pendingCount) {
+        const pendingCountCell = document.getElementById(`pending-count-${userId}`);
+        if (pendingCountCell) {
+            pendingCountCell.textContent = pendingCount;
+        }
+    }
+
+    function previewDocument(docId, filename, fileType, fileUrl, statusId) {
+        STATE.currentDocumentId = docId;
+        const modalDialog = document.getElementById('modalDialog');
+        const previewSection = document.getElementById('previewSection');
+        const tableSection = document.getElementById('tableSection');
+        const previewDiv = document.getElementById('documentPreview');
+
+        document.getElementById('previewFileName').textContent = filename;
+        previewSection.style.display = 'block';
+        previewDiv.innerHTML = '';
+
+        modalDialog.style.width = '1500px';
+        tableSection.classList.add('col-lg-6');
+        previewSection.classList.add('col-lg-6');
+
+        if (['image/png', 'image/jpeg'].includes(fileType)) {
+            previewDiv.innerHTML = `<img src="${fileUrl}" class="img-fluid" alt="${filename}">`;
+        } else {
+            previewDiv.innerHTML = `<iframe src="${fileUrl}" style="width: 100%; height: 100%; border: none;"></iframe>`;
+        }
+
+        adjustCardHeights();
+    }
+
+    function closePreview() {
+        const modalDialog = document.getElementById('modalDialog');
+        const previewSection = document.getElementById('previewSection');
+        const tableSection = document.getElementById('tableSection');
+
+        previewSection.style.display = 'none';
+        STATE.currentDocumentId = null;
+
+        modalDialog.style.width = '800px';
+        tableSection.classList.remove('col-lg-6');
+        previewSection.classList.remove('col-lg-6');
+    }
+
+    function adjustCardHeights() {
+        const tableCard = document.querySelector('#tableSection .card');
+        const previewCard = document.querySelector('#previewSection .card');
+
+        if (tableCard && previewCard && previewCard.style.display !== 'none') {
+            tableCard.style.height = 'auto';
+            previewCard.style.height = 'auto';
+
+            const maxHeight = Math.max(
+                tableCard.offsetHeight,
+                previewCard.offsetHeight
+            );
+
+            tableCard.style.height = `${maxHeight}px`;
+            previewCard.style.height = `${maxHeight}px`;
+        }
+    }
+
+    async function updateDocumentStatus(action, documentId) {
+        try {
+            const response = await fetch(`/${action}-document/${STATE.currentUserId}/${documentId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                await refreshDocumentsList();
+                const { document } = data;
+
+                if (document) {
+                    previewDocument(documentId, document.filename, document.file_type, document.document_url, document.status_id);
+                }
+            } else {
+                showError(`Error ${action}ing document: ${data.error}`);
+            }
+        } catch (error) {
+            showError(`Unexpected error ${action}ing document`);
+        }
+    }
+
+    window.addEventListener('resize', () => {
+        if (document.getElementById('previewSection').style.display !== 'none') {
+            adjustCardHeights();
+        }
+    });
+
+    function showError(message) {
+        alert(message);
+    }
+
+</script>

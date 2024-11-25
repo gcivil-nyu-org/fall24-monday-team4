@@ -2,48 +2,61 @@ import boto3
 from django.conf import settings
 
 s3_client = boto3.client(
-    's3',
+    "s3",
     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
 )
 
 
-def generate_presigned_url(key, expiration=3600):
-    """
-    Generates a pre-signed URL to access a file in S3 with an expiration time.
-
-    :param key: The key (filename) of the file in S3.
-    :param expiration: Time in seconds for the link to remain valid (default is 1 hour).
-    :return: The pre-signed URL as a string.
-    """
+def generate_presigned_url(key, expiration=86400):
     try:
+        # Check if the object exists
+        s3_client.head_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
+        # Generate pre-signed URL if the object exists
         url = s3_client.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'Key': key},
-            ExpiresIn=expiration
+            "get_object",
+            Params={
+                "Bucket": settings.AWS_STORAGE_BUCKET_NAME,
+                "Key": key,
+                "ResponseContentDisposition": "inline",
+            },
+            ExpiresIn=expiration,
         )
         return url
-    except Exception as e:
-        print(f'Failed to generate pre-signed URL: {e}')
+    except s3_client.exceptions.ClientError as e:
+        # If the error is '404 Not Found', the object does not exist
+        if e.response["Error"]["Code"] == "404":
+            print(f"File with key {key} does not exist.")
+            return None
+        # Other errors
+        print(f"Failed to generate pre-signed URL: {e}")
         return None
 
 
 def upload_file_to_s3(file, key):
-    """
-    Uploads a file to the specified S3 bucket using the provided key.
-
-    :param file: The file object to upload.
-    :param key: The key (filename) to use in S3.
-    :return: The URL of the uploaded file.
-    """
     try:
         s3_client.upload_fileobj(
             file,
             settings.AWS_STORAGE_BUCKET_NAME,
             key,
-            ExtraArgs={'ContentType': file.content_type}
+            ExtraArgs={"ContentType": file.content_type},
         )
-        return generate_presigned_url(key, 3600)
+        return generate_presigned_url(key)
     except Exception as e:
-        print(f'Failed to upload file to S3: {e}')
+        print(f"Failed to upload file to S3: {e}")
         return None
+
+
+def delete_file_from_s3(key):
+    try:
+        s3_client.head_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
+
+        s3_client.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
+        return True
+    except s3_client.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            print(f"File with key {key} does not exist.")
+            return False
+
+        print(f"Failed to delete file from S3: {e}")
+        return False

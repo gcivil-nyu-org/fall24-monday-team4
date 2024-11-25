@@ -1,7 +1,7 @@
 from django.contrib.auth.forms import *
 from django.contrib.auth import login
 from django.contrib.auth.views import PasswordChangeView, PasswordResetView
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .forms import *
 from django.conf import settings
 from django.core.mail import EmailMessage
@@ -9,9 +9,16 @@ from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
 from django.contrib.messages.views import SuccessMessageMixin
 from .models import UserDocument
-from utils.s3_utils import upload_file_to_s3
+from utils.s3_utils import (
+    upload_file_to_s3,
+    generate_presigned_url,
+    delete_file_from_s3,
+)
 import uuid
 from django.http import JsonResponse
+import json
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods
 
 
 def WelcomeEmail(user):
@@ -84,22 +91,12 @@ class ResetPassword(SuccessMessageMixin, PasswordResetView):
     success_url = reverse_lazy("password_reset_done")
 
 
-# Post admin account creation form
-def AdminCreation(request):
-    if request.method == "POST":
-        form = AdminCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            WelcomeEmail(user)
-            return redirect("home")
-    else:
-        form = AdminCreationForm()
-    return render(request, "registration/admin_creation.html", {"form": form})
-
-
+@login_required(login_url="home")
 def uploaded_documents_view(request):
-    documents = UserDocument.objects.filter(user=request.user, deleted_at__isnull=True)
+    documents = UserDocument.objects.filter(user=request.user)
+    for document in documents:
+        document.documentUrl = generate_presigned_url(document.s3_key)
+
     return render(
         request,
         "documents/user_document_list.html",
@@ -107,16 +104,11 @@ def uploaded_documents_view(request):
     )
 
 
-def upload_document_modal(request):
-    return render(
-        request, "documents/upload_document_modal.html", {"user": request.user}
-    )
-
-
+@login_required(login_url="home")
+@require_http_methods(["POST"])
 def upload_document(request):
-    if request.method == "POST" and request.FILES.get("document"):
+    if request.FILES.get("document"):
         document = request.FILES["document"]
-        name = request.POST.get("fileName")
         description = request.POST.get("fileDescription")
         user = request.user
         unique_key = str(uuid.uuid4())
@@ -124,18 +116,41 @@ def upload_document(request):
         try:
             s3_url = upload_file_to_s3(document, unique_key)
 
-            user_document = UserDocument.objects.create(
+            UserDocument.objects.create(
                 user=user,
-                filename=name,
+                filename=document.name,
                 description=description,
                 s3_key=unique_key,
                 file_type=document.content_type,
             )
-            # Delete Document thats being passed
-            return JsonResponse(
-                {"success": True, "url": s3_url, "document": user_document}
-            )
+
+            return JsonResponse({"success": True, "url": s3_url})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
 
-    return JsonResponse({"success": False, "error": "Invalid request"})
+    return JsonResponse({"success": False, "error": "No document attachment found."})
+
+
+@login_required(login_url="home")
+@require_http_methods(["POST"])
+def delete_document(request):
+    try:
+        data = json.loads(request.body)
+        document_id = data.get("document_id")
+
+        if document_id is None:
+            return JsonResponse(
+                {"success": False, "error": "No document with this id found."},
+                status=400,
+            )
+
+        document = get_object_or_404(UserDocument, id=document_id, user=request.user)
+        delete_file_from_s3(document.s3_key)
+        document.delete()
+
+        return JsonResponse(
+            {"success": True, "message": "Document has been successfully deleted."}
+        )
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

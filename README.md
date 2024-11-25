@@ -5,20 +5,30 @@ A brief description of your project goes here.
 
 ## Build Status
 ### Master Branch
-[![Build Status](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4.svg?branch=master)](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4)
+[![Build Status](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4.svg?branch=master)](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4?branch=master)
 ### Develop Branch
-[![Build Status](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4.svg?branch=develop)](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4)
+[![Build Status](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4.svg?branch=develop)](https://app.travis-ci.com/gcivil-nyu-org/fall24-monday-team4?branch=develop)
 
 ## Coverage
 ### Master Branch
-[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=develop)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=master)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=master)
 ### Develop Branch
-[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=master)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=develop)
+[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=develop)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=develop)
 
 ## Links
-1. [AWS EB Site](https://routepals-dev.us-west-2.elasticbeanstalk.com)
-2. [GitHub Source](https://github.com/gcivil-nyu-org/fall24-monday-team4.git)
-2. [Travis CI Dashboard](https://app.travis-ci.com/github/gcivil-nyu-org/fall24-monday-team4/branches?serverType=git)
+### Production (master)
+1. [AWS EB Site](https://routepals-prod-env.us-west-2.elasticbeanstalk.com)
+2. [GitHub Source](https://github.com/gcivil-nyu-org/fall24-monday-team4/tree/master)
+
+### Development (develop)
+1. [AWS EB Site](https://routepals-dev-env.us-west-2.elasticbeanstalk.com)
+2. [GitHub Source](https://github.com/gcivil-nyu-org/fall24-monday-team4/tree/develop)
+
+### Travis CICD Dashboard
+[Travis CICD Dashboard](https://app.travis-ci.com/github/gcivil-nyu-org/fall24-monday-team4/branches?serverType=git)
+
+### Coveralls Code Coverage Dashboard
+[Coveralls Dashboard](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4)
 
 ## Setup Instructions
 
@@ -30,8 +40,8 @@ A brief description of your project goes here.
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd <project-directory>
+git clone https://github.com/gcivil-nyu-org/fall24-monday-team4.git
+cd ./fall24-monday-team4
 
 # For Windows: Create virtual environment
 python -m venv venv
@@ -48,8 +58,14 @@ source venv/bin/activate
 # Install required packages
 pip install -r requirements.txt
 
-# Run the project
-python <your_main_script.py>
+# Make migrations
+python manage.py makemigrations
+
+# Run migrations
+python manage.py migrate
+
+# Run local server
+python manage.py runserver
 
 # Deactivate the virtual environment
 deactivate

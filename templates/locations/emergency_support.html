@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Emergency Support{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Live Emergency Response Map</h4>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">Active Users</h6>
+                            <h3 id="active-user-count">{{ active_users }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Active Panics</h6>
+                            <h3 id="panic-count">{{ panic_users }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Last Update</h6>
+                            <h3 id="last-update">Just now</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="map" style="height: 500px; width: 100%;"></div>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6>Map Legend</h6>
+                    <div class="d-flex gap-3">
+                        <div><i class="fas fa-map-marker-alt text-danger"></i> User in Panic</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="panicDetailsModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Active Panic Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>User:</strong> <span id="modalUsername"></span></p>
+                            <p><strong>Message:</strong> <span id="modalPanicMessage"></span></p>
+                            <p><strong>Location:</strong> (<span id="modalCoordinates"></span>)</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" id="modalResolvePanic" class="btn btn-danger">Resolve Emergency</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const pusher = new Pusher('{{ pusher_key }}', {
+        cluster: '{{ pusher_cluster }}',
+        encrypted: true
+    });
+    
+    const channelPanic = pusher.subscribe('emergency-channel');
+
+    const locations = {{ locations_json|safe }};
+    const activeUsers = {{ active_users }};
+    const panicUsers = {{ panic_users }};
+
+    const map = L.map('map').setView([40.7290, -73.9965], 11); // NYU coordinates
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+    }).addTo(map);
+
+    // Use for initial setup
+    updateMapBounds(locations);
+
+    let markers = {}; // Object to store markers by location ID
+
+    function getMarkerIcon(panic) {
+        return L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+    }
+
+    // Add initial markers to the map
+    locations.forEach(location => {
+        const marker = L.marker([location.latitude, location.longitude], { icon: getMarkerIcon(location.panic) })
+                        .addTo(map)
+                        .on('click', function() {
+                            document.getElementById('modalUsername').textContent = location.username;
+                            document.getElementById('modalPanicMessage').textContent = `${location.panic_message}` || 'No message provided';
+                            document.getElementById('modalCoordinates').textContent = `${location.latitude}, ${location.longitude}`;
+                            document.getElementById('modalResolvePanic').dataset.username = location.username;
+                            
+                            const modal = new bootstrap.Modal(document.getElementById('panicDetailsModal'));
+                            modal.show();
+                        });
+
+        markers[location.id] = marker;
+    });
+
+    document.getElementById('active-user-count').textContent = activeUsers;
+    document.getElementById('panic-count').textContent = panicUsers;
+    document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+
+    if (locations.length > 0) {
+        const bounds = L.latLngBounds(locations.map(loc => [loc.latitude, loc.longitude]));
+        map.fitBounds(bounds);
+    }
+
+    let activePanic = null; // Track the active panic location
+
+    function updateMapBounds(locations, panic = false) {
+        if (locations.length === 0) return;
+
+        const bounds = L.latLngBounds(locations.map(loc => [loc.latitude, loc.longitude]));
+
+        if (panic) {
+            // For panic situations, zoom in more but keep some context
+            map.fitBounds(bounds, {
+                padding: [100, 100], // Add padding around bounds
+                maxZoom: 15 // Limit how far it zooms in
+            });
+        } else {
+            map.fitBounds(bounds, {
+                padding: [50, 50]
+            });
+        }
+    }
+
+    channelPanic.bind('panic-create', function(data) {
+
+        // Remove existing markers
+        Object.values(markers).forEach(marker => map.removeLayer(marker));
+        markers = {};
+
+        // Add new markers
+        data.locations.forEach(location => {
+            const marker = L.marker([location.latitude, location.longitude], { icon: getMarkerIcon(location.panic) })
+                .addTo(map)
+                .on('click', function() {
+                    document.getElementById('modalUsername').textContent = location.username;
+                    document.getElementById('modalPanicMessage').textContent = location.panic_message || 'No message provided';
+                    document.getElementById('modalCoordinates').textContent = `${location.latitude}, ${location.longitude}`;
+                    document.getElementById('modalResolvePanic').dataset.username = location.username;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('panicDetailsModal'));
+                    modal.show();
+                });
+
+            markers[location.id] = marker;
+        });
+
+        document.getElementById('active-user-count').textContent = data.active_users;
+        document.getElementById('panic-count').textContent = data.panic_users;
+        document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+
+        updateMapBounds(data.locations, true);
+    });
+
+
+    channelPanic.bind('panic-resolve', function(data) {
+        location.reload();
+    });
+
+    document.getElementById('modalResolvePanic').addEventListener('click', function() {
+        const button = this;
+        const username = button.dataset.username;
+        if (username) {
+            // Disable button during request
+            button.disabled = true;
+            button.textContent = 'Resolving...';
+
+            const url = `{% url 'resolve_panic' panic_username='username_placeholder' %}`.replace('username_placeholder', username);
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('panicDetailsModal')).hide();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // alert('Failed to resolve emergency. Please try again.');
+            })
+            .finally(() => {
+                // Re-enable button
+                button.disabled = false;
+                button.textContent = 'Resolve Emergency';
+            });
+        }
+    });
+
+    window.addEventListener('unload', function() {
+        window.pusher.unsubscribe('emergency-channel');
+    });
+</script>
+
+{% endblock %}

@@ -1,7 +1,8 @@
 language: python
+os: linux
 dist: jammy 
 python:
-  - "3.10"
+  - "3.11"
 
 services:
   - postgresql
@@ -13,16 +14,17 @@ install:
   - pip install -r requirements.txt
 
 before_script:
+  - psql -c "DROP DATABASE IF EXISTS $DB_NAME;" -U postgres
   - psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';" -U postgres
   - psql -c "CREATE DATABASE $DB_NAME;" -U postgres
   - psql -c "ALTER USER $DB_USER WITH SUPERUSER;" -U postgres
-  - python manage.py migrate
+  - python manage.py migrate --no-input
   - python manage.py collectstatic --noinput
 
 script:
   - black --check .
-  - flake8 .
-  - coverage run manage.py test
+  - flake8
+  - coverage run manage.py test --noinput
 
 after_script:
   - coveralls

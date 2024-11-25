@@ -1,0 +1,81 @@
+<div class="modal fade" id="socialMediaModal" tabindex="-1" aria-labelledby="socialMediaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="socialMediaModalLabel">Enter Your Social Media Handles</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="manageSocialsForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="instagramHandle" class="form-label">Instagram</label>
+                        <input type="text" class="form-control" id="instagramHandle" name="instagram" value="{{ profile.instagram_handle|default:'' }}" placeholder="Enter your Instagram Username">
+                    </div>
+                    <div class="mb-3">
+                        <label for="facebookHandle" class="form-label">Facebook</label>
+                        <input type="text" class="form-control" id="facebookHandle" name="facebook" value="{{ profile.facebook_handle|default:'' }}" placeholder="Enter your Facebook Username">
+                    </div>
+                    <div class="mb-3">
+                        <label for="twitterHandle" class="form-label">Twitter</label>
+                        <input type="text" class="form-control" id="twitterHandle" name="twitter" value="{{ profile.twitter_handle|default:'' }}" placeholder="Enter your Twitter Username">
+                    </div>
+                    <div id="error-message-social-user" style="display: none; color: red; text-align: center; margin-top: 15px; margin-bottom: 15px;">
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; flex-direction: row; justify-content: space-between;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-success">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const socialsForm = document.getElementById('manageSocialsForm');
+        const modal = document.getElementById('socialMediaModal');
+        const errorMessage = document.getElementById('error-message-social-user');
+
+        const instagramField = document.getElementById('instagramHandle');
+        const facebookField = document.getElementById('facebookHandle');
+        const twitterField = document.getElementById('twitterHandle');
+
+        const initialValues = {
+            instagram: instagramField.value,
+            facebook: facebookField.value,
+            twitter: twitterField.value,
+        };
+
+        socialsForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            fetch("{% url 'update_social_handles' %}", {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        errorMessage.style.display = "none";
+                        location.reload(); // Reload the page
+                    } else {
+                        errorMessage.innerText = data.error_message || "There was an error saving your social media handles.";
+                        errorMessage.style.display = "block";
+                    }
+                })
+                .catch(error => {
+                    errorMessage.innerText = "Unexpected error: " + error;
+                    errorMessage.style.display = "block";
+                });
+        });
+
+        modal.addEventListener('hidden.bs.modal', function() {
+            instagramField.value = initialValues.instagram;
+            facebookField.value = initialValues.facebook;
+            twitterField.value = initialValues.twitter;
+            errorMessage.style.display = "none";
+        });
+    });
+</script>
