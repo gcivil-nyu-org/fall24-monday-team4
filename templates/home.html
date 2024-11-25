@@ -393,15 +393,30 @@
                     useCurrentLocation();
                 }
             }
-        
+            
+            function isValidDate(dateTime) {
+                const selected = new Date(dateTime);
+                const now = new Date();
+                const oneYearFromNow = new Date();
+                oneYearFromNow.setFullYear(now.getFullYear() + 1);
+                
+                return selected >= now && selected <= oneYearFromNow;
+            }
+
             // Form submission handler
             document.getElementById('tripForm').addEventListener('submit', function(e) {
-                if (!currentMarker) {
+                const dateInput = document.querySelector('input[name="planned_departure"]');
+                if (!isValidDate(dateInput.value)) {
+                    e.preventDefault();
+                    alert('Please select a date between now and one year from today');
+                    return;
+                }
+                else if (!currentMarker) {
                     e.preventDefault();
                     alert('Please set a start location');
                     return;
                 }
-                if (!destMarker) {
+                else if (!destMarker) {
                     e.preventDefault();
                     alert('Please select a destination on the map');
                     return;
