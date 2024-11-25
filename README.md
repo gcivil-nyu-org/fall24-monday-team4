@@ -16,13 +16,12 @@ A brief description of your project goes here.
 [![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/fall24-monday-team4/badge.svg?branch=develop)](https://coveralls.io/github/gcivil-nyu-org/fall24-monday-team4?branch=develop)
 
 ## Links
-
 ### Production (master)
 1. [AWS EB Site](https://routepals-prod-env.us-west-2.elasticbeanstalk.com)
 2. [GitHub Source](https://github.com/gcivil-nyu-org/fall24-monday-team4/tree/master)
 
 ### Development (develop)
-1. [AWS EB Site](https://routepals-dev.us-west-2.elasticbeanstalk.com)
+1. [AWS EB Site](https://routepals-dev-env.us-west-2.elasticbeanstalk.com)
 2. [GitHub Source](https://github.com/gcivil-nyu-org/fall24-monday-team4/tree/develop)
 
 ### Travis CICD Dashboard

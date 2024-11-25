@@ -1,3 +1,4 @@
+import json
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
@@ -395,3 +396,39 @@ class UserProfileViewsTest(TestCase):
         self.assertEqual(
             response.json()["error_message"], "No profile picture to remove."
         )
+
+    def test_update_social_handles(self):
+        # Test valid handles
+        data = {
+            "instagram": "test_insta",
+            "facebook": "test_fb",
+            "twitter": "test_twitter",
+        }
+
+        response = self.client.post(
+            reverse("update_social_handles"),
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+
+    @patch("user_profile.views.UserProfile.objects.get")
+    def test_update_social_handles_exception(self, mock_filter):
+        mock_filter.side_effect = Exception("User has no userprofile.")
+
+        data = {
+            "instagram": "invalid@handle",
+            "facebook": "test_fb",
+            "twitter": "test_twitter",
+        }
+
+        response = self.client.post(
+            reverse("update_social_handles"),
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["error_message"], "User has no userprofile.")

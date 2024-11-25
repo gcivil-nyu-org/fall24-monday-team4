@@ -153,7 +153,6 @@ class XSSMiddlewareTest(TestCase):
     def get_test_response(self, request):
         if hasattr(request, "test_response"):
             return request.test_response
-        return HttpResponse()
 
     def test_escape_basic_json(self):
         request = self.factory.get("/")
@@ -334,3 +333,23 @@ class XSSMiddlewareTest(TestCase):
             content["messages"][0], "&lt;script&gt;alert(1)&lt;/script&gt;"
         )
         self.assertEqual(content["messages"][1], "&lt;img onerror=alert(1) src=x&gt;")
+
+    def test_escape_json_number_value(self):
+        # Create a mock get_response function that returns our mock response
+        mock_response = MagicMock()
+        mock_response.content_type = "application/json"
+        mock_response.content = json.dumps({"number": 42}).encode()
+
+        def mock_get_response(request):
+            return mock_response
+
+        middleware = XSSMiddleware(mock_get_response)
+
+        # Process the response through middleware
+        processed_response = middleware.__call__(
+            None
+        )  # None as request since we don't use it
+        processed_content = json.loads(processed_response.content.decode())
+
+        # The number should remain unchanged since it's not a string
+        self.assertEqual(processed_content["number"], 42)
