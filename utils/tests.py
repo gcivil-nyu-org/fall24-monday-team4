@@ -153,7 +153,6 @@ class XSSMiddlewareTest(TestCase):
     def get_test_response(self, request):
         if hasattr(request, "test_response"):
             return request.test_response
-        return HttpResponse()
 
     def test_escape_basic_json(self):
         request = self.factory.get("/")
