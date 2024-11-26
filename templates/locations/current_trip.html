@@ -682,7 +682,7 @@
                         alert(data.message);
                     } else {
                         alert(data.message);
-                        throw new Error(data.message || 'Server error occurred');
+                        throw new Error(data.error || 'Server error occurred');
                     }
                 })
                 .catch(error => {
