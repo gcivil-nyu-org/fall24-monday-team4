@@ -681,13 +681,13 @@
                         bootstrap.Modal.getInstance(document.getElementById('panicModal')).hide();
                         alert(data.message);
                     } else {
-                        panicButton.disabled = false;
                         alert(data.message);
+                        throw new Error(data.message || 'Server error occurred');
                     }
                 })
                 .catch(error => {
-                    panicButton.disabled = false;
-                    alert('An error occurred while triggering Panic mode.');
+                    console.error('Full error:', error);  // This will show in browser dev tools
+                    alert(`Error: ${error.message}`);
                 });
             }
         }
