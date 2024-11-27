@@ -54,11 +54,11 @@
       </style>
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-transparent bg-gradient p-3">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light bg-gradient p-3">
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#routepalsNav" aria-controls="routepalsNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
-      <a class="navbar-brand" href="/"><b>RoutePals</b></a>
+      <a class="navbar-brand" href="/" style="font-size: 24px; margin-left: 50px;"><b>RoutePals</b></a>
         {% if user.is_authenticated %}
           <div class="collapse navbar-collapse" id="routepalsNav">
             <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
@@ -90,22 +90,18 @@
               </li>
             </ul>
           </div>
-          <div class="row justify-content-center">
-              <a class="nav-link link-light" href="{% url 'profile' %}">
+          <span class="navbar-text">
+            <div class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; margin-right: 3em;">
+              <a class="nav-link" href="{% url 'profile' %}" style="color: white;">
+                <span class="navbar-text">{{ user.username }}</span>
                   {% if user.userprofile.photo_key %}
-                  <img src={{ profile_picture }} alt="User Picture" id="activeUserPicture" class="rounded-circle" style="padding: unset; width: 50px; height: 50px; border: 1px solid white; margin-right: 50px; display: flex; align-items: center; justify-content: center;"/>
+                   <img src={{ profile_picture }} alt="User Picture" id="activeUserPicture" class="rounded-circle" style="padding: unset; width: 40px; height: 40px; border: 1px solid white; margin-right: 50px; display: inline-flex; align-items: center; justify-content: center;"/>
                   {% else %}
-                  <div class="rounded-circle" style="width: 50px; height: 50px; border: 1px solid white; margin-right: 50px; background-color: black; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
+                  <div class="rounded-circle" style="width: 40px; height: 40px; border: 1px solid white; margin-left: 10px; background-color: black; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
                       ?
-                  </div>
                   {% endif %}
               </a>
-          </div>
-          <span class="navbar-text">
-            <form class="form-inline" action="{% url 'logout' %}" method="post">
-              {% csrf_token %}
-              <button class="btn btn-outline-dark" type="submit">Log Out</button>
-            </form>
+            </div>
           </span>
         {% endif %}
     </nav>
