@@ -15,7 +15,11 @@ def generate_presigned_url(key, expiration=86400):
         # Generate pre-signed URL if the object exists
         url = s3_client.generate_presigned_url(
             "get_object",
-            Params={"Bucket": settings.AWS_STORAGE_BUCKET_NAME, "Key": key},
+            Params={
+                "Bucket": settings.AWS_STORAGE_BUCKET_NAME,
+                "Key": key,
+                "ResponseContentDisposition": "inline",
+            },
             ExpiresIn=expiration,
         )
         return url

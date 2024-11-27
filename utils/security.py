@@ -1,4 +1,5 @@
 # Create utils/security.py
+import json
 from django.utils.html import escape
 
 
@@ -16,9 +17,12 @@ class XSSMiddleware:
         ):
             content = response.content.decode()
             if content:
-                import json
-
-                data = json.loads(content)
+                try:
+                    content = response.content.decode()
+                    data = json.loads(content)
+                    # Rest of the middleware code...
+                except json.JSONDecodeError:
+                    return response  # Return original response if JSON is invalid
 
                 # Recursively escape all string values
                 def escape_json(obj):

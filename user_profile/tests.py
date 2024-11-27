@@ -1,3 +1,4 @@
+import json
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
@@ -242,6 +243,40 @@ class UserProfileViewsTest(TestCase):
         self.assertFalse(response.json()["success"])
         self.assertEqual(response.json()["error_message"], "Delete failed")
 
+    @patch("utils.s3_utils.s3_client")
+    def test_profile_view_other_user(self, mock_s3):
+        # Setup mock
+        mock_s3.head_object.return_value = True
+        mock_s3.generate_presigned_url.return_value = "https://test-url.com/photo.jpg"
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
+
+        response = self.client.get(
+            reverse("user_profile", kwargs={"user_id": self.other_user.id})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["is_user"])
+        self.assertEqual(response.context["user_to_view"], self.other_user)
+
+    @patch("utils.s3_utils.s3_client")
+    def test_profile_view_with_photo(self, mock_s3):
+        # Setup mock
+        mock_s3.head_object.return_value = True
+        mock_s3.generate_presigned_url.return_value = "https://test-url.com/photo.jpg"
+        mock_s3.exceptions = MagicMock()
+        mock_s3.exceptions.ClientError = ClientError
+
+        response = self.client.get(reverse("profile"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context["profile_picture_url"], "https://test-url.com/photo.jpg"
+        )
+
+        # Just verify the number of calls and that they were made with the same key
+        self.assertEqual(mock_s3.head_object.call_count, 2)
+        for call_args in mock_s3.head_object.call_args_list:
+            self.assertEqual(call_args[1]["Key"], "test_photo_key")
+
     def test_profile_view_without_photo(self):
         self.user_profile.photo_key = None
         self.user_profile.save()
@@ -361,3 +396,39 @@ class UserProfileViewsTest(TestCase):
         self.assertEqual(
             response.json()["error_message"], "No profile picture to remove."
         )
+
+    def test_update_social_handles(self):
+        # Test valid handles
+        data = {
+            "instagram": "test_insta",
+            "facebook": "test_fb",
+            "twitter": "test_twitter",
+        }
+
+        response = self.client.post(
+            reverse("update_social_handles"),
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+
+    @patch("user_profile.views.UserProfile.objects.get")
+    def test_update_social_handles_exception(self, mock_filter):
+        mock_filter.side_effect = Exception("User has no userprofile.")
+
+        data = {
+            "instagram": "invalid@handle",
+            "facebook": "test_fb",
+            "twitter": "test_twitter",
+        }
+
+        response = self.client.post(
+            reverse("update_social_handles"),
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["success"])
+        self.assertEqual(response.json()["error_message"], "User has no userprofile.")
