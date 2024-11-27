@@ -91,12 +91,12 @@
             </ul>
           </div>
           <span class="navbar-text">
-            <div class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; margin-right: 3em;">
+            <div class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; justify-content: center; margin-right: 3em;">
               <a class="nav-link" href="{% url 'profile' %}" style="color: white;">
-                <span class="navbar-text">{{ user.username }}</span>
+                <span class="navbar-text align-text-bottom">{{ user.username }}</span>
                   {% if user.userprofile.photo_key %}
                     {% with profile_picture_url=user.userprofile.get_photo_url %}
-                       <img src={{ profile_picture_url }} alt="User Picture" id="activeUserPicture" class="rounded-circle" style="padding: unset; width: 40px; height: 40px; border: 1px solid white; margin-right: 50px; display: inline-flex; align-items: center; justify-content: center;"/>
+                       <img src={{ profile_picture_url }} alt="User Picture" id="activeUserPicture" class="rounded-circle" style="padding: unset; width: 40px; height: 40px; border: 1px solid white; display: inline-flex; align-items: center; justify-content: center;"/>
                     {% endwith %}
                   {% else %}
                     <div class="rounded-circle" style="width: 40px; height: 40px; border: 1px solid white; margin-left: 10px; background-color: black; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
