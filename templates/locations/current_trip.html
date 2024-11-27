@@ -681,7 +681,6 @@
                         bootstrap.Modal.getInstance(document.getElementById('panicModal')).hide();
                         alert(data.message);
                     } else {
-                        alert(data.message);
                         throw new Error(data.error || 'Server error occurred');
                     }
                 })
