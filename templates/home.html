@@ -17,6 +17,13 @@
                         <div class="alert alert-warning">
                             Access to Route Pals features is restricted to verified users. Please upload your verification documents <a href="{% url 'user_document_list' %}">here</a>. If you have already uploaded documents, view them <a href="{% url 'user_document_list' %}">here</a>. You will be notified via email once they are approved.
                         </div>
+                        <hr />
+                        <div class="row text-center">
+                        <form class="form-inline" action="{% url 'logout' %}" method="post">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger justify-content-center" type="submit">Log Out</button>
+                        </form>
+                        </div>
                     </div>
                 </div>
             </div>
