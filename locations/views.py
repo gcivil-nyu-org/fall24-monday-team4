@@ -87,25 +87,43 @@ def get_trip_locations(request):
 @verification_required
 @require_http_methods(["POST"])
 def create_trip(request):
-    # Convert the naive datetime to timezone-aware
-    planned_departure = make_aware(
-        datetime.strptime(request.POST.get("planned_departure"), "%Y-%m-%dT%H:%M")
-    )
+    planned_departure = request.POST.get("planned_departure")
+    try:
+        # Convert to timezone-aware datetime
+        planned_departure = make_aware(
+            datetime.strptime(planned_departure, "%Y-%m-%dT%H:%M")
+        )
 
-    Trip.objects.update_or_create(
-        user=request.user,
-        status="SEARCHING",  # Only look for active searching trips
-        defaults={
-            "start_latitude": request.POST.get("start_latitude"),
-            "start_longitude": request.POST.get("start_longitude"),
-            "dest_latitude": request.POST.get("dest_latitude"),
-            "dest_longitude": request.POST.get("dest_longitude"),
-            "planned_departure": planned_departure,
-            "desired_companions": int(request.POST.get("desired_companions")),
-            "search_radius": int(request.POST.get("search_radius")),
-        },
-    )
-    return redirect("current_trip")
+        # Validate datetime
+        now = timezone.now()
+        max_date = now + timedelta(days=365)  # 1 year from now
+
+        if planned_departure < now:
+            return JsonResponse(
+                {"success": False, "error": "Selected date and time cannot be in the past"}
+            )
+        if planned_departure > max_date:
+            return JsonResponse(
+                {"success": False, "error": "Selected date cannot be more than 1 year in the future"}
+            )
+
+        # Create trip if validation passes
+        Trip.objects.update_or_create(
+            user=request.user,
+            status="SEARCHING",
+            defaults={
+                "start_latitude": request.POST.get("start_latitude"),
+                "start_longitude": request.POST.get("start_longitude"),
+                "dest_latitude": request.POST.get("dest_latitude"),
+                "dest_longitude": request.POST.get("dest_longitude"),
+                "planned_departure": planned_departure,
+                "desired_companions": int(request.POST.get("desired_companions")),
+                "search_radius": int(request.POST.get("search_radius")),
+            },
+        )
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
 
 
 @login_required
