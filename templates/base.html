@@ -51,6 +51,53 @@
         .navbar-light .navbar-brand {
           color: rgb(81, 0, 128);
         }
+
+        .profile-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 3em;
+          padding: 5px 15px;
+          border-radius: 25px;
+          backdrop-filter: blur(10px);
+          transition: all 0.3s ease;
+        }
+
+        .profile-link {
+          color: #000;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .profile-photo {
+          padding: unset;
+          width: 45px;
+          height: 45px;
+          border: 2px solid #000;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          object-fit: cover;
+        }
+
+        .profile-placeholder {
+          width: 40px;
+          height: 40px;
+          border: 2px solid #333;
+          background-color: black;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 20px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .username-text {
+          font-weight: 500;
+          color: #000;
+          letter-spacing: 0.5px;
+          transition: color 0.3s ease;
+        }
       </style>
   </head>
   <body>
@@ -90,22 +137,24 @@
               </li>
             </ul>
           </div>
-          <span class="navbar-text">
-            <div class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; justify-content: center; margin-right: 3em;">
-              <a class="nav-link" href="{% url 'profile' %}" style="color: white;">
-                <span class="navbar-text align-text-bottom">{{ user.username }}</span>
-                  {% if user.userprofile.photo_key %}
-                    {% with profile_picture_url=user.userprofile.get_photo_url %}
-                       <img src={{ profile_picture_url }} alt="User Picture" id="activeUserPicture" class="rounded-circle" style="padding: unset; width: 40px; height: 40px; border: 1px solid white; display: inline-flex; align-items: center; justify-content: center;"/>
-                    {% endwith %}
-                  {% else %}
-                    <div class="rounded-circle" style="width: 40px; height: 40px; border: 1px solid white; margin-left: 10px; background-color: black; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 24px;">
-                      ?
-                    </div>
-                  {% endif %}
-              </a>
-            </div>
-          </span>
+          {% if user.userprofile.is_verified %}
+            <span class="navbar-text">
+                <div class="btn btn-outline-dark profile-btn" 
+                    onmouseover="this.querySelector('.username-text').style.color='#ffffff'" 
+                    onmouseout="this.querySelector('.username-text').style.color='#000000'">
+                    <a class="nav-link profile-link" href="{% url 'profile' %}">
+                        <span class="navbar-text align-text-bottom username-text" style="color: #000;">{{ user.username }}</span>
+                        {% if user.userprofile.photo_key %}
+                            {% with profile_picture_url=user.userprofile.get_photo_url %}
+                                <img src={{ profile_picture_url }} alt="User Picture" id="activeUserPicture" class="rounded-circle profile-photo"/>
+                            {% endwith %}
+                        {% else %}
+                            <div class="rounded-circle profile-placeholder">?</div>
+                        {% endif %}
+                    </a>
+                </div>
+            </span>
+          {% endif %}
         {% endif %}
     </nav>
     <main class="container mb-3">
@@ -113,7 +162,7 @@
       {% endblock %}
     </main>
     
-    <footer class="footer p-3 mt-3 bg-transparent">
+    <footer class="footer p-3 mt-3 bg-light">
       <div class="container text-center">
           <span class="text-dark">&copy; <script>document.write(new Date().getFullYear())</script> RoutePals. All rights reserved.</span>
       </div>

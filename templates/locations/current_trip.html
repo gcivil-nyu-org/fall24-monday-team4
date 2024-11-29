@@ -127,17 +127,19 @@
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <div class="d-flex align-items-center mb-3">
-                                                {% if match_trip.user.userprofile.photo_key %}
-                                                    {% with profile_picture_url=match_trip.user.userprofile.get_photo_url %}
-                                                        <img src="{{ profile_picture_url }}" alt="Profile Picture"
-                                                            class="rounded-circle me-2" style="width: 50px; height: 50px; object-fit: cover;">
-                                                    {% endwith %}
-                                                {% else %}
-                                                    <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
-                                                        style="width: 50px; height: 50px; background-color: black; color: white;">
-                                                        ?
-                                                    </div>
-                                                {% endif %}
+                                                <a style="text-decoration: none" href="{% url 'user_profile' user_id=match_trip.user.id %}" > 
+                                                    {% if match_trip.user.userprofile.photo_key %}
+                                                        {% with profile_picture_url=match_trip.user.userprofile.get_photo_url %}
+                                                            <img src="{{ profile_picture_url }}" alt="Profile Picture"
+                                                                class="rounded-circle me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                                        {% endwith %}
+                                                    {% else %}
+                                                        <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                                            style="width: 50px; height: 50px; background-color: black; color: white;">
+                                                            ?
+                                                        </div>
+                                                    {% endif %}
+                                                </a>
                                                 <h5 class="card-title mb-0">{{ match_trip.user.username }}</h5>
                                             </div>
                                             <div class="mb-3">

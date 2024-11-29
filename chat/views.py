@@ -94,7 +94,10 @@ def send_message(request):
             "message-event",
             {
                 "message": message_text,
-                "username": request.user.username,
+                "user": {
+                    "username": request.user.username,
+                    "id": request.user.id
+                },
                 "type": (
                     "ems_panic_message"
                     if message_type == "EMS_PANIC_MESSAGE"
