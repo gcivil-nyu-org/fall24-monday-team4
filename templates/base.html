@@ -58,7 +58,7 @@
           justify-content: center;
           margin-right: 3em;
           padding: 5px 15px;
-          border-radius: 25px;
+          border-radius: 50px;
           backdrop-filter: blur(10px);
           transition: all 0.3s ease;
         }
@@ -67,7 +67,7 @@
           color: #000;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 11px;
         }
 
         .profile-photo {
@@ -143,7 +143,7 @@
                     onmouseover="this.querySelector('.username-text').style.color='#ffffff'" 
                     onmouseout="this.querySelector('.username-text').style.color='#000000'">
                     <a class="nav-link profile-link" href="{% url 'profile' %}">
-                        <span class="navbar-text align-text-bottom username-text" style="color: #000;">{{ user.username }}</span>
+                        <span class="navbar-text align-text-bottom username-text" style="color: #000;"><strong>{{ user.username }}</strong></span>
                         {% if user.userprofile.photo_key %}
                             {% with profile_picture_url=user.userprofile.get_photo_url %}
                                 <img src={{ profile_picture_url }} alt="User Picture" id="activeUserPicture" class="rounded-circle profile-photo"/>
