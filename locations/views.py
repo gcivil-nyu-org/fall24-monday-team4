@@ -100,11 +100,17 @@ def create_trip(request):
 
         if planned_departure < now:
             return JsonResponse(
-                {"success": False, "error": "Selected date and time cannot be in the past"}
+                {
+                    "success": False,
+                    "error": "Selected date and time cannot be in the past",
+                }
             )
         if planned_departure > max_date:
             return JsonResponse(
-                {"success": False, "error": "Selected date cannot be more than 1 year in the future"}
+                {
+                    "success": False,
+                    "error": "Selected date cannot be more than 1 year in the future",
+                }
             )
 
         # Create trip if validation passes
