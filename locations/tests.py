@@ -1025,6 +1025,12 @@ class LocationViewsTest(TestCase):
             ]
         )
 
+    def test_reschedule_nonexistent_trip(self):
+        """Test rescheduling when trip doesn't exist"""
+        self.trip.delete()
+        response = self.client.get(reverse("reschedule_trip"))
+        self.assertRedirects(response, reverse("home"))
+
 
 class TripFiltersTest(TestCase):
     def setUp(self):
