@@ -62,7 +62,7 @@
                         {% elif user_trip.status == "IN_PROGRESS" %}
                             <form method="POST" action="{% url 'complete_trip' %}" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-success" {% if user_trip.completion_requested %}disabled{% endif %}>
+                                <button type="submit" id="complete_Button" class="btn btn-success" {% if user_trip.completion_requested or user_trip|has_panic_users %}disabled{% endif %}>
                                     {% if user_trip.completion_requested %}
                                         Completion Requested
                                     {% else %}
@@ -289,11 +289,29 @@
         });
 
         const channelPanic = window.pusher.subscribe('emergency-channel');
+        
+        channelPanic.bind('panic-create', function(data) {
+            // Disable the complete trip button if exists
+            document.getElementById("complete_Button").disabled = true;
+        });
 
         channelPanic.bind('panic-resolve', function(data) {
             if (data.username === "{{ request.user.username }}") {
                 document.getElementById('panic').disabled = false;
             }
+            
+            // Check if ANY user is still in panic mode
+            fetch("{% url 'check_panic_users' %}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Only enable if NO users are in panic mode
+                        document.getElementById("complete_Button").disabled = data.has_panic;
+                    } else {
+                        console.error('Full error:', error);
+                        alert(`Error: ${error.message}`);
+                    }
+                });
         });
     </script>
 
@@ -689,7 +707,7 @@
                     }
                 })
                 .catch(error => {
-                    console.error('Full error:', error);  // This will show in browser dev tools
+                    console.error('Full error:', error);
                     alert(`Error: ${error.message}`);
                 });
             }

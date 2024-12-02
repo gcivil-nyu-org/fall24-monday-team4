@@ -3,6 +3,8 @@ import uuid
 import json
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
+
+from locations.templatetags import trip_filters
 from .models import Trip, Match, UserLocation
 from chat.models import ChatRoom, Message
 from datetime import timedelta, datetime
@@ -599,6 +601,19 @@ def previous_trips(request):
 @login_required
 @verification_required
 @active_trip_required
+@require_http_methods(["GET"])
+def check_panic_users(request):
+    try:
+        trip = Trip.objects.get(user=request.user, status="IN_PROGRESS")
+        has_panic = trip_filters.has_panic_users(trip)
+        return JsonResponse({"success": True, "has_panic": has_panic})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+
+@login_required
+@verification_required
+@active_trip_required
 @require_http_methods(["POST"])
 def trigger_panic(request):
     try:
@@ -753,12 +768,18 @@ def complete_trip(request):
                     trip.chatroom,
                     "Majority has voted to complete the trip. Trip is now archived.",
                 )
+
             # Complete all trips in one query
             matched_trips.update(
                 status="COMPLETED",
                 completion_requested=True,
                 completed_at=current_time,
             )
+
+            # Delete UserLocations for all users involved
+            user_ids = matched_trips.values_list("user", flat=True)
+            UserLocation.objects.filter(user__in=user_ids).delete()
+
             # Broadcast completion to all participants
             for matched_trip in matched_trips:
                 broadcast_trip_update(
