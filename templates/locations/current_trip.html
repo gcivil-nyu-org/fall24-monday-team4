@@ -5,6 +5,10 @@
 {% block content %}
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <div class="container mt-4">
     {% if error %}
         <div class="alert alert-warning">
@@ -73,7 +77,7 @@
                         {% if user_trip.status in "SEARCHING,MATCHED,READY" %}
                             <form method="POST" action="{% url 'cancel_trip' %}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">
+                                <button type="button" class="btn btn-danger" onclick="cancelTrip('{{ user_trip.id }}')">
                                     Cancel Trip
                                 </button>
                             </form>
@@ -650,46 +654,77 @@
             document.getElementById('panic_message').value = '';
         });
         
-        function triggerPanic() {
-            const message = document.getElementById('panic_message').value.trim();
-            const errorDiv = document.getElementById('panic_error');
-            
-            if (!message) {
-                errorDiv.textContent = 'Please describe your emergency';
-                errorDiv.style.display = 'block';
-                return;
-            }
-            
-            // Hide error if validation passes
-            errorDiv.style.display = 'none';
+        async function triggerPanic() {
+    const message = document.getElementById('panic_message').value.trim();
+    const errorDiv = document.getElementById('panic_error');
 
-            if (confirm('Are you sure you want to activate Panic mode?')) {
-                const panicButton = document.getElementById('panic');
-                panicButton.disabled = true;
-                
-                fetch("{% url 'trigger_panic' %}", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded",
-                        "X-CSRFToken": "{{ csrf_token }}",
-                    },
-                    body: `initial_message=${encodeURIComponent(message)}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        bootstrap.Modal.getInstance(document.getElementById('panicModal')).hide();
-                        alert(data.message);
-                    } else {
-                        throw new Error(data.error || 'Server error occurred');
-                    }
-                })
-                .catch(error => {
-                    console.error('Full error:', error);  // This will show in browser dev tools
-                    alert(`Error: ${error.message}`);
-                });
+    if (!message) {
+        errorDiv.textContent = 'Please describe your emergency';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    errorDiv.style.display = 'none';
+
+    const result = await Swal.fire({
+        title: 'Activate Panic Mode?',
+        text: 'Are you sure you want to activate Panic mode?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'No, cancel'
+    });
+
+    if (result.isConfirmed) {
+        const panicButton = document.getElementById('panic');
+        panicButton.disabled = true;
+
+        fetch("{% url 'trigger_panic' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-CSRFToken": "{{ csrf_token }}",
+            },
+            body: `initial_message=${encodeURIComponent(message)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('panicModal')).hide();
+                Swal.fire('Activated!', data.message, 'success');
+            } else {
+                throw new Error(data.error || 'Server error occurred');
             }
-        }
+        })
+        .catch(error => {
+            console.error('Full error:', error);
+            Swal.fire('Error!', error.message, 'error');
+        });
+    }
+}
+
+    </script>
+
+    <script>
+    async function cancelTrip(tripId) {
+    const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: 'You are about to cancel this trip.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'No, keep it'
+    });
+
+    if (result.isConfirmed) {
+        document.querySelector(`form[action="{% url 'cancel_trip' %}"]`).submit();
+    }
+}
+
     </script>
 {% endif %}
 {% endblock %}
