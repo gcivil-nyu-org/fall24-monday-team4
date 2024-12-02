@@ -3,6 +3,8 @@ import uuid
 import json
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
+
+from locations.templatetags import trip_filters
 from .models import Trip, Match, UserLocation
 from chat.models import ChatRoom, Message
 from datetime import timedelta, datetime
@@ -87,25 +89,49 @@ def get_trip_locations(request):
 @verification_required
 @require_http_methods(["POST"])
 def create_trip(request):
-    # Convert the naive datetime to timezone-aware
-    planned_departure = make_aware(
-        datetime.strptime(request.POST.get("planned_departure"), "%Y-%m-%dT%H:%M")
-    )
+    planned_departure = request.POST.get("planned_departure")
+    try:
+        # Convert to timezone-aware datetime
+        planned_departure = make_aware(
+            datetime.strptime(planned_departure, "%Y-%m-%dT%H:%M")
+        )
 
-    Trip.objects.update_or_create(
-        user=request.user,
-        status="SEARCHING",  # Only look for active searching trips
-        defaults={
-            "start_latitude": request.POST.get("start_latitude"),
-            "start_longitude": request.POST.get("start_longitude"),
-            "dest_latitude": request.POST.get("dest_latitude"),
-            "dest_longitude": request.POST.get("dest_longitude"),
-            "planned_departure": planned_departure,
-            "desired_companions": int(request.POST.get("desired_companions")),
-            "search_radius": int(request.POST.get("search_radius")),
-        },
-    )
-    return redirect("current_trip")
+        # Validate datetime
+        now = timezone.now()
+        max_date = now + timedelta(days=365)  # 1 year from now
+
+        if planned_departure < now:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Selected date and time cannot be in the past",
+                }
+            )
+        if planned_departure > max_date:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Selected date cannot be more than 1 year in the future",
+                }
+            )
+
+        # Create trip if validation passes
+        Trip.objects.update_or_create(
+            user=request.user,
+            status="SEARCHING",
+            defaults={
+                "start_latitude": request.POST.get("start_latitude"),
+                "start_longitude": request.POST.get("start_longitude"),
+                "dest_latitude": request.POST.get("dest_latitude"),
+                "dest_longitude": request.POST.get("dest_longitude"),
+                "planned_departure": planned_departure,
+                "desired_companions": int(request.POST.get("desired_companions")),
+                "search_radius": int(request.POST.get("search_radius")),
+            },
+        )
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
 
 
 @login_required
@@ -575,6 +601,19 @@ def previous_trips(request):
 @login_required
 @verification_required
 @active_trip_required
+@require_http_methods(["GET"])
+def check_panic_users(request):
+    try:
+        trip = Trip.objects.get(user=request.user, status="IN_PROGRESS")
+        has_panic = trip_filters.has_panic_users(trip)
+        return JsonResponse({"success": True, "has_panic": has_panic})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+
+@login_required
+@verification_required
+@active_trip_required
 @require_http_methods(["POST"])
 def trigger_panic(request):
     try:
@@ -729,12 +768,18 @@ def complete_trip(request):
                     trip.chatroom,
                     "Majority has voted to complete the trip. Trip is now archived.",
                 )
+
             # Complete all trips in one query
             matched_trips.update(
                 status="COMPLETED",
                 completion_requested=True,
                 completed_at=current_time,
             )
+
+            # Delete UserLocations for all users involved
+            user_ids = matched_trips.values_list("user", flat=True)
+            UserLocation.objects.filter(user__in=user_ids).delete()
+
             # Broadcast completion to all participants
             for matched_trip in matched_trips:
                 broadcast_trip_update(
