@@ -69,7 +69,9 @@
                             <button type="button" class="btn btn-sm btn-secondary" id="cancel-button">Cancel</button>
                         </div>
                     </form>
-                    {% if is_user %} <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button">Password Change</a></p> {% endif %}
+                    {% if is_user %} 
+                        <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button">Password Change</a></p>
+                    {% endif %}
                     <hr />
                     {% if not is_user %}
                     <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reportUserModal">Report User</button>
@@ -106,6 +108,11 @@
                         Manage Social Media Handles
                     </button>
                     {% include 'profile/add_social_media_modal.html' %}
+                    <hr />
+                    <form class="form-inline" action="{% url 'logout' %}" method="post">
+                        {% csrf_token %}
+                        <button class="btn btn-outline-danger" type="submit">Log Out</button>
+                    </form>
                     {% endif %}
                 </div>
             </div>
