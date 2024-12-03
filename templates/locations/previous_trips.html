@@ -200,25 +200,48 @@
 
         const routingControl{{ trip.id }} = L.Routing.control({
             waypoints: [
-                L.latLng({{ trip.start_latitude }}, {{ trip.start_longitude }}),
-                L.latLng({{ trip.dest_latitude }}, {{ trip.dest_longitude }})
+                L.latLng(parseFloat({{ trip.start_latitude }}), parseFloat({{ trip.start_longitude }})),
+                L.latLng(parseFloat({{ trip.dest_latitude }}), parseFloat({{ trip.dest_longitude }}))
             ],
             router: L.Routing.osrmv1({
+                // serviceUrl: 'https://invalid-url-to-test-failure', // For testing routingerror
                 serviceUrl: 'https://router.project-osrm.org/route/v1',
                 profile: 'foot'
             }),
             routeWhileDragging: false,
             showAlternatives: false,
             lineOptions: {
-                styles: [{color: 'blue', opacity: 0.6, weight: 4}]
+                styles: [{color: 'blue', opacity: 0.6, weight: 5}]
             },
             createMarker: function() { return null; },
             addWaypoints: false,
             draggableWaypoints: false,
             show: false,
             collapsible: false, 
-            containerClassName: 'd-none' 
+            containerClassName: 'd-none',
+            defaultErrorHandler: function(e) { 
+                console.warn("Routing failed - using direct line instead");
+            }
         }).addTo(map{{ trip.id }});
+
+        routingControl{{ trip.id }}.on('routingerror', function(e) {
+            // Remove failed routing control
+            map{{ trip.id }}.removeControl(routingControl{{ trip.id }});
+            
+            // Add simple line instead
+            const fallbackLine = L.polyline([
+                [parseFloat({{trip.start_latitude}}), parseFloat({{trip.start_longitude}})],
+                [parseFloat({{trip.dest_latitude}}), parseFloat({{trip.dest_longitude}})]
+            ], {
+                color: 'blue',
+                opacity: 0.6,
+                weight: 5,
+                dashArray: '10, 10'
+            }).addTo(map{{ trip.id }});
+
+            // Fit bounds to show the full line
+            map{{ trip.id }}.fitBounds(fallbackLine.getBounds());
+        });
 
         // Ensure map renders properly
         setTimeout(() => {
