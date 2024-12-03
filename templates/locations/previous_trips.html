@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load trip_filters %}
+{% load static %}
+
 {% block title %}Previous Trips{% endblock %}
 
 {% block content %}
@@ -242,6 +244,43 @@
             // Fit bounds to show the full line
             map{{ trip.id }}.fitBounds(fallbackLine.getBounds());
         });
+        
+        // Google Maps Link
+        L.Control.Gmaps = L.Control.extend({
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                const link = L.DomUtil.create('a', '', container);
+                link.href = '#';
+                link.title = 'Open in Google Maps';
+                // link.innerHTML = '<i class="fa-brands fa-google google-icon"></i>';
+
+                const icon = L.DomUtil.create('img', '', link);
+                
+                icon.src = '{% static "img/google-maps.png" %}';
+                icon.style.display = 'block';
+                icon.style.maxWidth = '100%';
+                icon.style.maxHeight = '100%';
+                icon.style.width = '23px'; 
+                icon.style.height = '23px';
+                icon.style.position = 'absolute';
+                icon.style.top = '50%';
+                icon.style.left = '50%';
+                icon.style.transform = 'translate(-50%, -50%)';
+
+                L.DomEvent.on(link, 'click', function(e) {
+                    L.DomEvent.preventDefault(e);
+                    // Get start and destination coordinates
+                    const start = `${parseFloat({{trip.start_latitude}})},${parseFloat({{trip.start_longitude}})}`;
+                    const dest = `${parseFloat({{trip.dest_latitude}})},${parseFloat({{trip.dest_longitude}})}`;
+                    // Open Google Maps in new tab
+                    window.open(`https://www.google.com/maps/dir/${start}/${dest}/data=!4m2!4m1!3e3`, '_blank');
+                });
+
+                return container;
+            }
+        });
+
+        map{{ trip.id }}.addControl(new L.Control.Gmaps({ position: 'topleft' }));
 
         // Ensure map renders properly
         setTimeout(() => {

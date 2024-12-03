@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load trip_filters %}
+{% load static %}
+
 {% block title %}Find Companions{% endblock %}
 
 {% block content %}
@@ -464,6 +466,43 @@
 
         window.map.fitBounds(bounds, {padding: [50, 50]});
 
+        // Google Maps Link
+        L.Control.Gmaps = L.Control.extend({
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                const link = L.DomUtil.create('a', '', container);
+                link.href = '#';
+                link.title = 'Open in Google Maps';
+                // link.innerHTML = '<i class="fa-brands fa-google google-icon"></i>';
+
+                const icon = L.DomUtil.create('img', '', link);
+                
+                icon.src = '{% static "img/google-maps.png" %}';
+                icon.style.display = 'block';
+                icon.style.maxWidth = '100%';
+                icon.style.maxHeight = '100%';
+                icon.style.width = '23px'; 
+                icon.style.height = '23px';
+                icon.style.position = 'absolute';
+                icon.style.top = '50%';
+                icon.style.left = '50%';
+                icon.style.transform = 'translate(-50%, -50%)';
+
+                L.DomEvent.on(link, 'click', function(e) {
+                    L.DomEvent.preventDefault(e);
+                    // Get start and destination coordinates
+                    const start = `${parseFloat({{user_trip.start_latitude}})},${parseFloat({{user_trip.start_longitude}})}`;
+                    const dest = `${parseFloat({{user_trip.dest_latitude}})},${parseFloat({{user_trip.dest_longitude}})}`;
+                    // Open Google Maps in new tab
+                    window.open(`https://www.google.com/maps/dir/${start}/${dest}/data=!4m2!4m1!3e3`, '_blank');
+                });
+
+                return container;
+            }
+        });
+
+        window.map.addControl(new L.Control.Gmaps({ position: 'topleft' }));
+        
         // Map Stuff For Live Tracking
         let locationUpdateInterval = null;
         let companionMarkers = {};
