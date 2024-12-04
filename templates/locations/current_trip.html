@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load trip_filters %}
+{% load static %}
+
 {% block title %}Find Companions{% endblock %}
 
 {% block content %}
@@ -15,9 +17,6 @@
         </div>
     {% else %}
         <div class="card mb-4">
-            <div class="card-header">
-                <h4>Your Active Trip</h4>
-            </div>
             <div class="card-body">
                 <div class="mb-3">
                     <p class="mb-0"><strong>Departure:</strong> {{ user_trip.planned_departure }}</p>
@@ -383,16 +382,9 @@
                 L.latLng(parseFloat({{user_trip.dest_latitude}}), parseFloat({{user_trip.dest_longitude}}))
             ],
             router: L.Routing.osrmv1({
+                // serviceUrl: 'https://invalid-url-to-test-failure', // For testing routingerror
                 serviceUrl: 'https://router.project-osrm.org/route/v1',
-                // Available profiles:
-                // 'foot' - Walking/Pedestrian routes
-                // 'bike' - Cycling routes
-                // 'car' - Driving routes (default)
-                // 'walking' - Alternative for foot
-                // 'cycling' - Alternative for bike
-                // 'driving' - Alternative for car
                 profile: 'foot'
-                
             }),
             showAlternatives: true,
             formatLine: function(line) {
@@ -400,23 +392,61 @@
                 return `${duration} min - ${line.summary.totalDistance} m`;
             },
             lineOptions: {
-                styles: [{color: 'blue', opacity: 0.6, weight: 4}],
+                styles: [{color: 'blue', opacity: 0.6, weight: 5}],
                 extendToWaypoints: true,
                 missingRouteTolerance: 0
             },
             alternativeStyles: {
                 styles: [
-                        {color: '#B1D690', opacity: 0.6, weight: 4},
-                        {color: '#FEEC37', opacity: 0.6, weight: 4},
-                        {color: '#FFA24C', opacity: 0.6, weight: 4}
+                        {color: '#B1D690', opacity: 0.6, weight: 5},
+                        {color: '#FEEC37', opacity: 0.6, weight: 5},
+                        {color: '#FFA24C', opacity: 0.6, weight: 5}
                     ]
             },
             createMarker: function() { return null; },  // Disable default markers
             addWaypoints: false,  // Prevent adding new waypoints
             draggableWaypoints: false,  // Prevent dragging waypoints
             routeWhileDragging: false,
-            show: true  // Hide the routing instructions panel
+            show: true,  // Hide the routing instructions panel
+            defaultErrorHandler: function(e) { /* Do nothing */ 
+                // Silently handle the error - prevent console logging
+                console.warn("Routing failed - using direct line instead");
+                // alert("Routing failed - using direct line instead");
+
+                // Optionally show a simple line between points if routing fails
+                if (!window.backupRoute) {
+                    window.backupRoute = L.polyline([
+                        [startMarker.getLatLng(), destMarker.getLatLng()]
+                    ], {
+                        color: 'blue',
+                        opacity: 0.6,
+                        weight: 5,
+                        dashArray: '10, 10'  // Makes line dashed
+                    }).addTo(window.map);
+                }
+            },
         }).addTo(window.map);
+
+        // // Alterante way for routeerror
+        // routingControl.on('routingerror', function(e) {
+        //     // console.log('Routing error, falling back to direct line');
+            
+        //     // Remove failed routing control
+        //     window.map.removeControl(routingControl);
+        //     // Add simple line instead
+        //     const fallbackLine = L.polyline([
+        //         [parseFloat({{user_trip.start_latitude}}), parseFloat({{user_trip.start_longitude}})],
+        //         [parseFloat({{user_trip.dest_latitude}}), parseFloat({{user_trip.dest_longitude}})]
+        //     ], {
+        //         color: 'blue',
+        //         opacity: 0.6,
+        //         weight: 5,
+        //         dashArray: '10, 10'  // Makes line dashed
+        //     }).addTo(window.map);
+            
+        //     // Fit bounds to show the full line
+        //     window.map.fitBounds(fallbackLine.getBounds());
+        // });
 
         // const routeLine = L.polyline([
         // [parseFloat({{user_trip.start_latitude}}), parseFloat({{user_trip.start_longitude}})],
@@ -436,6 +466,43 @@
 
         window.map.fitBounds(bounds, {padding: [50, 50]});
 
+        // Google Maps Link
+        L.Control.Gmaps = L.Control.extend({
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                const link = L.DomUtil.create('a', '', container);
+                link.href = '#';
+                link.title = 'Open in Google Maps';
+                // link.innerHTML = '<i class="fa-brands fa-google google-icon"></i>';
+
+                const icon = L.DomUtil.create('img', '', link);
+                
+                icon.src = '{% static "img/google-maps.png" %}';
+                icon.style.display = 'block';
+                icon.style.maxWidth = '100%';
+                icon.style.maxHeight = '100%';
+                icon.style.width = '23px'; 
+                icon.style.height = '23px';
+                icon.style.position = 'absolute';
+                icon.style.top = '50%';
+                icon.style.left = '50%';
+                icon.style.transform = 'translate(-50%, -50%)';
+
+                L.DomEvent.on(link, 'click', function(e) {
+                    L.DomEvent.preventDefault(e);
+                    // Get start and destination coordinates
+                    const start = `${parseFloat({{user_trip.start_latitude}})},${parseFloat({{user_trip.start_longitude}})}`;
+                    const dest = `${parseFloat({{user_trip.dest_latitude}})},${parseFloat({{user_trip.dest_longitude}})}`;
+                    // Open Google Maps in new tab
+                    window.open(`https://www.google.com/maps/dir/${start}/${dest}/data=!4m2!4m1!3e3`, '_blank');
+                });
+
+                return container;
+            }
+        });
+
+        window.map.addControl(new L.Control.Gmaps({ position: 'topleft' }));
+        
         // Map Stuff For Live Tracking
         let locationUpdateInterval = null;
         let companionMarkers = {};
@@ -667,9 +734,11 @@
 
     <script>
         document.getElementById('panicModal').addEventListener('hidden.bs.modal', function () {
-            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
             document.getElementById('panic_error').style.display = 'none';
             document.getElementById('panic_message').value = '';
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
         });
         
         function triggerPanic() {
