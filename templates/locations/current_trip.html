@@ -6,6 +6,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <div class="container mt-4">
+    <h3>Your Current Trip</h3>
+    <hr />
     {% if error %}
         <div class="alert alert-warning">
             {{ error }}
@@ -72,7 +74,7 @@
                         {% elif user_trip.status == "IN_PROGRESS" %}
                             <form method="POST" action="{% url 'complete_trip' %}" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-success" {% if user_trip.completion_requested %}disabled{% endif %}>
+                                <button type="submit" id="complete_Button" class="btn btn-success" {% if user_trip.completion_requested or user_trip|has_panic_users %}disabled{% endif %}>
                                     {% if user_trip.completion_requested %}
                                         Completion Requested
                                     {% else %}
@@ -137,17 +139,19 @@
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <div class="d-flex align-items-center mb-3">
-                                                {% if match_trip.user.userprofile.photo_key %}
-                                                    {% with profile_picture_url=match_trip.user.userprofile.get_photo_url %}
-                                                        <img src="{{ profile_picture_url }}" alt="Profile Picture"
-                                                            class="rounded-circle me-2" style="width: 50px; height: 50px; object-fit: cover;">
-                                                    {% endwith %}
-                                                {% else %}
-                                                    <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
-                                                        style="width: 50px; height: 50px; background-color: black; color: white;">
-                                                        ?
-                                                    </div>
-                                                {% endif %}
+                                                <a style="text-decoration: none" href="{% url 'user_profile' user_id=match_trip.user.id %}" > 
+                                                    {% if match_trip.user.userprofile.photo_key %}
+                                                        {% with profile_picture_url=match_trip.user.userprofile.get_photo_url %}
+                                                            <img src="{{ profile_picture_url }}" alt="Profile Picture"
+                                                                class="rounded-circle me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                                        {% endwith %}
+                                                    {% else %}
+                                                        <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                                            style="width: 50px; height: 50px; background-color: black; color: white;">
+                                                            ?
+                                                        </div>
+                                                    {% endif %}
+                                                </a>
                                                 <h5 class="card-title mb-0">{{ match_trip.user.username }}</h5>
                                             </div>
                                             <div class="mb-3">
@@ -297,11 +301,29 @@
         });
 
         const channelPanic = window.pusher.subscribe('emergency-channel');
+        
+        channelPanic.bind('panic-create', function(data) {
+            // Disable the complete trip button if exists
+            document.getElementById("complete_Button").disabled = true;
+        });
 
         channelPanic.bind('panic-resolve', function(data) {
             if (data.username === "{{ request.user.username }}") {
                 document.getElementById('panic').disabled = false;
             }
+            
+            // Check if ANY user is still in panic mode
+            fetch("{% url 'check_panic_users' %}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Only enable if NO users are in panic mode
+                        document.getElementById("complete_Button").disabled = data.has_panic;
+                    } else {
+                        console.error('Full error:', error);
+                        alert(`Error: ${error.message}`);
+                    }
+                });
         });
     </script>
 
@@ -697,7 +719,7 @@
                     }
                 })
                 .catch(error => {
-                    console.error('Full error:', error);  // This will show in browser dev tools
+                    console.error('Full error:', error);
                     alert(`Error: ${error.message}`);
                 });
             }
