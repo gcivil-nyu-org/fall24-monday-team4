@@ -9,7 +9,7 @@
                 <form id="reportUserForm" method="post" style="text-align: left;" action="{% url 'report_user' %}">
                     {% csrf_token %}
                     {% if user_to_view %}
-                    <input type="hidden" name="reported_user_id" value="{{ user_to_view.id }}">
+                        <input type="hidden" name="reported_user_id" value="{{ user_to_view.id }}">
                     {% endif %}
                     <div class="mb-3">
                         <label for="subject" class="form-label">Subject</label>
@@ -49,11 +49,6 @@
                     if (data.success) {
                         const modalInstance = bootstrap.Modal.getInstance(reportModal);
                         modalInstance.hide();
-
-                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-
-                        reportForm.reset();
-                        errorMessage.style.display = "none";
                         alert("Your Report Has Been Submitted Successfully!");
                     } else {
                         errorMessage.innerText = data.error_message || "There was an error saving your report.";
@@ -69,6 +64,9 @@
         reportModal.addEventListener('hidden.bs.modal', function () {
             reportForm.reset();
             errorMessage.style.display = "none";
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
         });
     });
 </script>

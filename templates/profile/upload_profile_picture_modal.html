@@ -250,6 +250,10 @@
         handleModalClose() {
             this.resetForm();
             this.hideAllMessages();
+            
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
 
             if (this.originalPreviewSrc) {
                 this.previewImage.src = this.originalPreviewSrc;
@@ -282,7 +286,6 @@
         closeModal() {
             const modalInstance = bootstrap.Modal.getInstance(this.modal);
             modalInstance.hide();
-            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
         }
     }
 

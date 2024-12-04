@@ -146,7 +146,7 @@
                         <span class="navbar-text align-text-bottom username-text" style="color: #000;"><strong>{{ user.username }}</strong></span>
                         {% if user.userprofile.photo_key %}
                             {% with profile_picture_url=user.userprofile.get_photo_url %}
-                                <img src={{ profile_picture_url }} alt="User Picture" id="activeUserPicture" class="rounded-circle profile-photo"/>
+                                <img src="{{ profile_picture_url }}" alt="User Picture" id="activeUserPicture" class="rounded-circle profile-photo"/>
                             {% endwith %}
                         {% else %}
                             <div class="rounded-circle profile-placeholder">?</div>
