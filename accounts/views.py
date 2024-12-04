@@ -79,10 +79,9 @@ class ChangePassword(PasswordChangeView):
 
 class ResetPassword(SuccessMessageMixin, PasswordResetView):
     template_name = "registration/password_reset_enter_email.html"
-    email_template_name = "registration/password_reset_email.txt"  # Plain text fallback
-    html_email_template_name = (
-        "registration/password_reset_email.html"  # Your custom HTML template
-    )
+    email_template_name = "registration/password_reset_email.txt"
+    html_email_template_name = "registration/password_reset_email.html"
+
     subject_template_name = "registration/password_reset_subject.txt"
     success_message = (
         "We've emailed you instructions for setting your password, "
