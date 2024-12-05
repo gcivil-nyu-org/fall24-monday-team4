@@ -69,8 +69,12 @@
                             <button type="button" class="btn btn-sm btn-secondary" id="cancel-button">Cancel</button>
                         </div>
                     </form>
-                    {% if is_user %} 
-                        <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button">Password Change</a></p>
+                    {% if is_user %}
+                        <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button"><i class="fa-solid fa-key"></i> Password Change</a></p>
+                        <button type="button" class="btn btn-outline-dark mt-1" id="add-family-button" data-bs-toggle="modal" data-bs-target="#familyMembersModal">
+                            <i class="fa-solid fa-people-group"></i> Manage Family Members
+                        </button>
+                        {% include 'profile/add_family_members_modal.html' %}
                     {% endif %}
                     <hr />
                     {% if not is_user %}
