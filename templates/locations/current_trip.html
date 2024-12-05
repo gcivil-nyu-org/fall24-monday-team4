@@ -83,7 +83,7 @@
                             </form>
                         {% endif %}
                         <button class="btn btn-secondary" onclick="toggleRouteInstructions()">Show/Hide Route Instructions</button>
-                        {% if user_trip.status in "SEARCHING,MATCHED,READY" %}
+                        {% if user_trip.status in "SEARCHING,MATCHED,READY" and not needs_attention %}
                             <form method="POST" action="{% url 'cancel_trip' %}">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">
