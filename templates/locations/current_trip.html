@@ -43,7 +43,7 @@
                         <a href="{% url 'reschedule_trip' %}" class="btn btn-primary">Reschedule Trip</a>
                         <form action="{% url 'cancel_trip' %}" method="post" class="d-inline">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-danger">Cancel Trip</button>
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">Cancel Trip</button>
                         </form>
                     </div>
                 </div>
@@ -404,15 +404,15 @@
                 return `${duration} min - ${line.summary.totalDistance} m`;
             },
             lineOptions: {
-                styles: [{color: 'blue', opacity: 0.6, weight: 5}],
+                styles: [{color: 'blue', opacity: 0.8, weight: 5}],
                 extendToWaypoints: true,
                 missingRouteTolerance: 0
             },
-            alternativeStyles: {
+            altLineOptions: {
                 styles: [
-                        {color: '#B1D690', opacity: 0.6, weight: 5},
-                        {color: '#FEEC37', opacity: 0.6, weight: 5},
-                        {color: '#FFA24C', opacity: 0.6, weight: 5}
+                        {color: '#FF1493', opacity: 0.6, weight: 5}, //Deep pink
+                        {color: '#9932CC', opacity: 0.6, weight: 5}, // Dark orchid
+                        {color: '#20B2AA', opacity: 0.6, weight: 5} // Light sea green
                     ]
             },
             createMarker: function() { return null; },  // Disable default markers
