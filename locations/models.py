@@ -46,6 +46,8 @@ class Trip(models.Model):
     start_longitude = models.DecimalField(max_digits=11, decimal_places=6)
     dest_latitude = models.DecimalField(max_digits=11, decimal_places=6)
     dest_longitude = models.DecimalField(max_digits=11, decimal_places=6)
+    start_address = models.TextField()
+    end_address = models.TextField()
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="SEARCHING"
     )

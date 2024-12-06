@@ -84,11 +84,13 @@
                     </select>
                 </div>
                 
-                <!-- Hidden fields for coordinates -->
+                <!-- Hidden fields for coordinates and address -->
                 <input type="hidden" name="start_latitude" id="start_latitude">
                 <input type="hidden" name="start_longitude" id="start_longitude">
                 <input type="hidden" name="dest_latitude" id="dest_latitude">
                 <input type="hidden" name="dest_longitude" id="dest_longitude">
+                <input type="hidden" name="start_address" id="start_address">
+                <input type="hidden" name="end_address" id="end_address">
                 
                 <div class="mb-3">
                     <div>
@@ -119,9 +121,12 @@
                                     <input type="text" 
                                            id="start-location-search" 
                                            class="form-control" 
-                                           placeholder="Enter starting point or click on map" 
+                                           placeholder="Enter start address or click on map" 
                                            aria-label="Start location">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="handleSearch(startInput, true)">
+                                    <button class="btn btn-outline-secondary" 
+                                            id="start-search-button" 
+                                            type="button" 
+                                            onclick="handleSearch(startInput, true)">
                                         <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png" 
                                             alt="Start marker" 
                                             style="height: 25px;">
@@ -133,9 +138,12 @@
                                     <input type="text" 
                                            id="end-location-search" 
                                            class="form-control" 
-                                           placeholder="Enter destination or click on map" 
+                                           placeholder="Enter end address or click on map" 
                                            aria-label="End location">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="handleSearch(endInput, false)">
+                                    <button class="btn btn-outline-secondary"
+                                            id="end-search-button" 
+                                            type="button" 
+                                            onclick="handleSearch(endInput, false)">
                                         <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png" 
                                             alt="End marker" 
                                             style="height: 25px">
@@ -145,7 +153,7 @@
                         </div>
                         
                         <div class="position-relative">
-                            <div id="map" style="height: 500px;" class="mb-3 position-relative rounded overflow-hidden"></div>
+                            <div id="map" style="height: 500px;" class="position-relative rounded overflow-hidden"></div>
                             <div id="search-overlay" class="search-overlay d-none">
                                 <div class="d-flex align-items-center justify-content-center h-100">
                                     <div class="text-center">
@@ -169,7 +177,7 @@
                         </div>
                     </div>
                 </div> -->
-                <p>Click on map to set location</p>
+                <!-- <p>Click on map to set location</p> -->
 
                 <button type="submit" class="btn btn-primary btn-lg" id="submitTrip">Create Trip</button>
             </form>
@@ -226,8 +234,11 @@
             let map;
             let currentMarker;
             let destMarker;
+
             let currentPosition;
             let currentMarkerCircle;
+            let currentFeatureGroup;
+            
             let locationMode = sessionStorage.getItem('locationMode') || 'custom';
             let startLocationSet = false;
             
@@ -321,6 +332,9 @@
                 document.getElementById('currentLocationBtn').classList.toggle('active', mode === 'current');
                 document.getElementById('locationHint').style.display = mode === 'custom' ? 'block' : 'none';
                 document.getElementById('reloadBtn').disabled = mode !== 'current';
+                
+                document.getElementById("start-location-search").disabled = mode === 'current';
+                document.getElementById("start-search-button").disabled = mode === 'current';
 
                 // Reset markers
                 if (currentMarker) {
@@ -338,7 +352,6 @@
         
                 startLocationSet = false;
                 
-                startInput.disabled = mode === 'current';
                 startInput.value = '';
                 endInput.value = '';
 
@@ -394,7 +407,8 @@
 
             function hideSearching() {
                 searchOverlay.classList.add('d-none');
-                startInput.disabled = locationMode === 'current';
+                document.getElementById("start-location-search").disabled = locationMode === 'current';
+                document.getElementById("start-search-button").disabled = locationMode === 'current';
                 endInput.disabled = false;
             }
 
@@ -418,8 +432,11 @@
                                             .bindPopup(markerPopupModal("blue", result.display_name, pos[0], pos[1]))
                                             .addTo(map);
                             addDragEndHandler(currentMarker, 'start_latitude', 'start_longitude', result.display_name);
+                            document.getElementById('start_address').value = result.display_name;
                             document.getElementById('start_latitude').value = pos[0];
                             document.getElementById('start_longitude').value = pos[1];
+
+                            startLocationSet = true;
                         } else if (!isStart) {
                             if (destMarker) map.removeLayer(destMarker);
                             destMarker = L.marker(pos, {icon: destIcon, draggable: true})
@@ -427,6 +444,7 @@
                                             .addTo(map);
                     
                             addDragEndHandler(destMarker, 'dest_latitude', 'dest_longitude', result.display_name);
+                            document.getElementById('end_address').value = result.display_name;
                             document.getElementById('dest_latitude').value = pos[0];
                             document.getElementById('dest_longitude').value = pos[1];
                         }
@@ -473,7 +491,12 @@
                         const latitude = e.latitude;
                         const longitude = e.longitude;
                         const accuracy = e.accuracy;
-        
+                        
+                        // Clear previous feature group if it exists
+                        if (currentFeatureGroup) {
+                            currentFeatureGroup.clearLayers();
+                            map.removeLayer(currentFeatureGroup);
+                        }
                         if (currentMarker) {
                             map.removeLayer(currentMarker);
                         }
@@ -485,19 +508,31 @@
                         reverseGeocode(latitude, longitude)
                             .then(address => {
                                 currentMarker = L.marker([latitude, longitude], {icon: currentIcon})
-                                                .bindPopup(`${markerPopupModal('blue', address, latitude, longitude)}<Br>
-                                                    Accuracy: ${accuracy}m`)
-                                                .addTo(map);
+                                                .bindPopup(`${markerPopupModal('blue', address, latitude, longitude)}
+                                                            <div class="p-2 pt-0">
+                                                                <div>
+                                                                    <small class="text-muted">Accuracy</small><br>
+                                                                    <span>${accuracy}m</span>
+                                                                </div>
+                                                            </div>`);
+
+                                currentMarkerCircle = L.circle([latitude, longitude], {
+                                    radius: accuracy,
+                                    interactive: false
+                                });
+                                
+                                // Create new feature group and add layers to it
+                                // Fit bounds to show the marker and accuracy circle
+                                currentFeatureGroup = L.featureGroup([currentMarker, currentMarkerCircle]).addTo(map);
+                                map.fitBounds(currentFeatureGroup.getBounds());
+
+                                document.getElementById('start_address').value = address;
+                                startInput.value = address;
                             })
                             .catch(error => {
                                 console.error('Error getting current location address:', error);
                                 // Handle error appropriately
                             });
-                        
-                        currentMarkerCircle = L.circle([latitude, longitude], {
-                            radius: accuracy,
-                            interactive: false
-                        }).addTo(map);
         
                         // Set form values
                         document.getElementById('start_latitude').value = latitude;
@@ -506,10 +541,6 @@
                         
                         // Enable destination selection only after location is found
                         document.getElementById('reloadBtn').disabled = false;
-
-                        // Fit bounds to show the marker and accuracy circle
-                        let currFeatureGroup = L.featureGroup([currentMarker, currentMarkerCircle]);
-                        map.fitBounds(currFeatureGroup.getBounds());
                     }
                 });
                 
@@ -532,6 +563,7 @@
                                 currentMarker = L.marker(e.latlng, {icon: currentIcon, draggable: true})
                                                     .bindPopup(markerPopupModal('blue', address, e.latlng.lat, e.latlng.lng))
                                                     .addTo(map);
+                                document.getElementById('start_address').value = address;
                                 startInput.value = address;
                                 addDragEndHandler(currentMarker, 'start_latitude', 'start_longitude', address);
                             })
@@ -555,6 +587,7 @@
                                 destMarker = L.marker(e.latlng, {icon: destIcon, draggable: true})
                                                 .bindPopup(markerPopupModal('red', address, e.latlng.lat, e.latlng.lng))
                                                 .addTo(map);
+                                document.getElementById('end_address').value = address;
                                 endInput.value = address;
                                 addDragEndHandler(destMarker, 'dest_latitude', 'dest_longitude', address);
                             })
@@ -570,11 +603,6 @@
                     alert('Unable to find your location');
                     document.getElementById('reloadBtn').disabled = false;
                 });
-        
-                // If current location mode is active on init, trigger location search
-                if (locationMode === 'current') {
-                    useCurrentLocation();
-                }
             }
             
             document.getElementById('tripForm').addEventListener('submit', function(e) {

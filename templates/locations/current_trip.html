@@ -17,8 +17,13 @@
         </div>
     {% else %}
         <div class="card mb-4">
+            <div class="card-header">
+                <h4>Trip Details</h4>
+            </div>
             <div class="card-body">
                 <div class="mb-3">
+                    <p class="mb-0"><strong>Start Location:</strong> {{ user_trip.start_address }}</p>
+                    <p class="mb-0"><strong>End Location:</strong> {{ user_trip.end_address }}</p>
                     <p class="mb-0"><strong>Departure:</strong> {{ user_trip.planned_departure }}</p>
                     <p class="mb-0"><strong>Status:</strong> 
                         <span class="badge {% if user_trip.status == 'MATCHED' %}bg-warning
@@ -181,9 +186,8 @@
                                 <div class="col">
                                     <div class="card h-100">
                                         <div class="card-body">
-                                            <h5 class="card-title">Request from {{ match.trip1.user.username }}</h5>
-                                            <p>Their Trip Details:</p>
-                                            <p>Departure: {{ match.trip1.planned_departure }}</p>
+                                            <h5 class="card-title"> <strong>{{ match.trip1.user.username }}</strong></h5>
+                                            <p class="mb-0">Departure: {{ match.trip1.planned_departure }}</p>
                                             <p>Group Size: {{ match.trip1.accepted_companions_count }}/{{ match.trip1.desired_companions }}</p>
                                             {% if match.status == 'PENDING' %}
                                                 <form method="POST" action="{% url 'handle_match_request' %}" class="d-inline">
@@ -373,7 +377,7 @@
             parseFloat({{user_trip.dest_latitude}}), 
             parseFloat({{user_trip.dest_longitude}})
         ], {icon: destIcon})
-        .bindPopup('Your Destination')
+        .bindPopup('Your End Location')
         .addTo(window.map);
 
         const routingControl = L.Routing.control({

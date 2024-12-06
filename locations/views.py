@@ -127,6 +127,8 @@ def create_trip(request):
                 "planned_departure": planned_departure,
                 "desired_companions": int(request.POST.get("desired_companions")),
                 "search_radius": int(request.POST.get("search_radius")),
+                "start_address": request.POST.get("start_address"),
+                "end_address": request.POST.get("end_address"),
             },
         )
         return JsonResponse({"success": True})
