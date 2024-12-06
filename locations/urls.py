@@ -13,6 +13,7 @@ from .views import (
     update_location,
     get_trip_locations,
     complete_trip,
+    reschedule_trip,
     check_panic_users,
 )
 
@@ -30,5 +31,6 @@ urlpatterns = [
     path("update_location/", update_location, name="update_location"),
     path("get_trip_locations/", get_trip_locations, name="get_trip_locations"),
     path("complete_trip/", complete_trip, name="complete_trip"),
+    path("reschedule_trip/", reschedule_trip, name="reschedule_trip"),
     path("check_panic_users/", check_panic_users, name="check_panic_users"),
 ]
