@@ -20,9 +20,4 @@ urlpatterns = [
         views.update_social_handles,
         name="update_social_handles",
     ),
-    path(
-        "update_family_members/",
-        views.update_family_members,
-        name="update_family_members",
-    ),
 ]

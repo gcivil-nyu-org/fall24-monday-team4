@@ -4,8 +4,7 @@
 {% block title %}User Documents{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <div style="text-align: center">
+<div style="text-align: center">
     <div style="display: flex; flex-direction: row; justify-content: space-between;">
         <h3>Manage Uploaded Documents</h3>
         <button type="button" class="btn btn-outline-dark btn-sm mt-1" id="upload-document-button" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
@@ -14,8 +13,8 @@
     </div>
     {% include 'documents/upload_document_modal.html' %}
     <hr />
-  </div>
-  <div>
+</div>
+<div>
     {% if documents %}
     <table class="table table-striped table-hover">
         <thead>
@@ -63,9 +62,7 @@
     {% else %}
     <p>No documents found.</p>
     {% endif %}
-  </div>
 </div>
-
 <script>
     function viewDocument(documentUrl, fileType, name) {
         const acceptableTypes = [
