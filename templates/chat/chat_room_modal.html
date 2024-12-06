@@ -97,13 +97,7 @@
                     </div>
                 {% else %}
                     <div class="d-flex flex-column {% if message.user == request.user %}align-items-end{% else %}align-items-start{% endif %}">
-                        {% if message.user != request.user and not is_archive %}
-                            <a style="text-decoration: none" href="{% url 'user_profile' user_id=message.user.id %}"> 
-                                <small class="text-muted mb-0">{{ message.user.username }}</small>
-                            </a>
-                        {% else %}
-                            <small class="text-muted mb-0">{{ message.user.username }}</small>
-                        {% endif %}
+                        <small class="text-muted mb-0">{{ message.user.username }}</small>
                         <div class="message-content p-2 rounded mb-0 {% if message.user == request.user %}bg-primary text-white{% else %}bg-light{% endif %}">
                             <p class="mb-0">{{ message.decrypt_message }}</p>
                         </div>
@@ -162,7 +156,7 @@
                 } else if (data.type === 'ems_system') {
                     addEmsMessage(data.message);
                 } else {
-                    addUserMessage(data.user, data.message, data.type);
+                    addUserMessage(data.username, data.message, data.type);
                 }
 
                 const messageContainer = document.getElementById('messageContainer');
@@ -181,28 +175,21 @@
                 }
             });
 
-           function addUserMessage(user, message, type) {
+           function addUserMessage(username, message, type) {
                 const msgDiv = document.createElement('div');
                 msgDiv.className = `message ${type === 'ems_panic_message' ? 'panic-message' : ''}`;
 
                 const flexDiv = document.createElement('div');
-                flexDiv.className = `d-flex flex-column ${user.username === "{{ request.user.username }}" ? 'align-items-end' : 'align-items-start'}`;
-                                
+                flexDiv.className = `d-flex flex-column ${username === "{{ request.user.username }}" ? 'align-items-end' : 'align-items-start'}`;
+
                 // Username above bubble
                 const usernameSpan = document.createElement('small');
                 usernameSpan.className = 'text-muted mb-0';
-                usernameSpan.textContent = user.username;
-                
-                let profileAnchor = null;
-                if (user.username != "{{ request.user.username }}") {
-                    profileAnchor = document.createElement('a');
-                    profileAnchor.href = `/profile/${user.id}/`;
-                    profileAnchor.style = `text-decoration: none`;
-                }
-                
+                usernameSpan.textContent = username;
+
                 // Message bubble
                 const msgContent = document.createElement('div');
-                msgContent.className = `message-content p-2 rounded mb-0 ${user.username === "{{ request.user.username }}" ? 'bg-primary text-white' : 'bg-light'}`;
+                msgContent.className = `message-content p-2 rounded mb-0 ${username === "{{ request.user.username }}" ? 'bg-primary text-white' : 'bg-light'}`;
 
                 // Message text
                 const messageText = document.createElement('p');
@@ -216,14 +203,7 @@
 
                 // Assemble the message
                 msgContent.appendChild(messageText);
-
-                if (user.username != "{{ request.user.username }}") {
-                    profileAnchor.appendChild(usernameSpan);
-                    flexDiv.appendChild(profileAnchor);
-                } else {
-                    flexDiv.appendChild(usernameSpan);
-                }
-
+                flexDiv.appendChild(usernameSpan);
                 flexDiv.appendChild(msgContent);
                 flexDiv.appendChild(timestampSpan);
                 msgDiv.appendChild(flexDiv);

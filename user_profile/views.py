@@ -1,4 +1,4 @@
-from .models import UserProfile, FamilyMembers
+from .models import UserProfile
 from django.contrib.auth.models import User
 from accounts.models import UserReports
 from django.shortcuts import render, get_object_or_404, redirect
@@ -12,31 +12,16 @@ import uuid
 from django.http import JsonResponse
 from .decorators import verification_required
 from django.views.decorators.http import require_http_methods
-from django.core.mail import EmailMessage
-from django.conf import settings
-from django.template.loader import render_to_string
-import json
-import re
 
 
 @login_required(login_url="home")
 @verification_required
 def profile_view(request, user_id=None):
     user_to_view = None
-    familyMembers = None
 
     if user_id is None:
         profile = get_object_or_404(UserProfile, user=request.user)
         is_user = True
-        family_members = FamilyMembers.objects.filter(user=request.user)
-        familyMembers = [
-            {
-                "id": member.id,
-                "full_name": member.full_name,
-                "email": member.email,
-            }
-            for member in family_members
-        ]
     else:
         user_to_view = get_object_or_404(User, id=user_id)
         profile = get_object_or_404(UserProfile, user=user_to_view)
@@ -61,113 +46,8 @@ def profile_view(request, user_id=None):
             "is_user": is_user,
             "profile_picture_url": profile_picture_url,
             "user_to_view": user_to_view,
-            "family_members": familyMembers,
         },
     )
-
-
-def FamilyMemberEmails(memberEmails, htmlMessage, subjectTxt):
-    subject = subjectTxt
-    html_message = htmlMessage
-    email = EmailMessage(
-        subject, html_message, settings.DEFAULT_FROM_EMAIL, memberEmails
-    )
-    email.content_subtype = "html"
-    email.send()
-
-
-def validate_family_members_input(data):
-    for member in data:
-        if (
-            not member.get("name")
-            or not isinstance(member.get("name"), str)
-            or member["name"].strip() == ""
-        ):
-            return False, "Invalid or empty name"
-
-        email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-        if not member.get("email") or not re.match(email_regex, member["email"]):
-            return (
-                False,
-                f"Invalid email format: {member.get('email', 'No email provided')}",
-            )
-
-    return True, ""
-
-
-@login_required(login_url="home")
-@verification_required
-@require_http_methods(["POST"])
-def update_family_members(request):
-    try:
-        data = json.loads(request.body)
-
-        is_valid, error_message = validate_family_members_input(data)
-        if not is_valid:
-            return JsonResponse({"success": False, "error": error_message}, status=400)
-
-        family_members = FamilyMembers.objects.filter(user=request.user)
-        familyMembers = [
-            {
-                "name": member.full_name,
-                "email": member.email,
-            }
-            for member in family_members
-        ]
-
-        data_set = {tuple(d.items()) for d in data}
-        familyMembers_set = {tuple(f.items()) for f in familyMembers}
-
-        in_data_not_family = [dict(d) for d in data_set - familyMembers_set]
-
-        in_family_not_data = [dict(f) for f in familyMembers_set - data_set]
-
-        FamilyMembers.objects.filter(
-            user=request.user,
-            email__in=[member["email"] for member in in_family_not_data],
-        ).delete()
-
-        if in_family_not_data:
-            html_message_removed = render_to_string(
-                "emails/removed_family_member.html",
-                {"username": request.user.username},
-            )
-
-            subject_removed = (
-                f"You’ve Been Removed from {request.user.username}’s Family List"
-            )
-            removed_email_list = [member["email"] for member in in_family_not_data]
-
-            FamilyMemberEmails(
-                removed_email_list, html_message_removed, subject_removed
-            )
-
-        new_members = [
-            FamilyMembers(
-                user=request.user, full_name=member["name"], email=member["email"]
-            )
-            for member in in_data_not_family
-        ]
-
-        FamilyMembers.objects.bulk_create(new_members)
-
-        if in_data_not_family:
-            html_message_added = render_to_string(
-                "emails/welcome_email_family_members.html",
-                {"username": request.user.username},
-            )
-
-            subject_added = (
-                f"You’ve Been Added to {request.user.username}’s Family List"
-            )
-            added_email_list = [member["email"] for member in in_data_not_family]
-
-            FamilyMemberEmails(added_email_list, html_message_added, subject_added)
-
-        return JsonResponse({"success": True})
-
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)})
 
 
 @login_required(login_url="home")
@@ -181,11 +61,14 @@ def upload_profile_picture(request):
             profile = get_object_or_404(UserProfile, user=request.user)
             unique_key = str(uuid.uuid4())
 
+            # First try uploading new file
             if upload_file_to_s3(file, unique_key):
 
+                # Only delete old file if new upload succeeded
                 if profile.photo_key:
                     delete_file_from_s3(profile.photo_key)
 
+                # Update profile with new file info
                 profile.photo_key = unique_key
                 profile.file_name = file.name
                 profile.file_type = file.content_type

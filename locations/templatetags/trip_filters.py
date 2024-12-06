@@ -1,27 +1,10 @@
 from django import template
 from django.db.models import Q
 
-from locations.models import Match, Trip, UserLocation
-from django.contrib.auth.models import User
+from locations.models import Match, Trip
 
 
 register = template.Library()
-
-
-@register.filter
-def has_panic_users(trip):
-    # Get all connected users through matches
-    connected_users = User.objects.filter(
-        (
-            Q(trip__matches__trip2=trip, trip__matches__status="ACCEPTED")
-            | Q(trip__matched_with__trip2=trip, trip__matched_with__status="ACCEPTED")
-            | Q(trip__matches__trip1=trip, trip__matches__status="ACCEPTED")
-            | Q(trip__matched_with__trip1=trip, trip__matched_with__status="ACCEPTED")
-        )
-    ).distinct()
-
-    # Check if any user has panic mode on
-    return UserLocation.objects.filter(user__in=connected_users, panic=True).exists()
 
 
 @register.filter

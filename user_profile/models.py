@@ -25,22 +25,3 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Profile for {self.user.username} ({self.user.email})"
-
-
-class FamilyMembers(models.Model):
-    id = models.AutoField(primary_key=True)
-    email = models.EmailField(max_length=254)
-    full_name = models.CharField(max_length=255)
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="family_members"
-    )
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["email", "user"], name="unique_email_per_user"
-            )
-        ]
-
-    def __str__(self):
-        return f"{self.full_name} ({self.email})"

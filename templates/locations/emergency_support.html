@@ -226,12 +226,6 @@
     window.addEventListener('unload', function() {
         window.pusher.unsubscribe('emergency-channel');
     });
-
-    document.getElementById('panicDetailsModal').addEventListener('hidden.bs.modal', function () {
-        document.documentElement.style.overflow = '';
-        document.body.style.overflow = '';
-        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-    });
 </script>
 
 {% endblock %}
