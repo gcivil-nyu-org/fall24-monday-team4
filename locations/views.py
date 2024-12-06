@@ -290,29 +290,6 @@ def get_h3_resolution_and_ring_size(radius_meters):
     return chosen_res, ring_size
 
 
-# @login_required
-# @verification_required
-# def reschedule_trip(request):
-#     try:
-#         trip = Trip.objects.get(user=request.user, status="SEARCHING")
-
-#         if request.method == "POST":
-#             new_departure = make_aware(
-#                 datetime.strptime(request.POST.get("planned_departure"), "%Y-%m-%dT%H:%M")
-#             )
-#             trip.planned_departure = new_departure
-#             trip.save()
-#             return redirect('current_trip')
-
-#         return render(
-#             request,
-#             'locations/reschedule_trip.html',
-#             {'trip': trip}
-#         )
-#     except Trip.DoesNotExist:
-#         return redirect('home')
-
-
 @login_required
 @verification_required
 def reschedule_trip(request):

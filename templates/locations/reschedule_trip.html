@@ -39,13 +39,9 @@
     })
     
     document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('tripForm');
         const dateInput = document.getElementById('planned_departure');
-        const errorDiv = document.getElementById('dateError');
-        const submitBtn = document.getElementById('submitTrip');
         const setNowBtn = document.getElementById('setNowBtn');
 
-        // Set min/max dates
         function updateMinMaxDates() {
             const now = new Date();
             const maxDate = new Date(now);
@@ -58,61 +54,12 @@
             dateInput.max = maxDate.toISOString().slice(0, 16);
             return now;
         }
-
-        function validateDate(dateStr) {
-            const selectedDate = new Date(dateStr);
-            const now = new Date();
-            const maxDate = new Date(now);
-            maxDate.setFullYear(now.getFullYear() + 1);
-
-            // Reset seconds/milliseconds
-            selectedDate.setSeconds(0, 0);
-            now.setSeconds(0, 0);
-            
-            if (selectedDate > maxDate) {
-                showError("Selected date cannot be more than 1 year in the future");
-                return false;
-            }
-
-            if (selectedDate < now && selectedDate.getMinutes() <= now.getMinutes()) {
-                showError("Selected date and time cannot be in the past");
-                return false;
-            }
-
-            hideError();
-            return true;
-        }
-
-        function showError(message) {
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            submitBtn.disabled = true;
-        }
-
-        function hideError() {
-            errorDiv.style.display = 'none';
-            submitBtn.disabled = false;
-        }
-
-        // Initialize min/max dates
-        updateMinMaxDates();
-
-        // Event listeners
-        dateInput.addEventListener('input', function() {
-            validateDate(this.value);
-        });
-
+        
         setNowBtn.addEventListener('click', function() {
             const now = updateMinMaxDates();
             dateInput.value = now.toISOString().slice(0, 16);
-            validateDate(dateInput.value);
         });
         
-        form.addEventListener('submit', function(e) {
-            if (!validateDate(dateInput.value)) {
-                e.preventDefault();
-            }
-        });
     });
 </script>
 {% endblock %}
