@@ -1,3 +1,5 @@
-# from django.contrib import admin
+from django.contrib import admin
+from .models import UserDocument, UserReports
 
-# Register your models here.
+admin.site.register(UserDocument)
+admin.site.register(UserReports)

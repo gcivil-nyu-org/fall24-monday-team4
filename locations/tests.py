@@ -206,7 +206,8 @@ class LocationViewsTest(TestCase):
             "search_radius": 200,
         }
         response = self.client.post(reverse("create_trip"), data)
-        self.assertRedirects(response, reverse("current_trip"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
 
         self.assertTrue(Trip.objects.filter(user=self.user).exists())
 

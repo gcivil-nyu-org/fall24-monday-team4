@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load trip_filters %}
+{% load static %}
+
 {% block title %}Previous Trips{% endblock %}
 
 {% block content %}
@@ -32,9 +34,13 @@
                                     {% for match in trip|all_matches %}
                                     <li>
                                         {% if match.trip1.user == user %}
-                                            {{ match.trip2.user.username }}
+                                            <a style="text-decoration: none" href="{% url 'user_profile' user_id=match.trip2.user.id %}">
+                                                {{ match.trip2.user.username }}
+                                            </a>
                                         {% else %}
-                                            {{ match.trip1.user.username }}
+                                            <a style="text-decoration: none" href="{% url 'user_profile' user_id=match.trip1.user.id %}">
+                                                {{ match.trip1.user.username }}
+                                            </a>
                                         {% endif %}
                                         :
                                         <span class="badge {% if match.status == 'ACCEPTED' %}bg-success
@@ -196,25 +202,85 @@
 
         const routingControl{{ trip.id }} = L.Routing.control({
             waypoints: [
-                L.latLng({{ trip.start_latitude }}, {{ trip.start_longitude }}),
-                L.latLng({{ trip.dest_latitude }}, {{ trip.dest_longitude }})
+                L.latLng(parseFloat({{ trip.start_latitude }}), parseFloat({{ trip.start_longitude }})),
+                L.latLng(parseFloat({{ trip.dest_latitude }}), parseFloat({{ trip.dest_longitude }}))
             ],
             router: L.Routing.osrmv1({
+                // serviceUrl: 'https://invalid-url-to-test-failure', // For testing routingerror
                 serviceUrl: 'https://router.project-osrm.org/route/v1',
                 profile: 'foot'
             }),
             routeWhileDragging: false,
             showAlternatives: false,
             lineOptions: {
-                styles: [{color: 'blue', opacity: 0.6, weight: 4}]
+                styles: [{color: 'blue', opacity: 0.6, weight: 5}]
             },
             createMarker: function() { return null; },
             addWaypoints: false,
             draggableWaypoints: false,
             show: false,
             collapsible: false, 
-            containerClassName: 'd-none' 
+            containerClassName: 'd-none',
+            defaultErrorHandler: function(e) { 
+                console.warn("Routing failed - using direct line instead");
+            }
         }).addTo(map{{ trip.id }});
+
+        routingControl{{ trip.id }}.on('routingerror', function(e) {
+            // Remove failed routing control
+            map{{ trip.id }}.removeControl(routingControl{{ trip.id }});
+            
+            // Add simple line instead
+            const fallbackLine = L.polyline([
+                [parseFloat({{trip.start_latitude}}), parseFloat({{trip.start_longitude}})],
+                [parseFloat({{trip.dest_latitude}}), parseFloat({{trip.dest_longitude}})]
+            ], {
+                color: 'blue',
+                opacity: 0.6,
+                weight: 5,
+                dashArray: '10, 10'
+            }).addTo(map{{ trip.id }});
+
+            // Fit bounds to show the full line
+            map{{ trip.id }}.fitBounds(fallbackLine.getBounds());
+        });
+        
+        // Google Maps Link
+        L.Control.Gmaps = L.Control.extend({
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                const link = L.DomUtil.create('a', '', container);
+                link.href = '#';
+                link.title = 'Open in Google Maps';
+                // link.innerHTML = '<i class="fa-brands fa-google google-icon"></i>';
+
+                const icon = L.DomUtil.create('img', '', link);
+                
+                icon.src = '{% static "img/google-maps.png" %}';
+                icon.style.display = 'block';
+                icon.style.maxWidth = '100%';
+                icon.style.maxHeight = '100%';
+                icon.style.width = '23px'; 
+                icon.style.height = '23px';
+                icon.style.position = 'absolute';
+                icon.style.top = '50%';
+                icon.style.left = '50%';
+                icon.style.transform = 'translate(-50%, -50%)';
+
+                L.DomEvent.on(link, 'click', function(e) {
+                    L.DomEvent.preventDefault(e);
+                    // Get start and destination coordinates
+                    const start = `${parseFloat({{trip.start_latitude}})},${parseFloat({{trip.start_longitude}})}`;
+                    const dest = `${parseFloat({{trip.dest_latitude}})},${parseFloat({{trip.dest_longitude}})}`;
+                    // Open Google Maps in new tab
+                    window.open(`https://www.google.com/maps/dir/${start}/${dest}/data=!4m2!4m1!3e3`, '_blank');
+                });
+
+                return container;
+            }
+        });
+
+        map{{ trip.id }}.addControl(new L.Control.Gmaps({ position: 'topleft' }));
 
         // Ensure map renders properly
         setTimeout(() => {

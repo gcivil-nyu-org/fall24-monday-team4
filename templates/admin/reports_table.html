@@ -147,6 +147,8 @@
                 modal.show();
 
                 document.getElementById(`viewReportsModal${userId}`).addEventListener("hidden.bs.modal", function () {
+                    document.documentElement.style.overflow = '';
+                    document.body.style.overflow = '';
                     document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
                 });
 
@@ -235,7 +237,6 @@
                     if (context === "deactivate-modal") {
                         const modal = document.getElementById(`viewReportsModal${userId}`);
                         const modalInstance = bootstrap.Modal.getInstance(modal);
-                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
                         modalInstance.hide();
                     }
                     window.location.reload();
