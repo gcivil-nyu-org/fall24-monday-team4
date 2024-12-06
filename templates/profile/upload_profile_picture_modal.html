@@ -1,4 +1,4 @@
-<div class="modal fade" id="uploadModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+<div class="modal fade" id="uploadModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="uploadModalLabel" >
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -49,8 +49,6 @@
 
                 <div class="modal-footer">
                     <div class="d-flex justify-content-between w-100">
-
-
                             <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
                             <div>
                                 {% if profile.photo_key %}
@@ -62,7 +60,6 @@
                             <button type="submit" class="btn btn-primary" id="uploadButton">
                                 <i class="bi bi-cloud-upload"></i> Upload
                             </button>
-
                     </div>
                 </div>
             </form>
