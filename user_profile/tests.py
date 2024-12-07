@@ -222,6 +222,17 @@ class UserProfileTests(TestCase):
         self.assertEqual(self.user_profile.bio, "Updated test bio")
         self.assertRedirects(response, reverse("profile"))
 
+    def test_profile_view_update_name(self):
+        response = self.client.post(
+            reverse("profile"),
+            {"first_name": "test_first_name", "last_name": "test_last_name"},
+        )
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "test_first_name")
+        self.assertEqual(self.user.last_name, "test_last_name")
+        self.assertRedirects(response, reverse("profile"))
+
     def test_report_user(self):
         reported_user = User.objects.create_user(
             username="reporteduser", password="12345"

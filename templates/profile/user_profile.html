@@ -27,40 +27,68 @@
                 </div>
                 <div class="card-body">
                     <hr />
-                    
-                    <h2 class="username">{{ profile.user.username }}</h2>
-                    
-                    <div class="container">
-                        <div class="row justify-content-center">
-                            <div class="col-6">
-                                <div class="row">
-                                    <div class="col-3 p-0">
-                                        <h5>Name:</h5>
+                    <form method="POST" id="bio-form">
+                        {% csrf_token %}
+                        <div class="row justify-content-center" style="margin-top: 1rem; margin-bottom: 1rem;">
+                            <div class="col d-flex align-items-center justify-content-center">
+                                <h2 class="mb-0 me-2">{{ profile.user.username }}</h2>
+                                {% if is_user %}
+                                <button type="button" class="btn btn-outline-dark btn-sm" id="edit-button">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="container">
+                            <div class="row justify-content-center">
+                                <div class="col-6">
+                                    <div class="row align-items-center mb-2">
+                                        <div class="col-3 p-0">
+                                            <h5>Name:</h5>
+                                        </div>
+                                        <div class="col-8 p-0">
+                                            <span id="display-name">{{ profile.user.first_name }} {{ profile.user.last_name }}</span>
+
+                                            {% if is_user %}
+                                            <div id="edit-name-inputs" style="display: none;">
+                                                <input
+                                                        type="text"
+                                                        class="form-control form-control-sm mb-1"
+                                                        name="first_name"
+                                                        id="first-name-input"
+                                                        value="{{ profile.user.first_name }}"
+                                                        placeholder="First Name"
+                                                        readonly
+                                                        required
+                                                />
+                                                <input
+                                                        type="text"
+                                                        class="form-control form-control-sm"
+                                                        name="last_name"
+                                                        id="last-name-input"
+                                                        value="{{ profile.user.last_name }}"
+                                                        placeholder="Last Name"
+                                                        readonly
+                                                        required
+                                                />
+                                            </div>
+                                            {% endif %}
+                                        </div>
                                     </div>
-                                    <div class="col-8 p-0">
-                                        <span>{{ profile.user.first_name }} {{ profile.user.last_name }}</span>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-3 p-0">
-                                        <h5>Email:</h5>
-                                    </div>
-                                    <div class="col-8 p-0">
-                                        <span>{{ profile.user.email }}</span>
+                                    <div class="row">
+                                        <div class="col-3 p-0">
+                                            <h5>Email:</h5>
+                                        </div>
+                                        <div class="col-8 p-0">
+                                            <span>{{ profile.user.email }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="row justify-content-center" style="margin-top: 1rem; margin-bottom: 1rem;">
-                        <div class="col d-flex align-items-center justify-content-center">
-                            <h5 class="mb-0 me-2">About Me</h5>
-                            {% if is_user %} <button type="icon" class="btn btn-outline-dark btn-sm" id="edit-button"><i class="fa-solid fa-pen-to-square"></i></button> {% endif %}
-                        </div>
-                    </div>
-                    <form method="POST" id="bio-form">
-                        {% csrf_token %}
+                        <h5 class="mb-2 mt-2">About Me</h5>
                         <div class="form-group" style="margin: 1rem">
                             <textarea
                                     class="form-control"
@@ -72,10 +100,12 @@
                                     placeholder="{% if profile.bio %}Add Information About Yourself{% else %}No information added yet.{% endif %}">{% if profile.bio %}{{ profile.bio }}{% endif %}</textarea>
                         </div>
 
+                        {% if is_user %}
                         <div class="form-group" id="edit-controls" style="display: none; margin: 1rem;">
                             <button type="submit" class="btn btn-sm btn-success" id="save-button">Save</button>
                             <button type="button" class="btn btn-sm btn-secondary" id="cancel-button">Cancel</button>
                         </div>
+                        {% endif %}
                     </form>
                     {% if is_user %}
                         <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button"><i class="fa-solid fa-key"></i> Password Change</a></p>
@@ -134,26 +164,60 @@
 
 {% if is_user %}
 <script>
-    const editButton = document.getElementById('edit-button');
-    const textarea = document.getElementById('user-bio');
-    const editControls = document.getElementById('edit-controls');
-    let originalValue = textarea.value;
+    document.addEventListener('DOMContentLoaded', () => {
+        const editButton = document.getElementById('edit-button');
+        const textarea = document.getElementById('user-bio');
+        const editControls = document.getElementById('edit-controls');
+        const displayName = document.getElementById('display-name');
+        const editNameInputs = document.getElementById('edit-name-inputs');
+        const firstNameInput = document.getElementById('first-name-input');
+        const lastNameInput = document.getElementById('last-name-input');
+        const cancelButton = document.getElementById('cancel-button');
 
-    editButton.addEventListener('click', () => {
-        textarea.removeAttribute('readonly');
-        editControls.style.display = 'block';
-    });
+        let originalBio = textarea.value;
+        let originalFirstName = firstNameInput.value;
+        let originalLastName = lastNameInput.value;
 
-    document.getElementById('cancel-button').addEventListener('click', () => {
-        textarea.setAttribute('readonly', true);
-        editControls.style.display = 'none';
-        textarea.value = originalValue;
+        editButton.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            textarea.removeAttribute('readonly');
+
+            firstNameInput.removeAttribute('readonly');
+            lastNameInput.removeAttribute('readonly');
+
+            displayName.style.display = 'none';
+            editNameInputs.style.display = 'block';
+
+            editControls.style.display = 'block';
+        });
+
+        cancelButton.addEventListener('click', () => {
+            textarea.value = originalBio;
+            firstNameInput.value = originalFirstName;
+            lastNameInput.value = originalLastName;
+
+            textarea.setAttribute('readonly', true);
+            firstNameInput.setAttribute('readonly', true);
+            lastNameInput.setAttribute('readonly', true);
+
+            displayName.style.display = 'block';
+            editNameInputs.style.display = 'none';
+            editControls.style.display = 'none';
+        });
     });
 </script>
 {%endif%}
 <style>
     a {
         text-decoration: unset;
+    }
+    .form-control-sm {
+        font-size: 0.875rem;
+        padding: 0.25rem 0.5rem;
+    }
+    .messages .alert {
+        margin-bottom: 1rem;
     }
 </style>
 {% endblock %}

@@ -43,10 +43,18 @@ def profile_view(request, user_id=None):
         is_user = user_id == request.user.id
 
     if request.method == "POST":
-        new_bio = request.POST.get("bio")
-        profile.bio = new_bio
-        profile.save()
-        return redirect("profile")
+        if is_user:
+            first_name = request.POST.get("first_name", "").strip()
+            last_name = request.POST.get("last_name", "").strip()
+
+            request.user.first_name = first_name
+            request.user.last_name = last_name
+            request.user.save()
+
+            new_bio = request.POST.get("bio", "").strip()
+            profile.bio = new_bio
+            profile.save()
+            return redirect("profile")
 
     if profile.photo_key:
         profile_picture_url = generate_presigned_url(profile.photo_key, expiration=3600)
