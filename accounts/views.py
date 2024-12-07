@@ -8,7 +8,7 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
 from django.contrib.messages.views import SuccessMessageMixin
-from django.contrib.messages import *;
+from django.contrib.messages import *
 from .models import UserDocument
 from utils.s3_utils import (
     upload_file_to_s3,
@@ -157,24 +157,22 @@ def delete_document(request):
 
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
-    
 
 
 def login(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             auth_login(request, user)
-            return redirect('home')  # Redirect to the home page after successful login
+            return redirect("home")  # Redirect to the home page after successful login
         else:
             # Invalid login
             return render(
-            request,
-            "registration/login.html",
-            {"error": "Invalid username and/or password.",
-             'form': form},
-        )
+                request,
+                "registration/login.html",
+                {"error": "Invalid username and/or password.", "form": form},
+            )
     else:
         form = AuthenticationForm()
-        return render(request, 'registration/login.html', {'form': form})
+        return render(request, "registration/login.html", {"form": form})
