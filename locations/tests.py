@@ -202,6 +202,8 @@ class LocationViewsTest(TestCase):
             "start_longitude": "-74.0060",
             "dest_latitude": "40.7580",
             "dest_longitude": "-73.9855",
+            "start_address": "start",
+            "end_address": "end",
             "desired_companions": 1,
             "search_radius": 200,
         }
@@ -1025,6 +1027,12 @@ class LocationViewsTest(TestCase):
                 ),
             ]
         )
+
+    def test_reschedule_nonexistent_trip(self):
+        """Test rescheduling when trip doesn't exist"""
+        self.trip.delete()
+        response = self.client.get(reverse("reschedule_trip"))
+        self.assertRedirects(response, reverse("home"))
 
 
 class TripFiltersTest(TestCase):

@@ -27,21 +27,29 @@
                 </div>
                 <div class="card-body">
                     <hr />
+                    
                     <h2 class="username">{{ profile.user.username }}</h2>
-                    <div class="row justify-content-center">
-                        <div class="col">
-                            <h5>Name:</h5>
-                        </div>
-                        <div class="col">
-                            <p>{{ profile.user.first_name }} {{ profile.user.last_name }}</p>
-                        </div>
-                    </div>
-                    <div class="row justify-content-center">
-                        <div class="col">
-                            <h5>Email:</h5>
-                        </div>
-                        <div class="col">
-                            <p>{{ profile.user.email }}</p>
+                    
+                    <div class="container">
+                        <div class="row justify-content-center">
+                            <div class="col-6">
+                                <div class="row">
+                                    <div class="col-3 p-0">
+                                        <h5>Name:</h5>
+                                    </div>
+                                    <div class="col-8 p-0">
+                                        <span>{{ profile.user.first_name }} {{ profile.user.last_name }}</span>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-3 p-0">
+                                        <h5>Email:</h5>
+                                    </div>
+                                    <div class="col-8 p-0">
+                                        <span>{{ profile.user.email }}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -69,8 +77,12 @@
                             <button type="button" class="btn btn-sm btn-secondary" id="cancel-button">Cancel</button>
                         </div>
                     </form>
-                    {% if is_user %} 
-                        <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button">Password Change</a></p>
+                    {% if is_user %}
+                        <p><a class="btn btn-outline-dark" href="{% url 'password_change' %}" role="button"><i class="fa-solid fa-key"></i> Password Change</a></p>
+                        <button type="button" class="btn btn-outline-dark mt-1" id="add-family-button" data-bs-toggle="modal" data-bs-target="#familyMembersModal">
+                            <i class="fa-solid fa-people-group"></i> Manage Family Members
+                        </button>
+                        {% include 'profile/add_family_members_modal.html' %}
                     {% endif %}
                     <hr />
                     {% if not is_user %}

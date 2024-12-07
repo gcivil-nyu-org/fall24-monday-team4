@@ -65,8 +65,8 @@ class AdminUserViewsTestCase(TestCase):
         self.user_report.refresh_from_db()
         self.assertTrue(self.user_report.is_acknowledged)
 
-    @patch("admin_user.views.send_mail")
-    def test_deactivate_account(self, mock_send_mail):
+    @patch("admin_user.views.deactivate_account_email")
+    def test_deactivate_account(self, mock_send_deactivate_account_email):
         self.client.login(username="staffuser", password="testpass")
         response = self.client.post(
             reverse("deactivate_account"),
@@ -76,10 +76,10 @@ class AdminUserViewsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.regular_user.refresh_from_db()
         self.assertFalse(self.regular_user.is_active)
-        mock_send_mail.assert_called_once()
+        mock_send_deactivate_account_email.assert_called_once()
 
-    @patch("admin_user.views.send_mail")
-    def test_activate_account(self, mock_send_mail):
+    @patch("admin_user.views.activate_account_email")
+    def test_activate_account(self, mock_activate_account_email):
         self.regular_user.is_active = False
         self.regular_user.save()
 
@@ -92,10 +92,10 @@ class AdminUserViewsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.regular_user.refresh_from_db()
         self.assertTrue(self.regular_user.is_active)
-        mock_send_mail.assert_called_once()
+        mock_activate_account_email.assert_called_once()
 
-    @patch("admin_user.views.send_mail")
-    def test_verify_account(self, mock_send_mail):
+    @patch("admin_user.views.verify_account_email")
+    def test_verify_account(self, mock_send_verify_account_email):
         self.client.login(username="staffuser", password="testpass")
         response = self.client.post(
             reverse("verify_account"),
@@ -105,10 +105,10 @@ class AdminUserViewsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.user_profile.refresh_from_db()
         self.assertTrue(self.user_profile.is_verified)
-        mock_send_mail.assert_called_once()
+        mock_send_verify_account_email.assert_called_once()
 
-    @patch("admin_user.views.send_mail")
-    def test_unverify_account(self, mock_send_mail):
+    @patch("admin_user.views.unverify_account_email")
+    def test_unverify_account(self, mock_send_unverify_account_email):
         self.user_profile.is_verified = True
         self.user_profile.save()
 
@@ -121,7 +121,7 @@ class AdminUserViewsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.user_profile.refresh_from_db()
         self.assertFalse(self.user_profile.is_verified)
-        mock_send_mail.assert_called_once()
+        mock_send_unverify_account_email.assert_called_once()
 
     def test_reported_users_list(self):
         self.client.login(username="staffuser", password="testpass")

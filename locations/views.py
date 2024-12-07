@@ -19,6 +19,7 @@ from django.contrib.auth.decorators import login_required
 from user_profile.decorators import emergency_support_required, verification_required
 from .decorators import active_trip_required
 from django.views.decorators.http import require_http_methods
+from django.contrib import messages
 
 
 def broadcast_trip_update(trip_id, status, message):
@@ -127,6 +128,8 @@ def create_trip(request):
                 "planned_departure": planned_departure,
                 "desired_companions": int(request.POST.get("desired_companions")),
                 "search_radius": int(request.POST.get("search_radius")),
+                "start_address": request.POST.get("start_address"),
+                "end_address": request.POST.get("end_address"),
             },
         )
         return JsonResponse({"success": True})
@@ -143,11 +146,27 @@ def current_trip(request):
             status__in=["SEARCHING", "MATCHED", "READY", "IN_PROGRESS"],
         )
 
+        # Check if trip needs attention
+        current_time = timezone.now()
+        needs_attention = False
+        attention_message = ""
+
+        if user_trip.status == "SEARCHING":
+            time_difference = (
+                current_time - user_trip.planned_departure
+            ).total_seconds() / 60
+            if time_difference > 30:
+                needs_attention = True
+                attention_message = (
+                    "Your planned departure time has passed more than 30 minutes. "
+                    "Please reschedule or cancel this trip."
+                )
+
         potential_matches = []
         received_matches = []
         filtered_matches = []
 
-        if user_trip.status == "SEARCHING":
+        if user_trip.status == "SEARCHING" and not needs_attention:
             # Define time window
             time_min = user_trip.planned_departure - timedelta(minutes=30)
             time_max = user_trip.planned_departure + timedelta(minutes=30)
@@ -229,6 +248,8 @@ def current_trip(request):
                 "received_matches": received_matches,
                 "pusher_key": settings.PUSHER_KEY,
                 "pusher_cluster": settings.PUSHER_CLUSTER,
+                "needs_attention": needs_attention,
+                "attention_message": attention_message,
             },
         )
 
@@ -267,6 +288,32 @@ def get_h3_resolution_and_ring_size(radius_meters):
     ring_size = max(1, int(radius_meters / (chosen_edge_length * 2)))
 
     return chosen_res, ring_size
+
+
+@login_required
+@verification_required
+def reschedule_trip(request):
+    try:
+        trip = Trip.objects.get(user=request.user, status="SEARCHING")
+
+        if request.method == "POST":
+            new_departure = make_aware(
+                datetime.strptime(
+                    request.POST.get("planned_departure"), "%Y-%m-%dT%H:%M"
+                )
+            )
+            current_time = timezone.now()
+            if new_departure <= current_time:
+                messages.error(request, "Please select a future date and time.")
+                return render(request, "locations/reschedule_trip.html", {"trip": trip})
+
+            trip.planned_departure = new_departure
+            trip.save()
+            return redirect("current_trip")
+
+        return render(request, "locations/reschedule_trip.html", {"trip": trip})
+    except Trip.DoesNotExist:
+        return redirect("home")
 
 
 @login_required
