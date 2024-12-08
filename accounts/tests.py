@@ -6,6 +6,7 @@ from accounts.validators import validate_email_domain
 from accounts.forms import SignUpForm
 from django.core import mail
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import AuthenticationForm
 from .models import UserDocument, UserReports
 from unittest.mock import patch, MagicMock
 from botocore.exceptions import ClientError
@@ -328,3 +329,59 @@ class AccountViewsTest(TestCase):
 
         self.assertEqual(response.status_code, 500)
         self.assertFalse(response.json()["success"])
+
+
+class LoginViewTests(TestCase):
+    def setUp(self):
+        # Create a test user
+        self.username = "testuser"
+        self.password = "testpassword"
+        self.user = User.objects.create_user(
+            username=self.username, password=self.password
+        )
+
+    def test_login_success(self):
+        # Test successful login
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": self.username,
+                "password": self.password,
+            },
+        )
+
+        # Check that the user is logged in
+        self.assertEqual(response.status_code, 302)  # Should redirect after login
+        self.assertRedirects(response, reverse("home"))  # Redirects to home page
+        self.assertTrue(
+            response.wsgi_request.user.is_authenticated
+        )  # User should be authenticated
+
+    def test_login_failure(self):
+        # Test unsuccessful login with invalid credentials
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": "wronguser",
+                "password": "wrongpassword",
+            },
+        )
+
+        # Check that the response is a 200 OK and contains the error message
+        self.assertEqual(
+            response.status_code, 200
+        )  # Should render the login page again
+        self.assertContains(
+            response, "Invalid username and/or password."
+        )  # Error message should be present
+        self.assertFalse(
+            response.wsgi_request.user.is_authenticated
+        )  # User should not be authenticated
+
+    def test_login_get(self):
+        # Test GET request to the login view
+        response = self.client.get(reverse("login"))
+
+        # Check that the response is a 200 OK and contains the authentication form
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.context["form"], AuthenticationForm)
