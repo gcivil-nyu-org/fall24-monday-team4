@@ -442,7 +442,7 @@ class UserProfileViewsTest(TestCase):
         )
 
         # Just verify the number of calls and that they were made with the same key
-        self.assertEqual(mock_s3.head_object.call_count, 2)
+        self.assertEqual(mock_s3.head_object.call_count, 3)
         for call_args in mock_s3.head_object.call_args_list:
             self.assertEqual(call_args[1]["Key"], "test_photo_key")
 

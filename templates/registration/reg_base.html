@@ -9,6 +9,13 @@
   <div class="container-fluid h-custom p-3 mb-2">
     <div class="row d-flex justify-content-center align-items-center h-100">
       <div class="col-md-9 col-lg-6 col-xl-5">
+        {% if form.errors %}
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+              <div class="alert alert-warning">{{ error }}</div>
+            {% endfor %}
+          {% endfor %}
+        {% endif %}
         <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-login-form/draw2.webp"
           class="img-fluid" alt="Sample Image">
       </div>

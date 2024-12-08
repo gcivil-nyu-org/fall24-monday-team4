@@ -8,9 +8,42 @@
   <br/>
   <form method="POST" class="form-group">
     {% csrf_token %}
-    {{ form.as_p }}
+    <div class="form-group pt-2">
+      <label for="id_username">Username:</label>
+      <input type="text" class="form-control" name="username" maxlength="150" autofocus required id="id_username">
+      <small class="form-text text-muted">150 characters or fewer. Letters, digits and @/./+/-/_ only.</small>
+    </div>
+    <div class="form-group pt-2">
+      <label for="id_email">Email:</label>
+      <input type="email" class="form-control" name="email" maxlength="320" required id="id_email">
+    </div>
+    <div class="form-group pt-2">
+      <label for="id_first_name">First name:</label>
+      <input type="text" class="form-control" name="first_name" maxlength="150" required id="id_first_name">
+    </div>
+    <div class="form-group pt-2">
+      <label for="id_last_name">Last name:</label>
+      <input type="text" class="form-control" name="last_name" maxlength="150" required id="id_last_name">
+    </div>
+    <div class="form-group pt-2">
+      <label for="id_password1">Password:</label>
+      <input type="password" class="form-control" name="password1" autocomplete="new-password" required id="id_password1">
+      <small class="form-text text-muted">
+        <ul>
+          <li>Your password can't be too similar to your other personal information.</li>
+          <li>Your password must contain at least 8 characters.</li>
+          <li>Your password can't be a commonly used password.</li>
+          <li>Your password can't be entirely numeric.</li>
+        </ul>
+      </small>
+    </div>
+    <div class="form-group">
+      <label for="id_password2">Password confirmation:</label>
+      <input type="password" class="form-control" name="password2" autocomplete="new-password" required id="id_password2">
+      <small class="form-text text-muted">Enter the same password as before, for verification.</small>
+    </div>
     <button type="submit" class="btn btn-primary btn-lg"
-      style="padding-left: 2.5rem; padding-right: 2.5rem;">Sign Up</button>
+      style="padding-left: 2.5rem; padding-right: 2.5rem; margin-top: 2rem">Sign Up</button>
   </form>
 </div>
 {% endblock %}
