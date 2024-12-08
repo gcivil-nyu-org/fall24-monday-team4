@@ -369,9 +369,32 @@
                     enableHighAccuracy: true
                 });
             }
-        
+            
+            NOMINATIM_API_URL = "https://nominatim.openstreetmap.org"
+            NOMINATIM_DETAILS_ENDPOINT = `${NOMINATIM_API_URL}/details`
+            NOMINATIM_SEARCH_ENDPOINT = `${NOMINATIM_API_URL}/search`
+            NOMINATIM_REVERSE_ENDPOINT = `${NOMINATIM_API_URL}/reverse`
+            NOMINATIM_ZOOM = 18
+
+            function showSearching() {
+                searchOverlay.classList.remove('d-none');
+                startInput.disabled = true;
+                endInput.disabled = true;
+            }
+
+            function hideSearching() {
+                searchOverlay.classList.add('d-none');
+                document.getElementById("start-location-search").disabled = locationMode === 'current';
+                document.getElementById("start-search-button").disabled = locationMode === 'current';
+                endInput.disabled = false;
+            }
+            
             function addDragEndHandler(marker, latInput, lngInput, address) {
                 marker.on('dragend', function(e) {
+                    clearTimeout(searchTimeout);
+
+                    showSearching();
+                    
                     const pos = e.target.getLatLng();
 
                     document.getElementById(latInput).value = pos.lat;
@@ -392,27 +415,11 @@
                         .catch(error => {
                             console.error('Error getting address:', error);
                             // Handle error appropriately
+                        })
+                        .finally(() => {
+                            searchTimeout = setTimeout(hideSearching, 1000);
                         });
                 });
-            }
-            
-            NOMINATIM_API_URL = "https://nominatim.openstreetmap.org"
-            NOMINATIM_DETAILS_ENDPOINT = `${NOMINATIM_API_URL}/details`
-            NOMINATIM_SEARCH_ENDPOINT = `${NOMINATIM_API_URL}/search`
-            NOMINATIM_REVERSE_ENDPOINT = `${NOMINATIM_API_URL}/reverse`
-            NOMINATIM_ZOOM = 18
-
-            function showSearching() {
-                searchOverlay.classList.remove('d-none');
-                startInput.disabled = true;
-                endInput.disabled = true;
-            }
-
-            function hideSearching() {
-                searchOverlay.classList.add('d-none');
-                document.getElementById("start-location-search").disabled = locationMode === 'current';
-                document.getElementById("start-search-button").disabled = locationMode === 'current';
-                endInput.disabled = false;
             }
 
             async function handleSearch(input, isStart) {
@@ -560,6 +567,9 @@
                 // Click event to handle both start and destination markers
                 map.on('click', function(e) {
                     if (locationMode === 'custom' && !startLocationSet) {
+                        clearTimeout(searchTimeout);
+                        showSearching();
+
                         // Set start location
                         if (currentMarker) {
                             map.removeLayer(currentMarker);
@@ -583,10 +593,15 @@
                             .catch(error => {
                                 console.error('Error getting end location address:', error);
                                 // Handle error appropriately
+                            })
+                            .finally(() => {
+                                searchTimeout = setTimeout(hideSearching, 1000);
                             });
                         
                         startLocationSet = true;
                     } else {
+                        clearTimeout(searchTimeout);
+                        showSearching();
                         // Set destination (for both modes)
                         if (destMarker) {
                             map.removeLayer(destMarker);
@@ -607,6 +622,9 @@
                             .catch(error => {
                                 console.error('Error getting end location address:', error);
                                 // Handle error appropriately
+                            })
+                            .finally(() => {
+                                searchTimeout = setTimeout(hideSearching, 1000);
                             });
                     }
                 });

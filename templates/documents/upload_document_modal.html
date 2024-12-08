@@ -268,7 +268,7 @@
 
         elements.modal.addEventListener('hidden.bs.modal', function () {
             resetForm();
-            errorMessage.style.display = "none";
+            elements.errorMessage.style.display = "none";
             document.documentElement.style.overflow = '';
             document.body.style.overflow = '';
             document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
