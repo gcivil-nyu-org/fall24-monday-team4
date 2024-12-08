@@ -12,11 +12,9 @@ import uuid
 from django.http import JsonResponse
 from .decorators import verification_required
 from django.views.decorators.http import require_http_methods
-from django.core.mail import EmailMessage
-from django.conf import settings
+from utils.email_utils import FamilyMemberEmails, validate_family_members_input
 from django.template.loader import render_to_string
 import json
-import re
 
 
 @login_required(login_url="home")
@@ -74,35 +72,6 @@ def profile_view(request, user_id=None):
     )
 
 
-def FamilyMemberEmails(memberEmails, htmlMessage, subjectTxt):
-    subject = subjectTxt
-    html_message = htmlMessage
-    email = EmailMessage(
-        subject, html_message, settings.DEFAULT_FROM_EMAIL, memberEmails
-    )
-    email.content_subtype = "html"
-    email.send()
-
-
-def validate_family_members_input(data):
-    for member in data:
-        if (
-            not member.get("name")
-            or not isinstance(member.get("name"), str)
-            or member["name"].strip() == ""
-        ):
-            return False, "Invalid or empty name"
-
-        email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-        if not member.get("email") or not re.match(email_regex, member["email"]):
-            return (
-                False,
-                f"Invalid email format: {member.get('email', 'No email provided')}",
-            )
-
-    return True, ""
-
-
 @login_required(login_url="home")
 @verification_required
 @require_http_methods(["POST"])
@@ -137,12 +106,12 @@ def update_family_members(request):
 
         if in_family_not_data:
             html_message_removed = render_to_string(
-                "emails/removed_family_member.html",
+                "emails/removed_fam_email.html",
                 {"username": request.user.username},
             )
 
             subject_removed = (
-                f"You’ve Been Removed from {request.user.username}’s Family List"
+                f"You've Been Removed from {request.user.username}'s Family List"
             )
             removed_email_list = [member["email"] for member in in_family_not_data]
 
@@ -161,12 +130,12 @@ def update_family_members(request):
 
         if in_data_not_family:
             html_message_added = render_to_string(
-                "emails/welcome_email_family_members.html",
+                "emails/welcome_fam_email.html",
                 {"username": request.user.username},
             )
 
             subject_added = (
-                f"You’ve Been Added to {request.user.username}’s Family List"
+                f"You've Been Added to {request.user.username}'s Family List"
             )
             added_email_list = [member["email"] for member in in_data_not_family]
 

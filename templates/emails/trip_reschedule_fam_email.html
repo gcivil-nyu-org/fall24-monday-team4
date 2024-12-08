@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>You’ve Been Added to {{ username }}’s Family List on RoutePals!</title>
+    <title>{{ username }} Has Rescheduled Their Trip</title>
     <style>
         body, table, td, a {
             -webkit-text-size-adjust: 100%;
@@ -35,6 +35,30 @@
             padding: 20px;
             text-align: center;
         }
+
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            text-align: left;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .map-container {
+            margin: 20px 0;
+            width: 100%;
+        }
+
+        .map-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
@@ -44,20 +68,12 @@
             <table border="0" cellpadding="0" cellspacing="0" width="600" class="container">
                 <tr>
                     <td class="content">
-                        <h1 style="color: #343a40;">You’ve Been Added to {{ username }}’s Family List on RoutePals!</h1>
-                        <p style="color: #6c757d;">
-                            Hello!
-                            <br/>
-                            {{ username }} has added you as a family member on RoutePals. This means you will now receive notifications about their trips, including:
-                        <br/>
-                        <ul style="text-align: left; margin: 0 auto; display: inline-block; color: #6c757d;">
-                            <li>When they start and end a trip.</li>
-                            <li>Who they are traveling with.</li>
-                            <li>If they activate their panic button during a trip.</li>
-                        </ul>
-                        <br/>
-                        <br/>
-                        We’re here to ensure {{ username }}’s travel experience is safe and connected with loved ones like you.
+                        <h2>{{username}} Has Rescheduled Their Trip</h2>
+                        <p><strong>From:</strong> {{start}}</p>
+                        <p><strong>To:</strong> {{end}}</p>
+                        <p><strong>Departure:</strong> {{departure}}</p>
+                        <img src="https://staticmap.openstreetmap.de/staticmap.php?center={{start_lat}},{{start_lng}}&zoom=14&size=600x400&markers={{start_lat}},{{start_lng}},redmarker|{{dest_lat}},{{dest_lng}},bluemarker" alt="Trip Route">
+                        
                         <br/>
                         If you have any questions or need assistance, feel free to reach out to our support team.
                         </p>

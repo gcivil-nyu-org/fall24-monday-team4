@@ -3,8 +3,11 @@ import uuid
 import json
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
-
 from locations.templatetags import trip_filters
+from user_profile.models import FamilyMembers
+from utils.email_utils import FamilyMemberEmails
+from django.template.loader import render_to_string
+from utils.location_utils import reverse_geocode
 from .models import Trip, Match, UserLocation
 from chat.models import ChatRoom, Message
 from datetime import timedelta, datetime
@@ -132,6 +135,27 @@ def create_trip(request):
                 "end_address": request.POST.get("end_address"),
             },
         )
+
+        family_members = FamilyMembers.objects.filter(user=request.user)
+        if family_members.exists():
+            html_message = render_to_string(
+                "emails/trip_create_fam_email.html",
+                {
+                    "username": request.user.username,
+                    "start": request.POST.get("start_address"),
+                    "end": request.POST.get("end_address"),
+                    "departure": planned_departure,
+                    "start_lat": request.POST.get("start_latitude"),
+                    "start_lng": request.POST.get("start_longitude"),
+                    "dest_lat": request.POST.get("dest_latitude"),
+                    "dest_lng": request.POST.get("dest_longitude"),
+                },
+            )
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"{request.user.username}'s Trip Created",
+            )
         return JsonResponse({"success": True})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
@@ -309,8 +333,28 @@ def reschedule_trip(request):
 
             trip.planned_departure = new_departure
             trip.save()
-            return redirect("current_trip")
 
+            family_members = FamilyMembers.objects.filter(user=request.user)
+            if family_members.exists():
+                html_message = render_to_string(
+                    "emails/trip_reschedule_fam_email.html",
+                    {
+                        "username": request.user.username,
+                        "start": trip.start_address,
+                        "end": trip.end_address,
+                        "departure": new_departure,
+                        "start_lat": trip.start_latitude,
+                        "start_lng": trip.start_longitude,
+                        "dest_lat": trip.dest_latitude,
+                        "dest_lng": trip.dest_longitude,
+                    },
+                )
+                FamilyMemberEmails(
+                    [member.email for member in family_members],
+                    html_message,
+                    f"{request.user.username}'s Trip Rescheduled",
+                )
+            return redirect("current_trip")
         return render(request, "locations/reschedule_trip.html", {"trip": trip})
     except Trip.DoesNotExist:
         return redirect("home")
@@ -525,6 +569,26 @@ def start_trip(request):
         trip.status = "IN_PROGRESS"  # Update the current trip too
         trip.save()
 
+        family_members = FamilyMembers.objects.filter(user=request.user)
+        if family_members.exists():
+            companions = [trip.user.username for trip in matched_trips]
+            html_message = render_to_string(
+                "emails/trip_start_fam_email.html",
+                {
+                    "username": request.user.username,
+                    "start": trip.start_address,
+                    "end": trip.end_address,
+                    "departure": trip.planned_departure,
+                    "companions": list(companions),
+                },
+            )
+
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"{request.user.username}'s Trip Started",
+            )
+
         # Broadcast update to all participants
         broadcast_trip_update(trip.id, "IN_PROGRESS", "Trip is now in progress")
         for matched_trip in matched_trips:
@@ -673,6 +737,28 @@ def trigger_panic(request):
         user_location.panic_message = request.POST.get("initial_message")
         user_location.save()
 
+        family_members = FamilyMembers.objects.filter(user=request.user)
+        if family_members.exists():
+            current_address = reverse_geocode(
+                float(user_location.latitude), float(user_location.longitude)
+            )
+
+            html_message = render_to_string(
+                "emails/panic_trigger_fam_email.html",
+                {
+                    "username": request.user.username,
+                    "message": user_location.panic_message,
+                    "location": current_address or "Location Unavailable",
+                    "latitude": user_location.latitude,
+                    "longitude": user_location.longitude,
+                },
+            )
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"PANIC ALERT: {request.user.username} Requested Emergency Support",
+            )
+
         # Get all active panic locations for emergency support view
         locations_data = [
             {
@@ -722,6 +808,17 @@ def resolve_panic(request, panic_username):
         user_location.panic = False
         user_location.panic_message = None
         user_location.save()
+
+        family_members = FamilyMembers.objects.filter(user=user)
+        if family_members.exists():
+            html_message = render_to_string(
+                "emails/panic_resolve_fam_email.html", {"username": user.username}
+            )
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"PANIC ALERT: {user.username}'s Emergency Support Request Resolved",
+            )
 
         # Trigger a Pusher event to update the panic button
         pusher_client.trigger(
@@ -822,6 +919,18 @@ def complete_trip(request):
                 completion_requested=True,
                 completed_at=current_time,
             )
+
+            family_members = FamilyMembers.objects.filter(user=request.user)
+            if family_members.exists():
+                html_message = render_to_string(
+                    "emails/trip_complete_fam_email.html",
+                    {"username": request.user.username, "toa": current_time},
+                )
+                FamilyMemberEmails(
+                    [member.email for member in family_members],
+                    html_message,
+                    f"{request.user.username}'s Trip Completed",
+                )
 
             # Delete UserLocations for all users involved
             user_ids = matched_trips.values_list("user", flat=True)
