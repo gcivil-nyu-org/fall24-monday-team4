@@ -22,7 +22,7 @@
                         <td>{{ user_document.user.email }}</td>
                         <td>
                             {% if user_document.user == user %}
-                            <span class="badge badge-warning">Self</span>
+                            <span class="badge bg-warning">Self</span>
                             {% elif user_document.user.is_staff %}
                             <span class="badge bg-primary">Admin</span>
                             {% else %}

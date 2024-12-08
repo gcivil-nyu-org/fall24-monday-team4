@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Your Password Has Been Changed</title>
+    <title>Emergency Support Requested</title>    
     <style>
         body, table, td, a {
             -webkit-text-size-adjust: 100%;
@@ -35,15 +35,29 @@
             padding: 20px;
             text-align: center;
         }
-        .btn-primary {
-            background-color: #ffffff;
-            color: #0d6efd;
-            padding: 10px 20px;
-            border: 1px solid #0d6efd;
-            border-radius: 5px;
-            text-decoration: none;
-            display: inline-block;
+
+        .alert {
+            padding: 15px;
             margin: 20px 0;
+            border-radius: 5px;
+            text-align: left;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .map-container {
+            margin: 20px 0;
+            width: 100%;
+        }
+
+        .map-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -54,15 +68,14 @@
             <table border="0" cellpadding="0" cellspacing="0" width="600" class="container">
                 <tr>
                     <td class="content">
-                        <h1 style="color: #343a40; margin-bottom: 20px;">Your Password Has Been Changed, {{ username }}!</h1>
-                        <p style="color: #6c757d; line-height: 1.6; margin-bottom: 20px;">
-                            Hi {{ username }},
-                            <br/><br/>
-                            Your password has been changed successfully.
-                            <br/><br/>
-                            If you did not make this change, please contact support immediately.
-                            <br/><br/>
-                            Sincerely,<br/>RoutePals
+                        <h2 style="color: red;">Emergency Support Requested</h2>
+                        <p>{{username}} has triggered their panic button!</p>
+                        <p><strong>Current Location:</strong> {{location}}</p>
+                        <p><strong>Message:</strong> {{message}}</p>
+                        <img src="https://staticmap.openstreetmap.de/staticmap.php?center={{latitude}},{{longitude}}&zoom=15&size=600x400&markers={{latitude}},{{longitude}},redmarker" alt="Current Location">
+                        
+                        <br/>
+                        If you have any questions or need assistance, feel free to reach out to our support team.
                         </p>
                     </td>
                 </tr>
