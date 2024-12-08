@@ -215,7 +215,7 @@
             routeWhileDragging: false,
             showAlternatives: false,
             lineOptions: {
-                styles: [{color: 'blue', opacity: 0.6, weight: 5}]
+                styles: [{color: 'blue', opacity: 1, weight: 5}]
             },
             createMarker: function() { return null; },
             addWaypoints: false,
@@ -238,7 +238,7 @@
                 [parseFloat({{trip.dest_latitude}}), parseFloat({{trip.dest_longitude}})]
             ], {
                 color: 'blue',
-                opacity: 0.6,
+                opacity: 0.7,
                 weight: 5,
                 dashArray: '10, 10'
             }).addTo(map{{ trip.id }});
