@@ -3,6 +3,9 @@
 {% block title%}Home{% endblock %}
 
 {% block content %}
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 {% if user.is_authenticated %}
     {% if not user.is_staff and not user.userprofile.is_verified %}
     <div class="container">
@@ -421,7 +424,12 @@
                     let result = await searchLocation(input.value.trim());
                     
                     if (!result) {
-                        alert('Location not found. Please try a different address.');
+                        Swal.fire({
+                            title: 'Location not found',
+                            text: 'Please try a different address.',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
                     } else if (!result.lat || !result.lon) {
                         throw new Error('Invalid location data received');
                     } else {
@@ -454,7 +462,12 @@
                     }
                 } catch (error) {
                     console.error('Search failed:', error);
-                    alert('Failed to search location. Please try again.');
+                    Swal.fire({
+                        title: 'Search failed',
+                        text: 'Failed to search location. Please try again.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
                 }
                 
                 // Keep overlay for at least 1 second
@@ -600,7 +613,12 @@
         
                 // Handle location error
                 map.on('locationerror', function(e) {
-                    alert('Unable to find your location');
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Unable to find your location',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
                     document.getElementById('reloadBtn').disabled = false;
                 });
             }
@@ -608,12 +626,22 @@
             document.getElementById('tripForm').addEventListener('submit', function(e) {
                 if (!currentMarker) {
                     e.preventDefault();
-                    alert('Please set a start location');
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Please set a start location',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
                     return;
                 }
                 else if (!destMarker) {
                     e.preventDefault();
-                    alert('Please select a destination on the map');
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Please select a destination on the map',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
                     return;
                 }
 
@@ -637,7 +665,12 @@
                 })
                 .catch(error => {
                     console.error('Full error:', error);  // This will show in browser dev tools
-                    alert(`Error: ${error.message}`);
+                    Swal.fire({
+                        title: 'Error',
+                        text: error.message,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
                 });
             });
             
