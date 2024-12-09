@@ -197,7 +197,7 @@
             updateColumnClasses(true);
         }
 
-        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 5MB
+        const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
         elements.fileInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
@@ -216,7 +216,7 @@
             }
             
             if (file.size > MAX_FILE_SIZE) {
-                showError('File size exceeds the 5MB limit. Please upload a smaller file.');
+                showError('File size exceeds the 10MB limit. Please upload a smaller file.');
                 this.value = '';
                 closePreviewAndResetInput();
                 return;
