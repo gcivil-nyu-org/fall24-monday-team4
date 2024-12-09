@@ -460,7 +460,7 @@ def handle_match_request(request):
             ).exclude(user__in=[match.trip1.user, match.trip2.user])
 
             affected_trip_ids.update(potential_matches.values_list("id", flat=True))
-            
+
             # Notify affected users who received requests and exisitng potential matches
             for trip_id in affected_trip_ids:
                 broadcast_trip_update(
