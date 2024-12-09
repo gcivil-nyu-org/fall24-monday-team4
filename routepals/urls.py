@@ -18,9 +18,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
-from .views import HomeView
+from .views import HomeView, health_check
 
 urlpatterns = [
+    path('health/', health_check, name='health'),
     path("admin/", admin.site.urls),
     path("accounts/", include("django.contrib.auth.urls")),
     path("accounts/", include("accounts.urls")),

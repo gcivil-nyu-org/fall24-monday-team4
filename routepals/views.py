@@ -1,7 +1,7 @@
 from django.shortcuts import redirect
 from django.views.generic import TemplateView
 from locations.models import Trip
-
+from django.http import HttpResponse
 
 class HomeView(TemplateView):
     template_name = "home.html"
@@ -23,3 +23,6 @@ class HomeView(TemplateView):
                 status__in=["SEARCHING", "MATCHED", "READY", "IN_PROGRESS"],
             ).exists()
         return context
+
+def health_check(request):
+    return HttpResponse(status=200)
