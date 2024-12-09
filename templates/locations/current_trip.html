@@ -304,7 +304,10 @@
         const tripChannel = window.pusher.subscribe('trip-{{ user_trip.id }}');
 
         tripChannel.bind('status-update', function(data) {
-            location.reload();
+            // Only reload if status and message are provided
+            if (data.status && data.message) {
+                location.reload();
+            }
         });
 
         const channelPanic = window.pusher.subscribe('emergency-channel');

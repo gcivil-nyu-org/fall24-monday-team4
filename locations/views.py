@@ -449,7 +449,19 @@ def handle_match_request(request):
             affected_trip_ids = set(other_pending.values_list("trip2_id", flat=True))
             other_pending.delete()
 
-            # Notify affected users who received requests
+            # Add other exisitng potential matches to affected trips
+            time_min = match.trip1.planned_departure - timedelta(minutes=30)
+            time_max = match.trip1.planned_departure + timedelta(minutes=30)
+
+            potential_matches = Trip.objects.filter(
+                status="SEARCHING",
+                planned_departure__range=(time_min, time_max),
+                desired_companions=match.trip1.desired_companions,
+            ).exclude(user__in=[match.trip1.user, match.trip2.user])
+
+            affected_trip_ids.update(potential_matches.values_list("id", flat=True))
+            
+            # Notify affected users who received requests and exisitng potential matches
             for trip_id in affected_trip_ids:
                 broadcast_trip_update(
                     trip_id,
