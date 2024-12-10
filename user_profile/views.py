@@ -98,7 +98,7 @@ def update_family_members(request):
             removed_members.delete()
             
             html_message_removed = render_to_string(
-                "emails/removed_family_member.html",
+                "emails/removed_fam_email.html",
                 {"username": request.user.username},
             )
             FamilyMemberEmails(
@@ -118,7 +118,7 @@ def update_family_members(request):
         # Send welcome emails only to new members
         if emails_to_add:
             html_message_added = render_to_string(
-                "emails/welcome_email_family_members.html",
+                "emails/welcome_fam_email.html",
                 {"username": request.user.username},
             )
             FamilyMemberEmails(
