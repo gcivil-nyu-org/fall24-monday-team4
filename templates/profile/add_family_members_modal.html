@@ -43,8 +43,8 @@
         const errorMessage = document.getElementById('errorSectionFamily');
         const mainModalBody = document.getElementById('mainModalBody');
         const spinner = document.getElementById('loadingSpinnerFamily');
-
-        const existingFamilyMembers = {{family_members}};
+        
+        const existingFamilyMembers = {{ family_members|safe }};
 
         function updateEmptyState() {
             const rows = familyMembersList.querySelectorAll('.family-member-row');
