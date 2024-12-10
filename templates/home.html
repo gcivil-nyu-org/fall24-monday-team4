@@ -219,7 +219,7 @@
                     
                     // Round up to nearest minute
                     now.setSeconds(0, 0);
-                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset() + 1);
+                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
                     dateInput.min = now.toISOString().slice(0, 16);
                     dateInput.max = maxDate.toISOString().slice(0, 16);
                     return now;
