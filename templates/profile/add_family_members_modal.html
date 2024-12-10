@@ -17,9 +17,6 @@
                 <hr/>
                 <div id="familyMembersList">
                 </div>
-                <div id="duplicateEmailError" class="alert alert-danger text-center" style="display: none;">
-                    Duplicate email addresses are not allowed.
-                </div>
                 <div id="errorSectionFamily" class="alert alert-danger text-center" style="display: none;">
                 </div>
             </div>
@@ -43,11 +40,10 @@
         const noFamilyMembers = document.getElementById('noFamilyMembers');
         const addFamilyMemberBtn = document.getElementById('addFamilyMember');
         const saveFamilyMembersBtn = document.getElementById('saveFamilyMembers');
-        const duplicateEmailError = document.getElementById('duplicateEmailError');
         const errorMessage = document.getElementById('errorSectionFamily');
         const mainModalBody = document.getElementById('mainModalBody');
         const spinner = document.getElementById('loadingSpinnerFamily');
-
+        
         const existingFamilyMembers = {{ family_members|safe }};
 
         function updateEmptyState() {
@@ -84,7 +80,7 @@
             row.querySelector('.remove-member').addEventListener('click', () => {
                 row.remove();
                 updateEmptyState();
-                duplicateEmailError.style.display = 'none';
+                errorMessage.style.display = 'none';
             });
 
             familyMembersList.appendChild(row);
@@ -118,7 +114,6 @@
             updateEmptyState();
 
             errorMessage.style.display = 'none';
-            duplicateEmailError.style.display = 'none';
         }
 
         addFamilyMemberBtn.addEventListener('click', () => {
@@ -131,11 +126,11 @@
 
         saveFamilyMembersBtn.addEventListener('click', () => {
             if (hasDuplicateEmails()) {
-                duplicateEmailError.style.display = 'block';
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = 'Duplicate email addresses are not allowed.';
                 return;
             }
 
-            duplicateEmailError.style.display = 'none';
             errorMessage.style.display = 'none';
 
             const familyMembers = [];

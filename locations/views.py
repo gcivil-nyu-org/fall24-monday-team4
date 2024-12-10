@@ -449,7 +449,19 @@ def handle_match_request(request):
             affected_trip_ids = set(other_pending.values_list("trip2_id", flat=True))
             other_pending.delete()
 
-            # Notify affected users who received requests
+            # Add other exisitng potential matches to affected trips
+            time_min = match.trip1.planned_departure - timedelta(minutes=30)
+            time_max = match.trip1.planned_departure + timedelta(minutes=30)
+
+            potential_matches = Trip.objects.filter(
+                status="SEARCHING",
+                planned_departure__range=(time_min, time_max),
+                desired_companions=match.trip1.desired_companions,
+            ).exclude(user__in=[match.trip1.user, match.trip2.user])
+
+            affected_trip_ids.update(potential_matches.values_list("id", flat=True))
+
+            # Notify affected users who received requests and exisitng potential matches
             for trip_id in affected_trip_ids:
                 broadcast_trip_update(
                     trip_id,
@@ -639,6 +651,23 @@ def cancel_trip(request):
             affected_trip.status = "SEARCHING"
             affected_trip.save()
 
+            # Get family members for all affected users and send emails
+            family_members = FamilyMembers.objects.filter(user=affected_trip.user)
+            if family_members.exists():
+                html_message = render_to_string(
+                    "emails/trip_cancel_fam_email.html",
+                    {
+                        "username": affected_trip.user.username,
+                        "start_address": affected_trip.start_address,
+                        "end_address": affected_trip.end_address,
+                    },
+                )
+                FamilyMemberEmails(
+                    [member.email for member in family_members],
+                    html_message,
+                    f"{affected_trip.user.username}'s Trip Cancelled",
+                )
+
             broadcast_trip_update(
                 affected_trip.id,
                 "SEARCHING",
@@ -649,6 +678,22 @@ def cancel_trip(request):
         trip.status = "CANCELLED"
         trip.accepted_companions_count = 0
         trip.save()
+
+        family_members = FamilyMembers.objects.filter(user=trip.user)
+        if family_members.exists():
+            html_message = render_to_string(
+                "emails/trip_cancel_fam_email.html",
+                {
+                    "username": trip.user.username,
+                    "start": trip.start_address,
+                    "end": trip.end_address,
+                },
+            )
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"{trip.user.username}'s Trip Cancelled",
+            )
 
         # Also broadcast to potential matches who might now be compatible
         time_min = trip.planned_departure - timedelta(minutes=30)
@@ -920,17 +965,18 @@ def complete_trip(request):
                 completed_at=current_time,
             )
 
-            family_members = FamilyMembers.objects.filter(user=request.user)
-            if family_members.exists():
-                html_message = render_to_string(
-                    "emails/trip_complete_fam_email.html",
-                    {"username": request.user.username, "toa": current_time},
-                )
-                FamilyMemberEmails(
-                    [member.email for member in family_members],
-                    html_message,
-                    f"{request.user.username}'s Trip Completed",
-                )
+            for matched_trip in matched_trips:
+                family_members = FamilyMembers.objects.filter(user=matched_trip.user)
+                if family_members.exists():
+                    html_message = render_to_string(
+                        "emails/trip_complete_fam_email.html",
+                        {"username": matched_trip.user.username, "toa": current_time},
+                    )
+                    FamilyMemberEmails(
+                        [member.email for member in family_members],
+                        html_message,
+                        f"{matched_trip.user.username}'s Trip Completed",
+                    )
 
             # Delete UserLocations for all users involved
             user_ids = matched_trips.values_list("user", flat=True)

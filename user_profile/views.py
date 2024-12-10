@@ -79,67 +79,64 @@ def update_family_members(request):
     try:
         data = json.loads(request.body)
 
+        # Check for duplicate emails in submitted data
+        email_list = [member["email"] for member in data]
+        if len(email_list) != len(set(email_list)):
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Duplicate email addresses are not allowed.",
+                },
+                status=400,
+            )
+
         is_valid, error_message = validate_family_members_input(data)
         if not is_valid:
             return JsonResponse({"success": False, "error": error_message}, status=400)
 
-        family_members = FamilyMembers.objects.filter(user=request.user)
-        familyMembers = [
-            {
-                "name": member.full_name,
-                "email": member.email,
-            }
-            for member in family_members
-        ]
+        # Get existing members and create sets of emails only
+        existing_members = FamilyMembers.objects.filter(user=request.user)
+        existing_emails = {member.email for member in existing_members}
+        new_emails = {member["email"] for member in data}
 
-        data_set = {tuple(d.items()) for d in data}
-        familyMembers_set = {tuple(f.items()) for f in familyMembers}
+        # Find emails to remove and add
+        emails_to_remove = existing_emails - new_emails
+        emails_to_add = new_emails - existing_emails
 
-        in_data_not_family = [dict(d) for d in data_set - familyMembers_set]
+        # Handle removals
+        if emails_to_remove:
+            removed_members = existing_members.filter(email__in=emails_to_remove)
+            removed_members.delete()
 
-        in_family_not_data = [dict(f) for f in familyMembers_set - data_set]
-
-        FamilyMembers.objects.filter(
-            user=request.user,
-            email__in=[member["email"] for member in in_family_not_data],
-        ).delete()
-
-        if in_family_not_data:
             html_message_removed = render_to_string(
                 "emails/removed_fam_email.html",
                 {"username": request.user.username},
             )
-
-            subject_removed = (
-                f"You've Been Removed from {request.user.username}'s Family List"
-            )
-            removed_email_list = [member["email"] for member in in_family_not_data]
-
             FamilyMemberEmails(
-                removed_email_list, html_message_removed, subject_removed
+                list(emails_to_remove),
+                html_message_removed,
+                f"You've Been Removed from {request.user.username}'s Family List",
             )
 
-        new_members = [
-            FamilyMembers(
-                user=request.user, full_name=member["name"], email=member["email"]
+        # Handle additions and updates
+        for member_data in data:
+            FamilyMembers.objects.update_or_create(
+                user=request.user,
+                email=member_data["email"],
+                defaults={"full_name": member_data["name"]},
             )
-            for member in in_data_not_family
-        ]
 
-        FamilyMembers.objects.bulk_create(new_members)
-
-        if in_data_not_family:
+        # Send welcome emails only to new members
+        if emails_to_add:
             html_message_added = render_to_string(
                 "emails/welcome_fam_email.html",
                 {"username": request.user.username},
             )
-
-            subject_added = (
-                f"You've Been Added to {request.user.username}'s Family List"
+            FamilyMemberEmails(
+                list(emails_to_add),
+                html_message_added,
+                f"You've Been Added to {request.user.username}'s Family List",
             )
-            added_email_list = [member["email"] for member in in_data_not_family]
-
-            FamilyMemberEmails(added_email_list, html_message_added, subject_added)
 
         return JsonResponse({"success": True})
 

@@ -29,4 +29,4 @@ def validate_family_members_input(data):
                 f"Invalid email format: {member.get('email', 'No email provided')}",
             )
 
-    return True, ""
+    return True, "Valid Format"

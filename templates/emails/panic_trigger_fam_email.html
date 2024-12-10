@@ -72,11 +72,11 @@
                         <p>{{username}} has triggered their panic button!</p>
                         <p><strong>Current Location:</strong> {{location}}</p>
                         <p><strong>Message:</strong> {{message}}</p>
-                        <img src="https://staticmap.openstreetmap.de/staticmap.php?center={{latitude}},{{longitude}}&zoom=15&size=600x400&markers={{latitude}},{{longitude}},redmarker" alt="Current Location">
-                        
+                        <a href="https://www.google.com/maps?q={{latitude}},{{longitude}}" alt="Current Location" class="btn-primary" style="color: #0d6efd; text-decoration: none; border: 1px solid #0d6efd; padding: 10px 20px; border-radius: 5px; display: inline-block;">
+                            View {{username}}'s Location on Google Maps
+                        </a>
                         <br/>
-                        If you have any questions or need assistance, feel free to reach out to our support team.
-                        </p>
+                        <p>If you have any questions or need assistance, feel free to reach out to our support team.</p>
                     </td>
                 </tr>
             </table>
