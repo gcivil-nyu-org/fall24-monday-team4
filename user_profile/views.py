@@ -79,6 +79,17 @@ def update_family_members(request):
     try:
         data = json.loads(request.body)
 
+        # Check for duplicate emails in submitted data
+        email_list = [member["email"] for member in data]
+        if len(email_list) != len(set(email_list)):
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Duplicate email addresses are not allowed.",
+                },
+                status=400,
+            )
+
         is_valid, error_message = validate_family_members_input(data)
         if not is_valid:
             return JsonResponse({"success": False, "error": error_message}, status=400)

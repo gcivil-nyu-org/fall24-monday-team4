@@ -176,9 +176,6 @@ class UserProfileTests(TestCase):
         self.assertEqual(len(calls), 2)
 
     def test_update_family_members_duplicate_emails(self):
-        """
-        Test handling of duplicate emails
-        """
         duplicate_members_data = [
             {"name": "John Doe", "email": "john@example.com"},
             {"name": "John Doe Duplicate", "email": "john@example.com"},
@@ -190,9 +187,10 @@ class UserProfileTests(TestCase):
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         response_data = response.json()
         self.assertFalse(response_data["success"])
+        self.assertIn("error", response_data)
 
     def test_profile_str_method(self):
         expected_str = "Profile for testuser (test@example.com)"
