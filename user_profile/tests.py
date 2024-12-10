@@ -190,7 +190,9 @@ class UserProfileTests(TestCase):
         self.assertEqual(response.status_code, 400)
         response_data = response.json()
         self.assertFalse(response_data["success"])
-        self.assertIn("error", response_data)
+        self.assertEqual(
+            response.json()["error"], "Duplicate email addresses are not allowed."
+        )
 
     def test_profile_str_method(self):
         expected_str = "Profile for testuser (test@example.com)"

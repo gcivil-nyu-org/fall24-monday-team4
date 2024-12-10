@@ -127,10 +127,10 @@
         saveFamilyMembersBtn.addEventListener('click', () => {
             if (hasDuplicateEmails()) {
                 errorMessage.style.display = 'block';
-                errorMessage.textContent = data.error || 'An error occurred';
+                errorMessage.textContent = 'Duplicate email addresses are not allowed.';
                 return;
             }
-            
+
             errorMessage.style.display = 'none';
 
             const familyMembers = [];
