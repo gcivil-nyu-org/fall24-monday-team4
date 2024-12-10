@@ -78,7 +78,7 @@ def profile_view(request, user_id=None):
 def update_family_members(request):
     try:
         data = json.loads(request.body)
-        
+
         is_valid, error_message = validate_family_members_input(data)
         if not is_valid:
             return JsonResponse({"success": False, "error": error_message}, status=400)
@@ -86,7 +86,7 @@ def update_family_members(request):
         # Get existing members and create sets of emails only
         existing_members = FamilyMembers.objects.filter(user=request.user)
         existing_emails = {member.email for member in existing_members}
-        new_emails = {member['email'] for member in data}
+        new_emails = {member["email"] for member in data}
 
         # Find emails to remove and add
         emails_to_remove = existing_emails - new_emails
@@ -96,23 +96,23 @@ def update_family_members(request):
         if emails_to_remove:
             removed_members = existing_members.filter(email__in=emails_to_remove)
             removed_members.delete()
-            
+
             html_message_removed = render_to_string(
                 "emails/removed_fam_email.html",
                 {"username": request.user.username},
             )
             FamilyMemberEmails(
-                list(emails_to_remove), 
-                html_message_removed, 
-                f"You've Been Removed from {request.user.username}'s Family List"
+                list(emails_to_remove),
+                html_message_removed,
+                f"You've Been Removed from {request.user.username}'s Family List",
             )
 
         # Handle additions and updates
         for member_data in data:
             FamilyMembers.objects.update_or_create(
                 user=request.user,
-                email=member_data['email'],
-                defaults={'full_name': member_data['name']}
+                email=member_data["email"],
+                defaults={"full_name": member_data["name"]},
             )
 
         # Send welcome emails only to new members
@@ -124,7 +124,7 @@ def update_family_members(request):
             FamilyMemberEmails(
                 list(emails_to_add),
                 html_message_added,
-                f"You've Been Added to {request.user.username}'s Family List"
+                f"You've Been Added to {request.user.username}'s Family List",
             )
 
         return JsonResponse({"success": True})
