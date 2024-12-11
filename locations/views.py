@@ -101,7 +101,7 @@ def create_trip(request):
         )
 
         # Validate datetime
-        now = timezone.now()
+        now = timezone.localtime(timezone.now().replace(second=0, microsecond=0))
         max_date = now + timedelta(days=365)  # 1 year from now
 
         if planned_departure < now:
@@ -581,9 +581,39 @@ def start_trip(request):
         trip.status = "IN_PROGRESS"  # Update the current trip too
         trip.save()
 
+        broadcast_trip_update(trip.id, "IN_PROGRESS", "Trip is now in progress")
+
+        for matched_trip in matched_trips:
+            family_members = FamilyMembers.objects.filter(user=matched_trip.user)
+            if family_members.exists():
+                companions = [trip.user.username] + [
+                    t.user.username for t in matched_trips if t.user != matched_trip.user
+                ]
+                html_message = render_to_string(
+                    "emails/trip_start_fam_email.html",
+                    {
+                        "username": matched_trip.user.username,
+                        "start": matched_trip.start_address,
+                        "end": matched_trip.end_address,
+                        "departure": matched_trip.planned_departure,
+                        "companions": list(companions),
+                    },
+                )
+
+                FamilyMemberEmails(
+                    [member.email for member in family_members],
+                    html_message,
+                    f"{matched_trip.user.username}'s Trip Started",
+                )
+
+            # Broadcast update to all participants
+            broadcast_trip_update(
+                matched_trip.id, "IN_PROGRESS", "Trip is now in progress"
+            )
+
         family_members = FamilyMembers.objects.filter(user=request.user)
         if family_members.exists():
-            companions = [trip.user.username for trip in matched_trips]
+            companions = [t.user.username for t in matched_trips]
             html_message = render_to_string(
                 "emails/trip_start_fam_email.html",
                 {
@@ -599,13 +629,6 @@ def start_trip(request):
                 [member.email for member in family_members],
                 html_message,
                 f"{request.user.username}'s Trip Started",
-            )
-
-        # Broadcast update to all participants
-        broadcast_trip_update(trip.id, "IN_PROGRESS", "Trip is now in progress")
-        for matched_trip in matched_trips:
-            broadcast_trip_update(
-                matched_trip.id, "IN_PROGRESS", "Trip is now in progress"
             )
 
         if trip.chatroom:
