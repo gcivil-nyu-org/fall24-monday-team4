@@ -587,7 +587,9 @@ def start_trip(request):
             family_members = FamilyMembers.objects.filter(user=matched_trip.user)
             if family_members.exists():
                 companions = [trip.user.username] + [
-                    t.user.username for t in matched_trips if t.user != matched_trip.user
+                    t.user.username
+                    for t in matched_trips
+                    if t.user != matched_trip.user
                 ]
                 html_message = render_to_string(
                     "emails/trip_start_fam_email.html",
