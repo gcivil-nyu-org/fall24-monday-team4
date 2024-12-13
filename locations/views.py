@@ -327,7 +327,7 @@ def reschedule_trip(request):
                 )
             )
             current_time = timezone.now()
-            if new_departure <= current_time:
+            if new_departure < current_time:
                 messages.error(request, "Please select a future date and time.")
                 return render(request, "locations/reschedule_trip.html", {"trip": trip})
 
