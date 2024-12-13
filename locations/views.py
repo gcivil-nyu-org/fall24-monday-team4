@@ -319,7 +319,7 @@ def get_h3_resolution_and_ring_size(radius_meters):
 def reschedule_trip(request):
     try:
         trip = Trip.objects.get(user=request.user, status="SEARCHING")
-        
+
         if request.method == "GET":
             return render(request, "locations/reschedule_trip.html")
 
