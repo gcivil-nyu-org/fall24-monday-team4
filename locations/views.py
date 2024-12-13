@@ -318,9 +318,9 @@ def get_h3_resolution_and_ring_size(radius_meters):
 @active_trip_required
 @require_http_methods(["POST", "GET"])
 def reschedule_trip(request):
-    if request.method == 'GET':
+    if request.method == "GET":
         return render(request, "locations/reschedule_trip.html")
-    
+
     try:
         trip = Trip.objects.get(user=request.user, status="SEARCHING")
 
