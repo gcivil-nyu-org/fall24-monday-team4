@@ -326,7 +326,8 @@ def reschedule_trip(request):
                     request.POST.get("planned_departure"), "%Y-%m-%dT%H:%M"
                 )
             )
-            current_time = timezone.now()
+            # current_time = timezone.now()
+            current_time = timezone.now().replace(second=0, microsecond=0)
             if new_departure < current_time:
                 messages.error(request, "Please select a future date and time.")
                 return render(request, "locations/reschedule_trip.html", {"trip": trip})
