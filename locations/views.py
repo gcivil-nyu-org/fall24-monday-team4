@@ -22,7 +22,6 @@ from django.contrib.auth.decorators import login_required
 from user_profile.decorators import emergency_support_required, verification_required
 from .decorators import active_trip_required
 from django.views.decorators.http import require_http_methods
-from django.contrib import messages
 
 
 def broadcast_trip_update(trip_id, status, message):
@@ -316,48 +315,62 @@ def get_h3_resolution_and_ring_size(radius_meters):
 
 @login_required
 @verification_required
+@active_trip_required
+@require_http_methods(["POST"])
 def reschedule_trip(request):
     try:
         trip = Trip.objects.get(user=request.user, status="SEARCHING")
 
-        if request.method == "POST":
-            new_departure = make_aware(
-                datetime.strptime(
-                    request.POST.get("planned_departure"), "%Y-%m-%dT%H:%M"
-                )
+        new_departure = make_aware(
+            datetime.strptime(request.POST.get("planned_departure"), "%Y-%m-%dT%H:%M")
+        )
+
+        current_time = timezone.localtime(
+            timezone.now().replace(second=0, microsecond=0)
+        )
+        max_date = current_time + timedelta(days=365)  # 1 year from now
+
+        if new_departure < current_time:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Selected date and time cannot be in the past",
+                }
             )
-            current_time = timezone.now()
-            if new_departure <= current_time:
-                messages.error(request, "Please select a future date and time.")
-                return render(request, "locations/reschedule_trip.html", {"trip": trip})
+        if new_departure > max_date:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Selected date cannot be more than 1 year in the future",
+                }
+            )
 
-            trip.planned_departure = new_departure
-            trip.save()
+        trip.planned_departure = new_departure
+        trip.save()
 
-            family_members = FamilyMembers.objects.filter(user=request.user)
-            if family_members.exists():
-                html_message = render_to_string(
-                    "emails/trip_reschedule_fam_email.html",
-                    {
-                        "username": request.user.username,
-                        "start": trip.start_address,
-                        "end": trip.end_address,
-                        "departure": new_departure,
-                        "start_lat": trip.start_latitude,
-                        "start_lng": trip.start_longitude,
-                        "dest_lat": trip.dest_latitude,
-                        "dest_lng": trip.dest_longitude,
-                    },
-                )
-                FamilyMemberEmails(
-                    [member.email for member in family_members],
-                    html_message,
-                    f"{request.user.username}'s Trip Rescheduled",
-                )
-            return redirect("current_trip")
-        return render(request, "locations/reschedule_trip.html", {"trip": trip})
-    except Trip.DoesNotExist:
-        return redirect("home")
+        family_members = FamilyMembers.objects.filter(user=request.user)
+        if family_members.exists():
+            html_message = render_to_string(
+                "emails/trip_reschedule_fam_email.html",
+                {
+                    "username": request.user.username,
+                    "start": trip.start_address,
+                    "end": trip.end_address,
+                    "departure": new_departure,
+                    "start_lat": trip.start_latitude,
+                    "start_lng": trip.start_longitude,
+                    "dest_lat": trip.dest_latitude,
+                    "dest_lng": trip.dest_longitude,
+                },
+            )
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"{request.user.username}'s Trip Rescheduled",
+            )
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
 
 
 @login_required
