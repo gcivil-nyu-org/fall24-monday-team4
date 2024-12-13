@@ -49,7 +49,7 @@
                 <div class="alert alert-warning mt-3">
                     <p>{{ attention_message }}</p>
                     <div class="mt-2">
-                        <a href="{% url 'reschedule_trip' %}" class="btn btn-primary">Reschedule Trip</a>
+                        <a href="reschedule_trip.html" class="btn btn-primary">Reschedule Trip</a>
                         <form action="{% url 'cancel_trip' %}" method="post" class="d-inline">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">Cancel Trip</button>
