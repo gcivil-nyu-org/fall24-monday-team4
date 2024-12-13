@@ -547,7 +547,7 @@ def send_ems_message(chat_room, sytem_message, chat_message, user):
         "message-event",
         {
             "message": chat_message,
-            "username": user.username,
+            "user": {"username": user.username, "id": user.id},
             "type": "ems_panic_message",
         },
     )
