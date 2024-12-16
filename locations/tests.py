@@ -970,7 +970,7 @@ class LocationViewsTest(TestCase):
                     "message-event",
                     {
                         "message": self.location.panic_message,
-                        "username": self.user.username,
+                        "user": {"username": self.user.username, "id": self.user.id},
                         "type": "ems_panic_message",
                     },
                 ),
@@ -1021,7 +1021,7 @@ class LocationViewsTest(TestCase):
                     "message-event",
                     {
                         "message": panic_message,
-                        "username": self.user.username,
+                        "user": {"username": self.user.username, "id": self.user.id},
                         "type": "ems_panic_message",
                     },
                 ),
