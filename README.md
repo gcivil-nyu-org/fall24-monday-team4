@@ -13,6 +13,7 @@ RoutePals is a web application focused on enhancing personal safety during trave
 The platform requires NYU email verification and document submission for account authentication, ensuring a trusted user base. It's particularly useful for students traveling at night or through unfamiliar neighborhoods, offering them a safer way to commute by connecting with fellow verified NYU students.
 
 ## Video Demo:
+[![Video](https://github.com/user-attachments/assets/2347575d-dc9b-4136-8c6f-fcd18883e73d)](https://youtu.be/tHrZaLRgloI)
 
 ## Built With:
 - Framework: Django
@@ -58,7 +59,6 @@ The platform requires NYU email verification and document submission for account
 
 ### Prerequisites
 - Ensure that Python is installed on your system. You can download it [here](https://www.python.org/downloads/).
-
 
 ### Run Application
 ```bash
