@@ -1,0 +1,224 @@
+<div class="modal fade" data-bs-backdrop="static" id="familyMembersModal" tabindex="-1" aria-labelledby="familyMembersModalLabel">
+    <div class="modal-dialog modal-lg" >
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="familyMembersModalLabel">Manage Family Members</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="mainModalBody">
+                <div class="alert alert-info mb-3">
+                    Add family members to be alerted when you start or end a trip, or activate the panic button. Each member must have a unique email address and full name.
+                </div>
+                <div class="d-flex justify-content-center mb-3">
+                    <button id="addFamilyMember" class="btn btn-outline-primary">
+                        <i class="fa-solid fa-plus"></i> Add Family Member
+                    </button>
+                </div>
+                <hr/>
+                <div id="familyMembersList">
+                </div>
+                <div id="errorSectionFamily" class="alert alert-danger text-center" style="display: none;">
+                </div>
+            </div>
+            <div id="loadingSpinnerFamily" class="modal-body text-center mt-4" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading...</p>
+            </div>
+            <div class="modal-footer" style="display: flex; flex-direction: row; justify-content: space-between">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-success" id="saveFamilyMembers">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const familyMembersModal = document.getElementById('familyMembersModal');
+        const familyMembersList = document.getElementById('familyMembersList');
+        const noFamilyMembers = document.getElementById('noFamilyMembers');
+        const addFamilyMemberBtn = document.getElementById('addFamilyMember');
+        const saveFamilyMembersBtn = document.getElementById('saveFamilyMembers');
+        const errorMessage = document.getElementById('errorSectionFamily');
+        const mainModalBody = document.getElementById('mainModalBody');
+        const spinner = document.getElementById('loadingSpinnerFamily');
+        
+        const existingFamilyMembers = {{ family_members|safe }};
+
+        function updateEmptyState() {
+            const rows = familyMembersList.querySelectorAll('.family-member-row');
+            const noFamilyMembersElement = document.getElementById('noFamilyMembers');
+
+            if (noFamilyMembersElement) {
+                noFamilyMembersElement.style.display = rows.length === 0 ? 'block' : 'none';
+            }
+        }
+
+        function hasDuplicateEmails() {
+            const emails = Array.from(
+                familyMembersList.querySelectorAll('.email-input')
+            ).map(input => input.value.trim().toLowerCase());
+
+            return new Set(emails).size !== emails.length;
+        }
+
+        function createFamilyMemberRow(name = '', email = '') {
+            const row = document.createElement('div');
+            row.classList.add('family-member-row', 'input-group');
+
+            row.innerHTML = `
+                <input type="text" class="form-control name-input" placeholder="Full Name"
+                       value="${name}" required>
+                <input type="email" class="form-control email-input" placeholder="Email"
+                       value="${email}" required>
+                <button class="btn btn-outline-danger remove-member">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            `;
+
+            row.querySelector('.remove-member').addEventListener('click', () => {
+                row.remove();
+                updateEmptyState();
+                errorMessage.style.display = 'none';
+            });
+
+            familyMembersList.appendChild(row);
+            updateEmptyState();
+            return row;
+        }
+
+        function populateExistingFamilyMembers() {
+            familyMembersList.innerHTML = '';
+
+            if (existingFamilyMembers.length) {
+                const noFamilyMembersDiv = document.createElement('div');
+                noFamilyMembersDiv.id = 'noFamilyMembers';
+                noFamilyMembersDiv.className = 'text-muted';
+                noFamilyMembersDiv.style.display = 'none';
+                noFamilyMembersDiv.textContent = 'No family members added yet. Click "Add Family Member" to get started.';
+                familyMembersList.appendChild(noFamilyMembersDiv);
+                existingFamilyMembers.forEach(member => {
+                    createFamilyMemberRow(member.full_name, member.email);
+                });
+            } else {
+                const noFamilyMembersDiv = document.createElement('div');
+                noFamilyMembersDiv.id = 'noFamilyMembers';
+                noFamilyMembersDiv.className = 'text-muted';
+                noFamilyMembersDiv.style.display = 'block';
+                noFamilyMembersDiv.textContent = 'No family members added yet. Click "Add Family Member" to get started.';
+
+                familyMembersList.appendChild(noFamilyMembersDiv);
+            }
+
+            updateEmptyState();
+
+            errorMessage.style.display = 'none';
+        }
+
+        addFamilyMemberBtn.addEventListener('click', () => {
+            createFamilyMemberRow();
+        });
+
+        familyMembersModal.addEventListener('hide.bs.modal', () => {
+            populateExistingFamilyMembers();
+        });
+
+        saveFamilyMembersBtn.addEventListener('click', () => {
+            if (hasDuplicateEmails()) {
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = 'Duplicate email addresses are not allowed.';
+                return;
+            }
+
+            errorMessage.style.display = 'none';
+
+            const familyMembers = [];
+            let isValid = true;
+
+            familyMembersList.querySelectorAll('.family-member-row').forEach(row => {
+                const nameInput = row.querySelector('.name-input');
+                const emailInput = row.querySelector('.email-input');
+
+                if (!nameInput.value.trim()) {
+                    nameInput.reportValidity();
+                    isValid = false;
+                } else {
+                    nameInput.setCustomValidity('');
+                }
+
+                if (!emailInput.checkValidity()) {
+                    emailInput.reportValidity();
+                    isValid = false;
+                }
+
+                if (isValid) {
+                    familyMembers.push({
+                        name: nameInput.value.trim(),
+                        email: emailInput.value.trim()
+                    });
+                }
+            });
+
+            if (isValid) {
+                mainModalBody.style.display = 'none';
+                spinner.style.display = 'block';
+
+                fetch('{% url "update_family_members" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify(familyMembers)
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const modal = bootstrap.Modal.getInstance(familyMembersModal);
+                            modal.hide();
+                            document.documentElement.style.overflow = '';
+                            document.body.style.overflow = '';
+                            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                            location.reload();
+                        } else {
+                            errorMessage.style.display = 'block';
+                            errorMessage.textContent = data.error || 'An error occurred';
+                        }
+                    })
+                    .catch(error => {
+                        errorMessage.style.display = 'block';
+                        errorMessage.textContent = `An error occurred while saving family members: ${error}`;
+                    }).finally(() => {
+                        mainModalBody.style.display = 'block';
+                        spinner.style.display = 'none';
+                    });
+            }
+        });
+
+        populateExistingFamilyMembers();
+    });
+</script>
+<style>
+    .modal-body {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .family-member-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .remove-member {
+        cursor: pointer;
+        color: red;
+    }
+
+    #noFamilyMembers {
+        text-align: center;
+        color: #6c757d;
+        padding: 20px;
+    }
+</style>

@@ -7,8 +7,10 @@ from accounts.models import UserReports, UserDocument
 from utils.s3_utils import generate_presigned_url
 from django.http import JsonResponse
 from user_profile.models import UserProfile
+from django.template.loader import render_to_string
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.conf import settings
 import json
 from user_profile.decorators import verification_required
@@ -222,19 +224,15 @@ def acknowledge_report(request):
 
 def deactivate_account_email(user):
     subject = "Your Account Has Been Deactivated"
-
-    send_mail(
-        subject=subject,
-        message=(
-            f"Dear {user.first_name},\n\n"
-            "We wanted to inform you that your account has been deactivated. "
-            "If you believe this was done in error, please contact our team.\n\n"
-            "Thank you,\nRoutePals"
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=False,
+    html_message = render_to_string(
+        "emails/deactivate_account_email.html",
+        {"first_name": user.first_name},
     )
+    email = EmailMessage(
+        subject, html_message, settings.DEFAULT_FROM_EMAIL, [user.email]
+    )
+    email.content_subtype = "html"
+    email.send()
 
 
 @login_required
@@ -264,20 +262,16 @@ def deactivate_account(request):
 
 def activate_account_email(user):
     subject = "Your Account Has Been Activated"
-
-    send_mail(
-        subject=subject,
-        message=(
-            f"Dear {user.first_name},\n\n"
-            "We are pleased to inform you that your account has been successfully activated. "
-            "You can now log in and access your account.\n\n"
-            "If you have any questions or need assistance, feel free to reach out to our team.\n\n"
-            "Thank you,\nRoutePals"
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=False,
+    website_link = settings.SITE_URL + reverse("home")
+    html_message = render_to_string(
+        "emails/activate_account_email.html",
+        {"website_link": website_link, "first_name": user.first_name},
     )
+    email = EmailMessage(
+        subject, html_message, settings.DEFAULT_FROM_EMAIL, [user.email]
+    )
+    email.content_subtype = "html"
+    email.send()
 
 
 @login_required
@@ -307,22 +301,16 @@ def activate_account(request):
 
 def verify_account_email(user):
     subject = "Your Account Has Been Successfully Verified"
-
-    send_mail(
-        subject=subject,
-        message=(
-            f"Dear {user.first_name},\n\n"
-            "Congratulations! Our team has reviewed your submitted documents,"
-            " and we are delighted to inform you that your account has been successfully verified. "
-            "You can now log in and enjoy the full range of services that RoutePals provides.\n\n"
-            "If you have any questions or need assistance, "
-            "please don’t hesitate to reach out to our support team.\n\n"
-            "Thank you,\nRoutePals"
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=False,
+    website_link = settings.SITE_URL + reverse("home")
+    html_message = render_to_string(
+        "emails/verify_account_email.html",
+        {"website_link": website_link, "first_name": user.first_name},
     )
+    email = EmailMessage(
+        subject, html_message, settings.DEFAULT_FROM_EMAIL, [user.email]
+    )
+    email.content_subtype = "html"
+    email.send()
 
 
 @login_required
@@ -355,23 +343,15 @@ def verify_account(request):
 
 def unverify_account_email(user):
     subject = "Your Account Has Been Unauthenticated"
-
-    send_mail(
-        subject=subject,
-        message=(
-            f"Dear {user.first_name},\n\n"
-            "We regret to inform you that your account has been unauthenticated. "
-            "As a result, you will lose access to the services we provide. "
-            "However, you can still log in to your account, but you will need "
-            "to wait for re-authentication to regain access to all of our services.\n\n"
-            "If you have any questions or need further assistance, "
-            "please feel free to contact our support team.\n\n"
-            "Thank you,\nRoutePals"
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=False,
+    html_message = render_to_string(
+        "emails/unverify_account_email.html",
+        {"first_name": user.first_name},
     )
+    email = EmailMessage(
+        subject, html_message, settings.DEFAULT_FROM_EMAIL, [user.email]
+    )
+    email.content_subtype = "html"
+    email.send()
 
 
 @login_required

@@ -3,6 +3,11 @@ import uuid
 import json
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
+from locations.templatetags import trip_filters
+from user_profile.models import FamilyMembers
+from utils.email_utils import FamilyMemberEmails
+from django.template.loader import render_to_string
+from utils.location_utils import reverse_geocode
 from .models import Trip, Match, UserLocation
 from chat.models import ChatRoom, Message
 from datetime import timedelta, datetime
@@ -92,6 +97,7 @@ def create_trip(request):
         datetime.strptime(request.POST.get("planned_departure"), "%Y-%m-%dT%H:%M")
     )
 
+<<<<<<< HEAD
     Trip.objects.update_or_create(
         user=request.user,
         status="SEARCHING",  # Only look for active searching trips
@@ -106,6 +112,67 @@ def create_trip(request):
         },
     )
     return redirect("current_trip")
+=======
+        # Validate datetime
+        now = timezone.localtime(timezone.now().replace(second=0, microsecond=0))
+        max_date = now + timedelta(days=365)  # 1 year from now
+
+        if planned_departure < now:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Selected date and time cannot be in the past",
+                }
+            )
+        if planned_departure > max_date:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Selected date cannot be more than 1 year in the future",
+                }
+            )
+
+        # Create trip if validation passes
+        Trip.objects.update_or_create(
+            user=request.user,
+            status="SEARCHING",
+            defaults={
+                "start_latitude": request.POST.get("start_latitude"),
+                "start_longitude": request.POST.get("start_longitude"),
+                "dest_latitude": request.POST.get("dest_latitude"),
+                "dest_longitude": request.POST.get("dest_longitude"),
+                "planned_departure": planned_departure,
+                "desired_companions": int(request.POST.get("desired_companions")),
+                "search_radius": int(request.POST.get("search_radius")),
+                "start_address": request.POST.get("start_address"),
+                "end_address": request.POST.get("end_address"),
+            },
+        )
+
+        family_members = FamilyMembers.objects.filter(user=request.user)
+        if family_members.exists():
+            html_message = render_to_string(
+                "emails/trip_create_fam_email.html",
+                {
+                    "username": request.user.username,
+                    "start": request.POST.get("start_address"),
+                    "end": request.POST.get("end_address"),
+                    "departure": planned_departure,
+                    "start_lat": request.POST.get("start_latitude"),
+                    "start_lng": request.POST.get("start_longitude"),
+                    "dest_lat": request.POST.get("dest_latitude"),
+                    "dest_lng": request.POST.get("dest_longitude"),
+                },
+            )
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"{request.user.username}'s Trip Created",
+            )
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+>>>>>>> all_branch_merge
 
 
 @login_required
@@ -117,11 +184,27 @@ def current_trip(request):
             status__in=["SEARCHING", "MATCHED", "READY", "IN_PROGRESS"],
         )
 
+        # Check if trip needs attention
+        current_time = timezone.now()
+        needs_attention = False
+        attention_message = ""
+
+        if user_trip.status == "SEARCHING":
+            time_difference = (
+                current_time - user_trip.planned_departure
+            ).total_seconds() / 60
+            if time_difference > 30:
+                needs_attention = True
+                attention_message = (
+                    "Your planned departure time has passed more than 30 minutes. "
+                    "Please reschedule or cancel this trip."
+                )
+
         potential_matches = []
         received_matches = []
         filtered_matches = []
 
-        if user_trip.status == "SEARCHING":
+        if user_trip.status == "SEARCHING" and not needs_attention:
             # Define time window
             time_min = user_trip.planned_departure - timedelta(minutes=30)
             time_max = user_trip.planned_departure + timedelta(minutes=30)
@@ -203,6 +286,8 @@ def current_trip(request):
                 "received_matches": received_matches,
                 "pusher_key": settings.PUSHER_KEY,
                 "pusher_cluster": settings.PUSHER_CLUSTER,
+                "needs_attention": needs_attention,
+                "attention_message": attention_message,
             },
         )
 
@@ -241,6 +326,69 @@ def get_h3_resolution_and_ring_size(radius_meters):
     ring_size = max(1, int(radius_meters / (chosen_edge_length * 2)))
 
     return chosen_res, ring_size
+
+
+@login_required
+@verification_required
+@active_trip_required
+@require_http_methods(["POST", "GET"])
+def reschedule_trip(request):
+    if request.method == "GET":
+        return render(request, "locations/reschedule_trip.html")
+
+    try:
+        trip = Trip.objects.get(user=request.user, status="SEARCHING")
+
+        new_departure = make_aware(
+            datetime.strptime(request.POST.get("planned_departure"), "%Y-%m-%dT%H:%M")
+        )
+
+        current_time = timezone.localtime(
+            timezone.now().replace(second=0, microsecond=0)
+        )
+        max_date = current_time + timedelta(days=365)  # 1 year from now
+
+        if new_departure < current_time:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Selected date and time cannot be in the past",
+                }
+            )
+        if new_departure > max_date:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Selected date cannot be more than 1 year in the future",
+                }
+            )
+
+        trip.planned_departure = new_departure
+        trip.save()
+
+        family_members = FamilyMembers.objects.filter(user=request.user)
+        if family_members.exists():
+            html_message = render_to_string(
+                "emails/trip_reschedule_fam_email.html",
+                {
+                    "username": request.user.username,
+                    "start": trip.start_address,
+                    "end": trip.end_address,
+                    "departure": new_departure,
+                    "start_lat": trip.start_latitude,
+                    "start_lng": trip.start_longitude,
+                    "dest_lat": trip.dest_latitude,
+                    "dest_lng": trip.dest_longitude,
+                },
+            )
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"{request.user.username}'s Trip Rescheduled",
+            )
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
 
 
 @login_required
@@ -332,7 +480,19 @@ def handle_match_request(request):
             affected_trip_ids = set(other_pending.values_list("trip2_id", flat=True))
             other_pending.delete()
 
-            # Notify affected users who received requests
+            # Add other exisitng potential matches to affected trips
+            time_min = match.trip1.planned_departure - timedelta(minutes=30)
+            time_max = match.trip1.planned_departure + timedelta(minutes=30)
+
+            potential_matches = Trip.objects.filter(
+                status="SEARCHING",
+                planned_departure__range=(time_min, time_max),
+                desired_companions=match.trip1.desired_companions,
+            ).exclude(user__in=[match.trip1.user, match.trip2.user])
+
+            affected_trip_ids.update(potential_matches.values_list("id", flat=True))
+
+            # Notify affected users who received requests and exisitng potential matches
             for trip_id in affected_trip_ids:
                 broadcast_trip_update(
                     trip_id,
@@ -402,7 +562,7 @@ def send_ems_message(chat_room, sytem_message, chat_message, user):
         "message-event",
         {
             "message": chat_message,
-            "username": user.username,
+            "user": {"username": user.username, "id": user.id},
             "type": "ems_panic_message",
         },
     )
@@ -452,11 +612,56 @@ def start_trip(request):
         trip.status = "IN_PROGRESS"  # Update the current trip too
         trip.save()
 
-        # Broadcast update to all participants
         broadcast_trip_update(trip.id, "IN_PROGRESS", "Trip is now in progress")
+
         for matched_trip in matched_trips:
+            family_members = FamilyMembers.objects.filter(user=matched_trip.user)
+            if family_members.exists():
+                companions = [trip.user.username] + [
+                    t.user.username
+                    for t in matched_trips
+                    if t.user != matched_trip.user
+                ]
+                html_message = render_to_string(
+                    "emails/trip_start_fam_email.html",
+                    {
+                        "username": matched_trip.user.username,
+                        "start": matched_trip.start_address,
+                        "end": matched_trip.end_address,
+                        "departure": matched_trip.planned_departure,
+                        "companions": list(companions),
+                    },
+                )
+
+                FamilyMemberEmails(
+                    [member.email for member in family_members],
+                    html_message,
+                    f"{matched_trip.user.username}'s Trip Started",
+                )
+
+            # Broadcast update to all participants
             broadcast_trip_update(
                 matched_trip.id, "IN_PROGRESS", "Trip is now in progress"
+            )
+
+        family_members = FamilyMembers.objects.filter(user=request.user)
+        if family_members.exists():
+            companions = [t.user.username for t in matched_trips]
+            html_message = render_to_string(
+                "emails/trip_start_fam_email.html",
+                {
+                    "username": request.user.username,
+                    "start": trip.start_address,
+                    "end": trip.end_address,
+                    "departure": trip.planned_departure,
+                    "companions": list(companions),
+                },
+            )
+
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"{request.user.username}'s Trip Started",
             )
 
         if trip.chatroom:
@@ -502,6 +707,23 @@ def cancel_trip(request):
             affected_trip.status = "SEARCHING"
             affected_trip.save()
 
+            # Get family members for all affected users and send emails
+            family_members = FamilyMembers.objects.filter(user=affected_trip.user)
+            if family_members.exists():
+                html_message = render_to_string(
+                    "emails/trip_cancel_fam_email.html",
+                    {
+                        "username": affected_trip.user.username,
+                        "start_address": affected_trip.start_address,
+                        "end_address": affected_trip.end_address,
+                    },
+                )
+                FamilyMemberEmails(
+                    [member.email for member in family_members],
+                    html_message,
+                    f"{affected_trip.user.username}'s Trip Cancelled",
+                )
+
             broadcast_trip_update(
                 affected_trip.id,
                 "SEARCHING",
@@ -512,6 +734,22 @@ def cancel_trip(request):
         trip.status = "CANCELLED"
         trip.accepted_companions_count = 0
         trip.save()
+
+        family_members = FamilyMembers.objects.filter(user=trip.user)
+        if family_members.exists():
+            html_message = render_to_string(
+                "emails/trip_cancel_fam_email.html",
+                {
+                    "username": trip.user.username,
+                    "start": trip.start_address,
+                    "end": trip.end_address,
+                },
+            )
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"{trip.user.username}'s Trip Cancelled",
+            )
 
         # Also broadcast to potential matches who might now be compatible
         time_min = trip.planned_departure - timedelta(minutes=30)
@@ -587,6 +825,28 @@ def trigger_panic(request):
         user_location.panic_message = request.POST.get("initial_message")
         user_location.save()
 
+        family_members = FamilyMembers.objects.filter(user=request.user)
+        if family_members.exists():
+            current_address = reverse_geocode(
+                float(user_location.latitude), float(user_location.longitude)
+            )
+
+            html_message = render_to_string(
+                "emails/panic_trigger_fam_email.html",
+                {
+                    "username": request.user.username,
+                    "message": user_location.panic_message,
+                    "location": current_address or "Location Unavailable",
+                    "latitude": user_location.latitude,
+                    "longitude": user_location.longitude,
+                },
+            )
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"PANIC ALERT: {request.user.username} Requested Emergency Support",
+            )
+
         # Get all active panic locations for emergency support view
         locations_data = [
             {
@@ -636,6 +896,17 @@ def resolve_panic(request, panic_username):
         user_location.panic = False
         user_location.panic_message = None
         user_location.save()
+
+        family_members = FamilyMembers.objects.filter(user=user)
+        if family_members.exists():
+            html_message = render_to_string(
+                "emails/panic_resolve_fam_email.html", {"username": user.username}
+            )
+            FamilyMemberEmails(
+                [member.email for member in family_members],
+                html_message,
+                f"PANIC ALERT: {user.username}'s Emergency Support Request Resolved",
+            )
 
         # Trigger a Pusher event to update the panic button
         pusher_client.trigger(
@@ -735,6 +1006,27 @@ def complete_trip(request):
                 completion_requested=True,
                 completed_at=current_time,
             )
+<<<<<<< HEAD
+=======
+
+            for matched_trip in matched_trips:
+                family_members = FamilyMembers.objects.filter(user=matched_trip.user)
+                if family_members.exists():
+                    html_message = render_to_string(
+                        "emails/trip_complete_fam_email.html",
+                        {"username": matched_trip.user.username, "toa": current_time},
+                    )
+                    FamilyMemberEmails(
+                        [member.email for member in family_members],
+                        html_message,
+                        f"{matched_trip.user.username}'s Trip Completed",
+                    )
+
+            # Delete UserLocations for all users involved
+            user_ids = matched_trips.values_list("user", flat=True)
+            UserLocation.objects.filter(user__in=user_ids).delete()
+
+>>>>>>> all_branch_merge
             # Broadcast completion to all participants
             for matched_trip in matched_trips:
                 broadcast_trip_update(

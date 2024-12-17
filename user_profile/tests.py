@@ -25,6 +25,174 @@ class UserProfileTests(TestCase):
 
         self.client.login(username="testuser", password="12345")
 
+        self.initial_family_members = [
+            FamilyMembers.objects.create(
+                user=self.user, full_name="John Doe", email="john@example.com"
+            ),
+            FamilyMembers.objects.create(
+                user=self.user, full_name="Jane Smith", email="jane@example.com"
+            ),
+        ]
+
+    def test_update_family_members_add_new_members(self):
+        """
+        Test adding new family members
+        """
+
+        new_members_data = [
+            {"name": "John Doe", "email": "john@example.com"},
+            {"name": "Jane Smith", "email": "jane@example.com"},
+            {"name": "Alice Johnson", "email": "alice@example.com"},
+        ]
+
+        response = self.client.post(
+            reverse("update_family_members"),
+            data=json.dumps(new_members_data),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertTrue(response_data["success"])
+
+        self.assertTrue(
+            FamilyMembers.objects.filter(
+                user=self.user, full_name="Alice Johnson", email="alice@example.com"
+            ).exists()
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Added to", mail.outbox[0].subject)
+        self.assertIn("alice@example.com", mail.outbox[0].to)
+
+    def test_update_family_members_remove_existing_members(self):
+        """
+        Test removing existing family members
+        """
+        # Prepare the request data (only one of the original members)
+        updated_members_data = [{"name": "John Doe", "email": "john@example.com"}]
+
+        # Make the request
+        response = self.client.post(
+            reverse("update_family_members"),
+            data=json.dumps(updated_members_data),
+            content_type="application/json",
+        )
+
+        # Check the response
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertTrue(response_data["success"])
+
+        # Check that the member was removed
+        self.assertFalse(
+            FamilyMembers.objects.filter(
+                user=self.user, full_name="Jane Smith", email="jane@example.com"
+            ).exists()
+        )
+
+        # Check email was sent about removal
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Removed from", mail.outbox[0].subject)
+        self.assertIn("jane@example.com", mail.outbox[0].to)
+
+    def test_update_family_members_no_changes(self):
+        """
+        Test updating with the same family members
+        """
+        unchanged_members_data = [
+            {"name": "John Doe", "email": "john@example.com"},
+            {"name": "Jane Smith", "email": "jane@example.com"},
+        ]
+
+        response = self.client.post(
+            reverse("update_family_members"),
+            data=json.dumps(unchanged_members_data),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertTrue(response_data["success"])
+
+        self.assertEqual(len(mail.outbox), 0)
+
+        self.assertEqual(FamilyMembers.objects.filter(user=self.user).count(), 2)
+
+    def test_update_family_members_unauthorized(self):
+        """
+        Test that an unauthenticated user cannot update family members
+        """
+        self.client.logout()
+
+        new_members_data = [{"name": "Alice Johnson", "email": "alice@example.com"}]
+
+        response = self.client.post(
+            reverse("update_family_members"),
+            data=json.dumps(new_members_data),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith(reverse("home")))
+
+    def test_update_family_members_invalid_data(self):
+        """
+        Test handling of invalid data
+        """
+        invalid_members_data = [{"name": "", "email": "invalid-email"}]
+
+        response = self.client.post(
+            reverse("update_family_members"),
+            data=json.dumps(invalid_members_data),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        response_data = response.json()
+        self.assertFalse(response_data["success"])
+
+    @patch("user_profile.views.FamilyMemberEmails")
+    def test_update_family_members_email_sending(self, mock_email_send):
+        """
+        Test that emails are sent correctly when adding and removing members
+        """
+        updated_members_data = [{"name": "New Member", "email": "new@example.com"}]
+
+        response = self.client.post(
+            reverse("update_family_members"),
+            data=json.dumps(updated_members_data),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertTrue(response_data["success"])
+
+        self.assertTrue(mock_email_send.called)
+
+        calls = mock_email_send.call_args_list
+        self.assertEqual(len(calls), 2)
+
+    def test_update_family_members_duplicate_emails(self):
+        duplicate_members_data = [
+            {"name": "John Doe", "email": "john@example.com"},
+            {"name": "John Doe Duplicate", "email": "john@example.com"},
+        ]
+
+        response = self.client.post(
+            reverse("update_family_members"),
+            data=json.dumps(duplicate_members_data),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        response_data = response.json()
+        self.assertFalse(response_data["success"])
+        self.assertEqual(
+            response.json()["error"], "Duplicate email addresses are not allowed."
+        )
+
     def test_profile_str_method(self):
         expected_str = "Profile for testuser (test@example.com)"
         self.assertEqual(str(self.user_profile), expected_str)
@@ -51,6 +219,17 @@ class UserProfileTests(TestCase):
 
         self.user_profile.refresh_from_db()
         self.assertEqual(self.user_profile.bio, "Updated test bio")
+        self.assertRedirects(response, reverse("profile"))
+
+    def test_profile_view_update_name(self):
+        response = self.client.post(
+            reverse("profile"),
+            {"first_name": "test_first_name", "last_name": "test_last_name"},
+        )
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "test_first_name")
+        self.assertEqual(self.user.last_name, "test_last_name")
         self.assertRedirects(response, reverse("profile"))
 
     def test_report_user(self):
@@ -273,7 +452,7 @@ class UserProfileViewsTest(TestCase):
         )
 
         # Just verify the number of calls and that they were made with the same key
-        self.assertEqual(mock_s3.head_object.call_count, 2)
+        self.assertEqual(mock_s3.head_object.call_count, 3)
         for call_args in mock_s3.head_object.call_args_list:
             self.assertEqual(call_args[1]["Key"], "test_photo_key")
 

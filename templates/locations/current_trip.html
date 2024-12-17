@@ -5,6 +5,10 @@
 {% block content %}
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <div class="container mt-4">
     {% if error %}
         <div class="alert alert-warning">
@@ -14,10 +18,12 @@
     {% else %}
         <div class="card mb-4">
             <div class="card-header">
-                <h4>Your Active Trip</h4>
+                <h4>Trip Details</h4>
             </div>
             <div class="card-body">
                 <div class="mb-3">
+                    <p class="mb-0"><strong>Start Location:</strong> {{ user_trip.start_address }}</p>
+                    <p class="mb-0"><strong>End Location:</strong> {{ user_trip.end_address }}</p>
                     <p class="mb-0"><strong>Departure:</strong> {{ user_trip.planned_departure }}</p>
                     <p class="mb-0"><strong>Status:</strong> 
                         <span class="badge {% if user_trip.status == 'MATCHED' %}bg-warning
@@ -35,6 +41,18 @@
                     <p class="mb-0"><strong>Looking for:</strong> {{ user_trip.desired_companions }} companions</p>
                     <p class="mb-0"><strong>Companions Matched:</strong> {{ user_trip.accepted_companions_count }} / {{ user_trip.desired_companions }}</p>
                 </div>
+                {% if needs_attention %}
+                <div class="alert alert-warning mt-3">
+                    <p>{{ attention_message }}</p>
+                    <div class="mt-2">
+                        <a href="{% url 'reschedule_trip' %}" class="btn btn-primary">Reschedule Trip</a>
+                        <form action="{% url 'cancel_trip' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">Cancel Trip</button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
                 <div id="user-trip-map" style="height: 70vh; width: auto;" class="mb-3 position-relative rounded overflow-hidden"></div>
                 <div class="d-flex gap-2 justify-content-between">
                     <div class="d-flex gap-2">
@@ -70,10 +88,10 @@
                             </form>
                         {% endif %}
                         <button class="btn btn-secondary" onclick="toggleRouteInstructions()">Show/Hide Route Instructions</button>
-                        {% if user_trip.status in "SEARCHING,MATCHED,READY" %}
+                        {% if user_trip.status in "SEARCHING,MATCHED,READY" and not needs_attention %}
                             <form method="POST" action="{% url 'cancel_trip' %}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to cancel this trip?')">
+                                <button type="button" class="btn btn-danger" onclick="cancelTrip('{{ user_trip.id }}')">
                                     Cancel Trip
                                 </button>
                             </form>
@@ -178,9 +196,8 @@
                                 <div class="col">
                                     <div class="card h-100">
                                         <div class="card-body">
-                                            <h5 class="card-title">Request from {{ match.trip1.user.username }}</h5>
-                                            <p>Their Trip Details:</p>
-                                            <p>Departure: {{ match.trip1.planned_departure }}</p>
+                                            <h5 class="card-title"> <strong>{{ match.trip1.user.username }}</strong></h5>
+                                            <p class="mb-0">Departure: {{ match.trip1.planned_departure }}</p>
                                             <p>Group Size: {{ match.trip1.accepted_companions_count }}/{{ match.trip1.desired_companions }}</p>
                                             {% if match.status == 'PENDING' %}
                                                 <form method="POST" action="{% url 'handle_match_request' %}" class="d-inline">
@@ -281,7 +298,10 @@
         const tripChannel = window.pusher.subscribe('trip-{{ user_trip.id }}');
 
         tripChannel.bind('status-update', function(data) {
-            location.reload();
+            // Only reload if status and message are provided
+            if (data.status && data.message) {
+                location.reload();
+            }
         });
 
         const channelPanic = window.pusher.subscribe('emergency-channel');
@@ -352,7 +372,7 @@
             parseFloat({{user_trip.dest_latitude}}), 
             parseFloat({{user_trip.dest_longitude}})
         ], {icon: destIcon})
-        .bindPopup('Your Destination')
+        .bindPopup('Your End Location')
         .addTo(window.map);
 
         const routingControl = L.Routing.control({
@@ -378,22 +398,53 @@
                 return `${duration} min - ${line.summary.totalDistance} m`;
             },
             lineOptions: {
+<<<<<<< HEAD
                 styles: [{color: 'blue', opacity: 0.6, weight: 4}],
+=======
+                styles: [{color: 'blue', opacity: 0.7, weight: 5}],
+>>>>>>> all_branch_merge
                 extendToWaypoints: true,
                 missingRouteTolerance: 0
             },
-            alternativeStyles: {
+            altLineOptions: {
                 styles: [
+<<<<<<< HEAD
                         {color: '#B1D690', opacity: 0.6, weight: 4},
                         {color: '#FEEC37', opacity: 0.6, weight: 4},
                         {color: '#FFA24C', opacity: 0.6, weight: 4}
+=======
+                        {color: '#20B2AA', opacity: 0.5, weight: 5}, // Light sea green
+                        {color: '#9932CC', opacity: 0.5, weight: 5}, // Dark orchid
+                        {color: '#FF1493', opacity: 0.5, weight: 5} //Deep pink
+>>>>>>> all_branch_merge
                     ]
             },
             createMarker: function() { return null; },  // Disable default markers
             addWaypoints: false,  // Prevent adding new waypoints
             draggableWaypoints: false,  // Prevent dragging waypoints
             routeWhileDragging: false,
+<<<<<<< HEAD
             show: true  // Hide the routing instructions panel
+=======
+            show: true,  // Hide the routing instructions panel
+            defaultErrorHandler: function(e) { /* Do nothing */ 
+                // Silently handle the error - prevent console logging
+                console.warn("Routing failed - using direct line instead");
+                // alert("Routing failed - using direct line instead");
+
+                // Optionally show a simple line between points if routing fails
+                if (!window.backupRoute) {
+                    window.backupRoute = L.polyline([
+                        [startMarker.getLatLng(), destMarker.getLatLng()]
+                    ], {
+                        color: 'blue',
+                        opacity: 0.7,
+                        weight: 5,
+                        dashArray: '10, 10'  // Makes line dashed
+                    }).addTo(window.map);
+                }
+            },
+>>>>>>> all_branch_merge
         }).addTo(window.map);
 
         // const routeLine = L.polyline([
@@ -650,22 +701,33 @@
             document.getElementById('panic_message').value = '';
         });
         
-        function triggerPanic() {
+        async function triggerPanic() {
             const message = document.getElementById('panic_message').value.trim();
             const errorDiv = document.getElementById('panic_error');
-            
+
             if (!message) {
                 errorDiv.textContent = 'Please describe your emergency';
                 errorDiv.style.display = 'block';
                 return;
             }
-            
-            // Hide error if validation passes
+
             errorDiv.style.display = 'none';
 
-            if (confirm('Are you sure you want to activate Panic mode?')) {
+            const result = await Swal.fire({
+                title: 'Activate Panic Mode?',
+                text: 'Are you sure you want to activate Panic mode?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes',
+                cancelButtonText: 'No, cancel'
+            });
+
+            if (result.isConfirmed) {
                 const panicButton = document.getElementById('panic');
                 panicButton.disabled = true;
+<<<<<<< HEAD
                 
                 fetch("{% url 'trigger_panic' %}", {
                     method: "POST",
@@ -690,7 +752,53 @@
                     alert('An error occurred while triggering Panic mode.');
                 });
             }
+=======
+
+            fetch("{% url 'trigger_panic' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+                body: `initial_message=${encodeURIComponent(message)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('panicModal')).hide();
+                    Swal.fire('Activated!', data.message, 'success');
+                } else {
+                    throw new Error(data.error || 'Server error occurred');
+                }
+            })
+            .catch(error => {
+                console.error('Full error:', error);
+                Swal.fire('Error!', error.message, 'error');
+            });
+>>>>>>> all_branch_merge
         }
+    }
+
+    </script>
+
+    <script>
+    async function cancelTrip(tripId) {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'You are about to cancel this trip.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No, keep it'
+        });
+
+        if (result.isConfirmed) {
+            document.querySelector(`form[action="{% url 'cancel_trip' %}"]`).submit();
+        }
+    }
+
     </script>
 {% endif %}
 {% endblock %}

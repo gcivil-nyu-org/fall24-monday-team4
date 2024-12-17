@@ -12,6 +12,12 @@ import uuid
 from django.http import JsonResponse
 from .decorators import verification_required
 from django.views.decorators.http import require_http_methods
+<<<<<<< HEAD
+=======
+from utils.email_utils import FamilyMemberEmails, validate_family_members_input
+from django.template.loader import render_to_string
+import json
+>>>>>>> all_branch_merge
 
 
 @login_required(login_url="home")
@@ -28,10 +34,18 @@ def profile_view(request, user_id=None):
         is_user = user_id == request.user.id
 
     if request.method == "POST":
-        new_bio = request.POST.get("bio")
-        profile.bio = new_bio
-        profile.save()
-        return redirect("profile")
+        if is_user:
+            first_name = request.POST.get("first_name", "").strip()
+            last_name = request.POST.get("last_name", "").strip()
+
+            request.user.first_name = first_name
+            request.user.last_name = last_name
+            request.user.save()
+
+            new_bio = request.POST.get("bio", "").strip()
+            profile.bio = new_bio
+            profile.save()
+            return redirect("profile")
 
     if profile.photo_key:
         profile_picture_url = generate_presigned_url(profile.photo_key, expiration=3600)
@@ -48,6 +62,78 @@ def profile_view(request, user_id=None):
             "user_to_view": user_to_view,
         },
     )
+
+
+@login_required(login_url="home")
+@verification_required
+@require_http_methods(["POST"])
+def update_family_members(request):
+    try:
+        data = json.loads(request.body)
+
+        # Check for duplicate emails in submitted data
+        email_list = [member["email"] for member in data]
+        if len(email_list) != len(set(email_list)):
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Duplicate email addresses are not allowed.",
+                },
+                status=400,
+            )
+
+        is_valid, error_message = validate_family_members_input(data)
+        if not is_valid:
+            return JsonResponse({"success": False, "error": error_message}, status=400)
+
+        # Get existing members and create sets of emails only
+        existing_members = FamilyMembers.objects.filter(user=request.user)
+        existing_emails = {member.email for member in existing_members}
+        new_emails = {member["email"] for member in data}
+
+        # Find emails to remove and add
+        emails_to_remove = existing_emails - new_emails
+        emails_to_add = new_emails - existing_emails
+
+        # Handle removals
+        if emails_to_remove:
+            removed_members = existing_members.filter(email__in=emails_to_remove)
+            removed_members.delete()
+
+            html_message_removed = render_to_string(
+                "emails/removed_fam_email.html",
+                {"username": request.user.username},
+            )
+            FamilyMemberEmails(
+                list(emails_to_remove),
+                html_message_removed,
+                f"You've Been Removed from {request.user.username}'s Family List",
+            )
+
+        # Handle additions and updates
+        for member_data in data:
+            FamilyMembers.objects.update_or_create(
+                user=request.user,
+                email=member_data["email"],
+                defaults={"full_name": member_data["name"]},
+            )
+
+        # Send welcome emails only to new members
+        if emails_to_add:
+            html_message_added = render_to_string(
+                "emails/welcome_fam_email.html",
+                {"username": request.user.username},
+            )
+            FamilyMemberEmails(
+                list(emails_to_add),
+                html_message_added,
+                f"You've Been Added to {request.user.username}'s Family List",
+            )
+
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
 
 
 @login_required(login_url="home")

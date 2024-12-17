@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Reschedule Trip{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Reschedule Trip</h4>
+        </div>
+
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data" id="tripForm">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    Departure Date And Time
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <input type="datetime-local"
+                                id="planned_departure"  
+                                name="planned_departure"  
+                                class="form-control"
+                                required
+                                step="60"
+                                min="{% now 'Y-m-d\TH:i' %}"
+                                onmouseleave="if(this.value=='')this.value='{% now 'Y-m-d\TH:i' %}'">
+                            <button type="button" class="btn btn-info" id="setNowBtn">Now</button>
+                        </div>
+                        <div id="dateError" class="alert alert-danger mt-2" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitTrip" class="btn btn-primary">Update Departure Time</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('planned_departure');
+        const setNowBtn = document.getElementById('setNowBtn');
+
+        function updateMinMaxDates() {
+            const now = new Date();
+            const maxDate = new Date(now);
+            maxDate.setFullYear(now.getFullYear() + 1);
+            
+            // Round up to nearest minute
+            now.setSeconds(0, 0);
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            dateInput.min = now.toISOString().slice(0, 16);
+            dateInput.max = maxDate.toISOString().slice(0, 16);
+            return now;
+        }
+        
+        setNowBtn.addEventListener('click', function() {
+            const now = updateMinMaxDates();
+            dateInput.value = now.toISOString().slice(0, 16);
+        });
+    });
+    
+    document.getElementById('tripForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        fetch("{% url 'reschedule_trip' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = "{% url 'current_trip' %}";
+            } else {
+                throw new Error(data.error || 'Server error occurred');
+            }
+        })
+        .catch(error => {
+            console.error('Full error:', error);  // This will show in browser dev tools
+            Swal.fire({
+                title: 'Error',
+                text: error.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        });
+    });
+</script>
+{% endblock %}
