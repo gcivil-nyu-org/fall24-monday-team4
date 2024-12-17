@@ -12,12 +12,10 @@ import uuid
 from django.http import JsonResponse
 from .decorators import verification_required
 from django.views.decorators.http import require_http_methods
-<<<<<<< HEAD
-=======
 from utils.email_utils import FamilyMemberEmails, validate_family_members_input
 from django.template.loader import render_to_string
 import json
->>>>>>> all_branch_merge
+from user_profile.models import FamilyMembers
 
 
 @login_required(login_url="home")

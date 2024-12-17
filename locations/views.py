@@ -3,7 +3,6 @@ import uuid
 import json
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
-from locations.templatetags import trip_filters
 from user_profile.models import FamilyMembers
 from utils.email_utils import FamilyMemberEmails
 from django.template.loader import render_to_string
@@ -96,23 +95,7 @@ def create_trip(request):
     planned_departure = make_aware(
         datetime.strptime(request.POST.get("planned_departure"), "%Y-%m-%dT%H:%M")
     )
-
-<<<<<<< HEAD
-    Trip.objects.update_or_create(
-        user=request.user,
-        status="SEARCHING",  # Only look for active searching trips
-        defaults={
-            "start_latitude": request.POST.get("start_latitude"),
-            "start_longitude": request.POST.get("start_longitude"),
-            "dest_latitude": request.POST.get("dest_latitude"),
-            "dest_longitude": request.POST.get("dest_longitude"),
-            "planned_departure": planned_departure,
-            "desired_companions": int(request.POST.get("desired_companions")),
-            "search_radius": int(request.POST.get("search_radius")),
-        },
-    )
-    return redirect("current_trip")
-=======
+    try:
         # Validate datetime
         now = timezone.localtime(timezone.now().replace(second=0, microsecond=0))
         max_date = now + timedelta(days=365)  # 1 year from now
@@ -172,7 +155,6 @@ def create_trip(request):
         return JsonResponse({"success": True})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
->>>>>>> all_branch_merge
 
 
 @login_required
@@ -1006,8 +988,6 @@ def complete_trip(request):
                 completion_requested=True,
                 completed_at=current_time,
             )
-<<<<<<< HEAD
-=======
 
             for matched_trip in matched_trips:
                 family_members = FamilyMembers.objects.filter(user=matched_trip.user)
@@ -1026,7 +1006,6 @@ def complete_trip(request):
             user_ids = matched_trips.values_list("user", flat=True)
             UserLocation.objects.filter(user__in=user_ids).delete()
 
->>>>>>> all_branch_merge
             # Broadcast completion to all participants
             for matched_trip in matched_trips:
                 broadcast_trip_update(

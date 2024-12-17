@@ -5,9 +5,10 @@ from django.contrib.auth.models import User
 from accounts.models import UserDocument, UserReports
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import Http404
-from .models import UserProfile
+from .models import UserProfile, FamilyMembers
 from unittest.mock import call, patch, MagicMock
 from botocore.exceptions import ClientError
+from django.core import mail
 
 
 class UserProfileTests(TestCase):

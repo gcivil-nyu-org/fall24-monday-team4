@@ -13,11 +13,8 @@ from .views import (
     update_location,
     get_trip_locations,
     complete_trip,
-<<<<<<< HEAD
-=======
     reschedule_trip,
     check_panic_users,
->>>>>>> all_branch_merge
 )
 
 urlpatterns = [
